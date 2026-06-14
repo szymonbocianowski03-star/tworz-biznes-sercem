@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isAdPlatformComingSoon } from "@/lib/adPlatform";
 import { labelLifecycle, labelProvider } from "@/lib/campaignComposerLabels";
+import { readServerFnError } from "@/lib/readServerFnError";
+import { toastSupabaseLoadError } from "@/lib/supabaseSchemaHint";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 
@@ -33,6 +35,8 @@ function CampaignComposerHome() {
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [creating, setCreating] = useState<"meta" | "linkedin" | "tiktok" | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [metaConn, setMetaConn] = useState<{ id: string; selected_ad_account_id: string | null; selected_page_id: string | null } | null>(null);
@@ -45,27 +49,51 @@ function CampaignComposerHome() {
     setDrafts((d ?? []) as DraftRow[]);
   }, [fnList, workspaceId]);
 
+  const ensureWorkspaceId = useCallback(async (): Promise<string | null> => {
+    if (workspaceId) return workspaceId;
+    try {
+      const { workspaceId: ws } = await fnEnsure({ data: {} });
+      if (!ws) throw new Error("Brak identyfikatora przestrzeni roboczej.");
+      setWorkspaceId(ws);
+      return ws;
+    } catch (e) {
+      const msg = readServerFnError(e, "Nie udało się utworzyć przestrzeni roboczej.");
+      setInitError(msg);
+      toastSupabaseLoadError({ message: msg }, "kampanie (cc_workspace)");
+      return null;
+    }
+  }, [workspaceId, fnEnsure]);
+
   useEffect(() => {
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) {
-        navigate({ to: "/auth" });
-        return;
+      try {
+        setInitError(null);
+        const { data: u } = await supabase.auth.getUser();
+        if (!u.user) {
+          navigate({ to: "/auth" });
+          return;
+        }
+        const wsRes = await fnEnsure({ data: {} });
+        const ws = wsRes.workspaceId;
+        if (!ws) throw new Error("Brak identyfikatora przestrzeni roboczej.");
+        const [{ data: m }, { data: l }, { data: t }] = await Promise.all([
+          supabase.from("meta_connections").select("id,selected_ad_account_id,selected_page_id").eq("user_id", u.user.id).maybeSingle(),
+          supabase.from("linkedin_connections").select("id,selected_ad_account_id").eq("user_id", u.user.id).maybeSingle(),
+          supabase.from("tiktok_connections").select("id,selected_advertiser_id").eq("user_id", u.user.id).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        ]);
+        setWorkspaceId(ws);
+        setMetaConn(m);
+        setLiConn(l);
+        setTtConn(t);
+        const { drafts: d } = await fnList({ data: { workspaceId: ws } });
+        setDrafts((d ?? []) as DraftRow[]);
+      } catch (e) {
+        const msg = readServerFnError(e, "Nie udało się załadować panelu kampanii.");
+        setInitError(msg);
+        toastSupabaseLoadError({ message: msg }, "kampanie (cc_workspace / cc_campaign_draft)");
+      } finally {
+        setLoading(false);
       }
-      const wsRes = await fnEnsure({ data: {} });
-      const ws = wsRes.workspaceId;
-      const [{ data: m }, { data: l }, { data: t }] = await Promise.all([
-        supabase.from("meta_connections").select("id,selected_ad_account_id,selected_page_id").eq("user_id", u.user.id).maybeSingle(),
-        supabase.from("linkedin_connections").select("id,selected_ad_account_id").eq("user_id", u.user.id).maybeSingle(),
-        supabase.from("tiktok_connections").select("id,selected_advertiser_id").eq("user_id", u.user.id).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
-      ]);
-      setWorkspaceId(ws);
-      setMetaConn(m);
-      setLiConn(l);
-      setTtConn(t);
-      const { drafts: d } = await fnList({ data: { workspaceId: ws } });
-      setDrafts((d ?? []) as DraftRow[]);
-      setLoading(false);
     })();
   }, [fnEnsure, fnList, navigate]);
 
@@ -93,23 +121,27 @@ function CampaignComposerHome() {
       toast.message(`${labelProvider(provider)} — wkrótce`);
       return;
     }
-    if (!workspaceId) return;
-    const acc =
-      (provider === "meta"
-        ? metaConn?.selected_ad_account_id
-        : provider === "tiktok"
-          ? ttConn?.selected_advertiser_id
-          : liConn?.selected_ad_account_id) ?? "";
-    const title =
-      provider === "meta"
-        ? "Nowa kampania Meta"
-        : provider === "tiktok"
-          ? "Nowa kampania TikTok"
-          : "Nowa kampania LinkedIn";
+    setCreating(provider);
     try {
+      const ws = await ensureWorkspaceId();
+      if (!ws) return;
+
+      const acc =
+        (provider === "meta"
+          ? metaConn?.selected_ad_account_id
+          : provider === "tiktok"
+            ? ttConn?.selected_advertiser_id
+            : liConn?.selected_ad_account_id) ?? "";
+      const title =
+        provider === "meta"
+          ? "Nowa kampania Meta"
+          : provider === "tiktok"
+            ? "Nowa kampania TikTok"
+            : "Nowa kampania LinkedIn";
+
       const { id } = await fnCreate({
         data: {
-          workspaceId,
+          workspaceId: ws,
           provider,
           title,
           adAccountId: acc,
@@ -119,6 +151,8 @@ function CampaignComposerHome() {
           tiktokConnectionId: provider === "tiktok" ? ttConn?.id : undefined,
         },
       });
+      if (!id) throw new Error("Serwer nie zwrócił identyfikatora szkicu.");
+
       if (acc) {
         toast.success("Utworzono szkic");
       } else {
@@ -126,11 +160,15 @@ function CampaignComposerHome() {
           description: "Uzupełnij konto reklamowe w zakładce „Kanał i konto” (lub połącz integrację).",
         });
       }
-      navigate({ to: "/campaign-composer/draft/$draftId", params: { draftId: id } });
+      await navigate({ to: "/campaign-composer/draft/$draftId", params: { draftId: id } });
     } catch (e) {
-      toast.error("Nie udało się utworzyć szkicu", {
-        description: e instanceof Error ? e.message : String(e),
-      });
+      const msg = readServerFnError(e);
+      toastSupabaseLoadError({ message: msg }, "kampanie (cc_campaign_draft)");
+      if (/Unauthorized|401/i.test(msg)) {
+        navigate({ to: "/auth" });
+      }
+    } finally {
+      setCreating(null);
     }
   };
 
@@ -159,20 +197,45 @@ function CampaignComposerHome() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => quickCreate("meta")}>
-              Nowy szkic Meta
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading || creating !== null}
+              onClick={() => void quickCreate("meta")}
+            >
+              {creating === "meta" ? "Tworzenie…" : "Nowy szkic Meta"}
             </Button>
-            <Button type="button" onClick={() => quickCreate("linkedin")} disabled={isAdPlatformComingSoon("linkedin")}>
-              {isAdPlatformComingSoon("linkedin") ? "LinkedIn — wkrótce" : "Nowy szkic LinkedIn"}
+            <Button
+              type="button"
+              disabled={loading || creating !== null || isAdPlatformComingSoon("linkedin")}
+              onClick={() => void quickCreate("linkedin")}
+            >
+              {creating === "linkedin" ? "Tworzenie…" : isAdPlatformComingSoon("linkedin") ? "LinkedIn — wkrótce" : "Nowy szkic LinkedIn"}
             </Button>
-            <Button type="button" variant="outline" onClick={() => quickCreate("tiktok")} disabled={isAdPlatformComingSoon("tiktok")}>
-              {isAdPlatformComingSoon("tiktok") ? "TikTok — wkrótce" : "Nowy szkic TikTok"}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading || creating !== null || isAdPlatformComingSoon("tiktok")}
+              onClick={() => void quickCreate("tiktok")}
+            >
+              {creating === "tiktok" ? "Tworzenie…" : isAdPlatformComingSoon("tiktok") ? "TikTok — wkrótce" : "Nowy szkic TikTok"}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setBulkOpen(true)} disabled={selected.length === 0}>
               Zbiór operacji ({selected.length})
             </Button>
           </div>
         </header>
+
+        {initError && !loading && (
+          <div className="mb-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100">
+            <p className="font-semibold">Panel kampanii nie mógł się w pełni załadować</p>
+            <p className="mt-1 text-xs">{initError}</p>
+            <p className="mt-2 text-xs opacity-90">
+              Jeśli widzisz błąd o brakującej tabeli, uruchom migracje Supabase (pliki w{" "}
+              <code className="rounded bg-black/10 px-1">supabase/migrations/</code>, m.in. campaign_composer).
+            </p>
+          </div>
+        )}
 
         {loading ? (
           <p className="text-sm text-muted-foreground">Ładowanie przestrzeni roboczej…</p>
