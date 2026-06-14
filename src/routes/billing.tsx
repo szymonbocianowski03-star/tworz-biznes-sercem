@@ -19,7 +19,7 @@ import {
   type Plan,
 } from "@/lib/plans";
 import { FREE_AI_USAGE_BUDGET_CENTS, subscribeCreditsRefresh } from "@/lib/creditsRefresh";
-import { CREDIT_USAGE_HELP, formatCreditUsageRow, formatFreeUsageUsd, AI_PRICE_LIST } from "@/lib/creditUsageDisplay";
+import { formatCreditUsageRow, formatFreeUsageCredits, formatFreePlanBudgetCredits, AI_PRICE_LIST } from "@/lib/creditUsageDisplay";
 
 type BillingSearch = { yearly: boolean };
 
@@ -153,14 +153,12 @@ function BillingPage() {
 
         <section className="mt-10 mx-auto max-w-2xl">
           <h2 className="font-display text-lg font-extrabold tracking-tight text-center">Cennik AI (kredyty)</h2>
-          <p className="mt-1 text-xs text-muted-foreground text-center">{CREDIT_USAGE_HELP}</p>
           <ul className="mt-4 divide-y divide-border rounded-2xl border border-border bg-surface-elevated text-sm">
             {AI_PRICE_LIST.map((row) => (
               <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                 <span className="font-medium">{row.label}</span>
-                <span className="tabular-nums font-semibold">{row.credits} kred.</span>
-                <span className="text-xs text-muted-foreground w-full sm:w-auto sm:text-right">
-                  ${row.usd.toFixed(2)} kosztu API{row.note ? ` · ${row.note}` : ""}
+                <span className="tabular-nums font-semibold">
+                  {row.credits} kred.{row.note ? ` · ${row.note}` : ""}
                 </span>
               </li>
             ))}
@@ -180,8 +178,8 @@ function BillingPage() {
                     "…"
                   ) : isFreePlan ? (
                     <>
-                      {formatFreeUsageUsd(freeUsageCents)} / $1,00 · zostało{" "}
-                      {formatFreeUsageUsd(Math.max(0, FREE_AI_USAGE_BUDGET_CENTS - freeUsageCents))}
+                      {formatFreeUsageCredits(freeUsageCents)} / {formatFreePlanBudgetCredits()} · zostało{" "}
+                      {formatFreeUsageCredits(Math.max(0, FREE_AI_USAGE_BUDGET_CENTS - freeUsageCents))}
                     </>
                   ) : (
                     `${displayBalance} kredytów`
@@ -190,7 +188,7 @@ function BillingPage() {
                 </div>
                 {isFreePlan && !credits.loading && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Limit Free = max $1,00 kosztu API łącznie (~4 obrazy po $0,25). Po upgrade: {freePlanMonthlyCredits}+ kredytów wg cennika.
+                    Limit Free to {formatFreePlanBudgetCredits()} równowartości (~4 obrazy). Po upgrade: {freePlanMonthlyCredits}+ kredytów miesięcznie.
                   </p>
                 )}
               </div>
@@ -304,11 +302,8 @@ function BillingPage() {
             <h2 className="font-display text-xl font-extrabold tracking-tight text-center">Ślad zużycia AI</h2>
             <p className="mt-1 text-sm text-muted-foreground text-center max-w-xl mx-auto">
               {isFreePlan
-                ? "Plan Free: zużycie sumuje się w liczniku powyżej (max $1,00 kosztu API). Kredyty z pakietu nie są odejmowane."
+                ? "Plan Free: zużycie wlicza się w limit powyżej. Kredyty z pakietu nie są odejmowane."
                 : "Poniżej widać, ile kredytów odjęliśmy po każdym zadaniu AI."}
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground text-center max-w-2xl mx-auto leading-relaxed">
-              {CREDIT_USAGE_HELP}
             </p>
             <ul className="mt-4 divide-y divide-border rounded-2xl border border-border bg-surface-elevated text-sm">
               {usageLog.map((row) => {
@@ -319,13 +314,10 @@ function BillingPage() {
                   isFreePlan,
                 });
                 return (
-                <li key={row.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                   <span className="font-medium">{formatted.title}</span>
                   <span className="font-semibold tabular-nums text-foreground">{formatted.charge}</span>
-                  <span className="text-xs text-muted-foreground w-full sm:text-right sm:max-w-[55%]">
-                    {formatted.detail}
-                  </span>
-                  <span className="text-xs text-muted-foreground w-full sm:w-auto sm:text-right sm:order-last">
+                  <span className="text-xs text-muted-foreground">
                     {new Date(row.created_at).toLocaleString("pl-PL")}
                   </span>
                 </li>

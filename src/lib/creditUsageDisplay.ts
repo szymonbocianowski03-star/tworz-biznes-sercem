@@ -1,7 +1,7 @@
-import { COST_PER_IMAGE_USD, CREDITS_PER_IMAGE, FREE_TIER_AI_USD_CAP } from "@/lib/plans";
-import { AI_PRICE_LIST, PRICING_FOOTNOTE } from "@/lib/aiPricing";
+import { CREDITS_PER_IMAGE, FREE_TIER_AI_USD_CAP_CENTS } from "@/lib/plans";
+import { AI_PRICE_LIST, CREDITS_PER_USD_CENT, FREE_PLAN_CREDIT_BUDGET } from "@/lib/aiPricing";
 
-export { AI_PRICE_LIST, PRICING_FOOTNOTE };
+export { AI_PRICE_LIST };
 
 /** Etykiety PL dla źródeł z credit_usage_log.source */
 const SOURCE_LABELS: Record<string, string> = {
@@ -15,39 +15,41 @@ const SOURCE_LABELS: Record<string, string> = {
   ai: "AI",
 };
 
-/** Zgodne z supabase/functions/_shared/creditEconomy.ts */
-export const CREDITS_PER_USD_CENT = 4;
-
 export function creditUsageSourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source.replace(/-/g, " ");
 }
 
-function formatUsd(cents: number): string {
-  const usd = cents / 100;
-  if (usd < 0.01) return "< $0.01";
-  return `$${usd.toFixed(2)}`;
+/** Centy zużycia planu Free → kredyty do wyświetlenia. */
+export function freeUsageCentsToCredits(cents: number): number {
+  return Math.max(0, Math.round(Math.max(0, cents) * CREDITS_PER_USD_CENT));
+}
+
+export function formatFreeUsageCredits(cents: number): string {
+  return `${freeUsageCentsToCredits(cents).toLocaleString("pl-PL")} kred.`;
+}
+
+export function formatFreePlanBudgetCredits(): string {
+  return `${FREE_PLAN_CREDIT_BUDGET.toLocaleString("pl-PL")} kred.`;
 }
 
 /**
- * usd_cents w bazie = koszt API w centach USD.
- * Kredyty (plan płatny) = centy × 4 (100 kred. = $0,25).
+ * Wiersz historii zużycia — tylko nazwa funkcji i liczba kredytów (bez kosztów API).
  */
 export function formatCreditUsageRow(opts: {
   source: string;
   usdCents: number;
   creditsDelta: number;
   isFreePlan: boolean;
-}): { title: string; charge: string; detail: string } {
+}): { title: string; charge: string } {
   const title = creditUsageSourceLabel(opts.source);
-  const costCents = Math.max(0, opts.usdCents);
   const charged = Math.abs(opts.creditsDelta);
-  const freeCapLabel = `$${FREE_TIER_AI_USD_CAP.toFixed(2)}`;
 
   if (opts.isFreePlan || opts.creditsDelta === 0) {
+    const used = freeUsageCentsToCredits(opts.usdCents);
+    const budget = freeUsageCentsToCredits(FREE_TIER_AI_USD_CAP_CENTS);
     return {
       title,
-      charge: `${formatUsd(costCents)} / ${freeCapLabel} limitu Free`,
-      detail: "Koszt API sumuje się w limicie planu Free. Z puli kredytów nic nie odejmujemy.",
+      charge: `${used.toLocaleString("pl-PL")} / ${budget.toLocaleString("pl-PL")} kred. (Free)`,
     };
   }
 
@@ -55,36 +57,12 @@ export function formatCreditUsageRow(opts: {
     const images = Math.max(1, Math.round(charged / CREDITS_PER_IMAGE));
     return {
       title,
-      charge: `−${charged} kred.`,
-      detail:
-        images === 1
-          ? `Stałe: $${COST_PER_IMAGE_USD.toFixed(2)} → ${CREDITS_PER_IMAGE} kred.`
-          : `${images}× obraz ($${COST_PER_IMAGE_USD.toFixed(2)}) → ${charged} kred.`,
+      charge: images === 1 ? `−${charged} kred.` : `−${charged} kred. (${images} obrazy)`,
     };
   }
-
-  if (opts.source === "generate-video" && charged > 0) {
-    return {
-      title,
-      charge: `−${charged} kred.`,
-      detail: `Stałe: $1,00 kosztu API → 400 kred.`,
-    };
-  }
-
-  const expected = Math.max(1, Math.ceil(costCents * CREDITS_PER_USD_CENT));
 
   return {
     title,
     charge: `−${charged} kred.`,
-    detail:
-      charged === expected
-        ? `Koszt API ${formatUsd(costCents)} × 4 = ${charged} kred.`
-        : `Koszt API ${formatUsd(costCents)} → ${charged} kred. (maks. z salda).`,
   };
 }
-
-export function formatFreeUsageUsd(cents: number): string {
-  return formatUsd(cents);
-}
-
-export const CREDIT_USAGE_HELP = PRICING_FOOTNOTE;
