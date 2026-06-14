@@ -14,13 +14,11 @@ export function LaunchPanel({
   onLoadItems,
   onCancelJob,
 }: Pick<BuilderProps, "jobs" | "jobItems" | "activeJob" | "blocking" | "onEnqueue" | "onRefreshJobs" | "onLoadItems" | "onCancelJob">) {
+  const liveJobs = jobs.filter((j) => j.intent === "go_live");
   return (
     <div className="space-y-4 text-sm">
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => onEnqueue("draft_only")}>
-            Symulacja publikacji
-          </Button>
           <Button size="sm" onClick={() => onEnqueue("go_live")} disabled={blocking > 0}>
             Opublikuj kampanię
           </Button>
@@ -39,15 +37,15 @@ export function LaunchPanel({
         )}
       </div>
 
-      {jobs.length === 0 ? (
+      {liveJobs.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border bg-muted/20 px-3 py-4 text-xs text-muted-foreground">
-          Brak historii — opublikuj kampanię powyżej.
+          Brak historii publikacji.
         </p>
       ) : (
         <ul className="divide-y divide-border rounded-xl border border-border">
-          {jobs.map((j) => (
+          {liveJobs.map((j) => (
             <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-              <span className="text-xs text-muted-foreground">{j.intent === "go_live" ? "Publikacja na żywo" : "Wersja testowa"}</span>
+              <span className="text-xs text-muted-foreground">Publikacja na żywo</span>
               <span className="text-xs font-semibold">{labelPublishStatus(j.status)}</span>
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onLoadItems(j.id)}>
                 Pokaż szczegóły

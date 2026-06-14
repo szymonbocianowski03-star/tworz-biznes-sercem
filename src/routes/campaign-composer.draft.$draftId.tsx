@@ -242,8 +242,8 @@ function DraftEditor() {
       const status = r.launch?.finalStatus ?? "queued";
       const msg = r.launch?.message;
 
-      if (intent === "draft_only" || r.dryRun) {
-        toast.message("Symulacja zakończona — kampania nie trafiła na konto reklamowe.");
+      if (r.dryRun) {
+        toast.message("Publikacja wstrzymana w konfiguracji serwera — skontaktuj się z administratorem, aby włączyć wysyłkę na Meta.");
         return;
       }
 
