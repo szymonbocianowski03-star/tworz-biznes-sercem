@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { isAdPlatformComingSoon } from "@/lib/adPlatform";
 import { labelLifecycle, labelProvider } from "@/lib/campaignComposerLabels";
 import { readServerFnError } from "@/lib/readServerFnError";
+import { ensureCcWorkspaceClient } from "@/lib/ensureCcWorkspace";
 import { toastSupabaseLoadError } from "@/lib/supabaseSchemaHint";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -49,20 +50,20 @@ function CampaignComposerHome() {
     setDrafts((d ?? []) as DraftRow[]);
   }, [fnList, workspaceId]);
 
-  const ensureWorkspaceId = useCallback(async (): Promise<string | null> => {
-    if (workspaceId) return workspaceId;
-    try {
-      const { workspaceId: ws } = await fnEnsure({ data: {} });
-      if (!ws) throw new Error("Brak identyfikatora przestrzeni roboczej.");
-      setWorkspaceId(ws);
-      return ws;
-    } catch (e) {
-      const msg = readServerFnError(e, "Nie udało się utworzyć przestrzeni roboczej.");
-      setInitError(msg);
-      toastSupabaseLoadError({ message: msg }, "kampanie (cc_workspace)");
-      return null;
-    }
-  }, [workspaceId, fnEnsure]);
+  const resolveWorkspaceId = useCallback(
+    async (userId: string): Promise<string> => {
+      try {
+        const res = await fnEnsure({ data: {} });
+        if (res?.workspaceId) return res.workspaceId;
+      } catch {
+        /* fallback poniżej */
+      }
+      return ensureCcWorkspaceClient(userId);
+    },
+    [fnEnsure],
+  );
+
+  );
 
   useEffect(() => {
     (async () => {
@@ -73,9 +74,7 @@ function CampaignComposerHome() {
           navigate({ to: "/auth" });
           return;
         }
-        const wsRes = await fnEnsure({ data: {} });
-        const ws = wsRes.workspaceId;
-        if (!ws) throw new Error("Brak identyfikatora przestrzeni roboczej.");
+        const ws = await resolveWorkspaceId(u.user.id);
         const [{ data: m }, { data: l }, { data: t }] = await Promise.all([
           supabase.from("meta_connections").select("id,selected_ad_account_id,selected_page_id").eq("user_id", u.user.id).maybeSingle(),
           supabase.from("linkedin_connections").select("id,selected_ad_account_id").eq("user_id", u.user.id).maybeSingle(),
@@ -95,7 +94,7 @@ function CampaignComposerHome() {
         setLoading(false);
       }
     })();
-  }, [fnEnsure, fnList, navigate]);
+  }, [fnList, navigate, resolveWorkspaceId]);
 
   const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
@@ -123,8 +122,10 @@ function CampaignComposerHome() {
     }
     setCreating(provider);
     try {
-      const ws = await ensureWorkspaceId();
-      if (!ws) return;
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) throw new Error("Zaloguj się ponownie.");
+      const ws = workspaceId ?? (await resolveWorkspaceId(u.user.id));
+      setWorkspaceId(ws);
 
       const acc =
         (provider === "meta"
@@ -231,8 +232,9 @@ function CampaignComposerHome() {
             <p className="font-semibold">Panel kampanii nie mógł się w pełni załadować</p>
             <p className="mt-1 text-xs">{initError}</p>
             <p className="mt-2 text-xs opacity-90">
-              Jeśli widzisz błąd o brakującej tabeli, uruchom migracje Supabase (pliki w{" "}
-              <code className="rounded bg-black/10 px-1">supabase/migrations/</code>, m.in. campaign_composer).
+              Moduł kampanii wymaga tabel w Supabase (<code className="rounded bg-black/10 px-1">cc_workspace</code>,{" "}
+              <code className="rounded bg-black/10 px-1">cc_campaign_draft</code>). W Supabase Dashboard → SQL Editor uruchom migracje z{" "}
+              <code className="rounded bg-black/10 px-1">supabase/migrations/</code> (pliki zawierające „campaign_composer” lub datę od maja 2026).
             </p>
           </div>
         )}

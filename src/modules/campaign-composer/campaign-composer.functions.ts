@@ -17,14 +17,23 @@ export const ccEnsureWorkspace = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const name = data.name?.trim() || "Przestrzeń";
-    const { data: existing } = await supabase.from("cc_workspace").select("id").eq("user_id", userId).eq("name", name).maybeSingle();
-    if (existing) return { workspaceId: existing.id };
-    const { data: row, error } = await supabase
+    const { data: existing, error: readErr } = await supabase.from("cc_workspace").select("id").eq("user_id", userId).eq("name", name).maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (existing?.id) return { workspaceId: existing.id };
+
+    const { data: row, error: insertErr } = await supabase
       .from("cc_workspace")
-      .upsert({ user_id: userId, name }, { onConflict: "user_id,name", ignoreDuplicates: false })
+      .insert({ user_id: userId, name })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
+    if (insertErr) {
+      if (insertErr.code === "23505") {
+        const { data: retry } = await supabase.from("cc_workspace").select("id").eq("user_id", userId).eq("name", name).maybeSingle();
+        if (retry?.id) return { workspaceId: retry.id };
+      }
+      throw new Error(insertErr.message);
+    }
+    if (!row?.id) throw new Error("Nie udało się utworzyć przestrzeni roboczej kampanii.");
     return { workspaceId: row.id };
   });
 
