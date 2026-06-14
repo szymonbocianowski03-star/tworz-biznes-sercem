@@ -71,6 +71,14 @@ function CampaignComposerHome() {
 
   const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
+  const allDraftIds = drafts.map((d) => d.id);
+  const allSelected = drafts.length > 0 && allDraftIds.every((id) => selected.includes(id));
+  const someSelected = selected.length > 0 && !allSelected;
+
+  const toggleAll = () => {
+    setSelected(allSelected ? [] : allDraftIds);
+  };
+
   const runBulk = async (action: "pause" | "resume" | "archive" | "delete" | "retry_launch" | "duplicate") => {
     if (!workspaceId || selected.length === 0) return;
     const { results } = await fnBulk({ data: { workspaceId, draftIds: selected, action } });
@@ -172,7 +180,15 @@ function CampaignComposerHome() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="w-10 px-4 py-3" />
+                  <th className="w-10 px-4 py-3">
+                    {drafts.length > 0 && (
+                      <Checkbox
+                        checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                        onCheckedChange={toggleAll}
+                        aria-label="Zaznacz wszystkie"
+                      />
+                    )}
+                  </th>
                   <th className="px-4 py-3">Nazwa</th>
                   <th className="px-4 py-3">Kanał</th>
                   <th className="px-4 py-3">Stan</th>
