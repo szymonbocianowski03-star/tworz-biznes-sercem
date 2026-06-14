@@ -49,7 +49,6 @@ function Landing() {
       <Nav />
       <Hero />
       <WorkflowPitch />
-      <VideoSection />
       <WhatYouHandle />
       <TestimonialsShorts />
       <Pricing />
@@ -359,90 +358,6 @@ function WhatYouHandle() {
       </div>
     </section>
   );
-}
-
-/* ============================== VIDEO ============================== */
-function VideoSection() {
-  // Domyślny film — można podmienić w UI lub na stałe.
-  const DEFAULT = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-  const [url, setUrl] = useState(DEFAULT);
-  const [draft, setDraft] = useState("");
-  const embedId = parseYouTubeId(url);
-
-  return (
-    <section id="workflow-demo" className="border-b border-neutral-200 scroll-mt-24">
-      <div className="mx-auto max-w-[1600px] px-6 md:px-10 py-12 md:py-16 lg:py-20">
-        <div className="mb-8 md:mb-10 max-w-5xl">
-          <h2 className="serif text-[clamp(2.5rem,7vw,6rem)] leading-[0.95] tracking-[-0.03em]">
-            Zobacz <span className="italic font-light">workflow</span> w praktyce.
-          </h2>
-        </div>
-
-        <div className="relative w-full aspect-video bg-neutral-950 overflow-hidden">
-          {embedId ? (
-            <iframe
-              key={embedId}
-              src={`https://www.youtube.com/embed/${embedId}?rel=0&modestbranding=1`}
-              title="MarketingNow — wideo"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-white/60 text-sm">
-              Niepoprawny link YouTube
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-12 gap-6 mt-8">
-          <div className="col-span-12 md:col-span-10 lg:col-span-8">
-            <label className="block text-[11px] uppercase tracking-[0.18em] text-neutral-500 mb-3">
-              Wklej własny link YouTube
-            </label>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (draft.trim()) setUrl(draft.trim());
-              }}
-              className="flex gap-3 border-b border-neutral-950 pb-2"
-            >
-              <input
-                type="url"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=..."
-                className="flex-1 bg-transparent text-[16px] outline-none placeholder:text-neutral-400"
-              />
-              <button
-                type="submit"
-                className="serif italic text-[18px] hover:opacity-60 transition"
-              >
-                Wczytaj →
-              </button>
-            </form>
-            <p className="mt-3 text-[12px] text-neutral-500 truncate">Aktualnie: {url}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function parseYouTubeId(input: string): string | null {
-  if (!input) return null;
-  try {
-    const u = new URL(input);
-    if (u.hostname === "youtu.be") return u.pathname.slice(1) || null;
-    if (u.hostname.includes("youtube.com")) {
-      if (u.pathname === "/watch") return u.searchParams.get("v");
-      const m = u.pathname.match(/\/(embed|shorts|v)\/([^/?#]+)/);
-      if (m) return m[2];
-    }
-    return null;
-  } catch {
-    return /^[\w-]{11}$/.test(input) ? input : null;
-  }
 }
 
 /* ============================== PRICING ============================== */
