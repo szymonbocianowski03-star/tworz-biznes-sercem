@@ -63,8 +63,6 @@ function CampaignComposerHome() {
     [fnEnsure],
   );
 
-  );
-
   useEffect(() => {
     (async () => {
       try {
