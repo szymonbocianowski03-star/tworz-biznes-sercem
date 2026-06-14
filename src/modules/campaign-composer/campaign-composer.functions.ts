@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { campaignComposerDraftPayloadSchema, defaultDraftPayload } from "./domain/draft-schema";
 import { blockingCount, runPreflightValidation } from "./validation/preflight";
 import { buildLocalPreview } from "./preview/engines";
+import { loadIntegrationDefaults, mergeIntegrationDefaults, preflightContext } from "./integration-defaults";
 import { isCampaignComposerDryRun, processLaunchJob } from "./launch/launch-engine";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
@@ -142,14 +143,17 @@ export const ccEnqueueLaunch = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: drow } = await supabase.from("cc_campaign_draft").select("*").eq("id", data.draftId).eq("user_id", userId).maybeSingle();
     if (!drow) throw new Error("Nie znaleziono draftu");
-    const payload = campaignComposerDraftPayloadSchema.parse(drow.draft_payload);
-    const issues = runPreflightValidation(payload, {
-      hasMetaPage: Boolean(payload.channel.metaPageId),
-      hasMetaPixelWhenRequired: Boolean(payload.channel.metaPixelId),
-      hasLinkedInOrg: Boolean(payload.channel.linkedinOrganizationUrn),
-      scopesMeta: [],
-      scopesLinkedIn: [],
-    });
+    const raw = campaignComposerDraftPayloadSchema.parse(drow.draft_payload);
+    const defaults = await loadIntegrationDefaults(supabase, userId, raw);
+    const payload = mergeIntegrationDefaults(raw, defaults);
+    if (payload !== raw) {
+      await supabase
+        .from("cc_campaign_draft")
+        .update({ draft_payload: payload as unknown as Json })
+        .eq("id", data.draftId)
+        .eq("user_id", userId);
+    }
+    const issues = runPreflightValidation(payload, preflightContext(payload));
     if (blockingCount(issues) > 0 && data.intent === "go_live") {
       return { ok: false as const, issues };
     }
@@ -192,14 +196,10 @@ export const ccRunPreflight = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: drow } = await supabase.from("cc_campaign_draft").select("*").eq("id", data.draftId).eq("user_id", userId).maybeSingle();
     if (!drow) return { issues: [] as const };
-    const payload = campaignComposerDraftPayloadSchema.parse(drow.draft_payload);
-    const issues = runPreflightValidation(payload, {
-      hasMetaPage: Boolean(payload.channel.metaPageId),
-      hasMetaPixelWhenRequired: payload.meta?.objective === "OUTCOME_SALES" ? Boolean(payload.channel.metaPixelId) : true,
-      hasLinkedInOrg: Boolean(payload.channel.linkedinOrganizationUrn),
-      scopesMeta: [],
-      scopesLinkedIn: [],
-    });
+    const raw = campaignComposerDraftPayloadSchema.parse(drow.draft_payload);
+    const defaults = await loadIntegrationDefaults(supabase, userId, raw);
+    const payload = mergeIntegrationDefaults(raw, defaults);
+    const issues = runPreflightValidation(payload, preflightContext(payload));
     return { issues, preview: buildLocalPreview(payload, issues) };
   });
 

@@ -2,8 +2,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Image, Loader2, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ccImportGeneratedVideos, ccListAssets } from "@/modules/campaign-composer/campaign-composer.functions";
-import { importGeneratedImageToCampaignAsset } from "@/lib/campaignAssetImport";
+import { ccImportGeneratedVideos, ccImportGeneratedImages, ccListAssets } from "@/modules/campaign-composer/campaign-composer.functions";
 import { toastSupabaseLoadError } from "@/lib/supabaseSchemaHint";
 import { toast } from "sonner";
 
@@ -33,10 +32,11 @@ export function CampaignMediaPicker({
   onFormatChange,
 }: Props) {
   const fnImportVid = useServerFn(ccImportGeneratedVideos);
+  const fnImportImg = useServerFn(ccImportGeneratedImages);
   const fnList = useServerFn(ccListAssets);
 
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Thumb[]>([]);
   /** source_ref (generated_images / generated_videos id) → cc_asset id */
   const [refToAsset, setRefToAsset] = useState<Record<string, string>>({});
@@ -109,18 +109,21 @@ export function CampaignMediaPicker({
     if (existing) return existing;
 
     if (t.kind === "image") {
-      const r = await importGeneratedImageToCampaignAsset({
-        workspaceId,
-        generatedImageId: t.sourceId,
-        imageUrl: t.url,
-        prompt: t.label,
-      });
-      if (!r.ok) {
-        toast.error(r.error);
+      try {
+        const { importedIds } = await fnImportImg({
+          data: { workspaceId, generatedImageIds: [t.sourceId] },
+        });
+        const id = importedIds?.[0];
+        if (!id) {
+          toast.error("Nie udało się dodać obrazu do kampanii.");
+          return null;
+        }
+        setRefToAsset((m) => ({ ...m, [t.sourceId]: id }));
+        return id;
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Nie udało się dodać obrazu do kampanii.");
         return null;
       }
-      setRefToAsset((m) => ({ ...m, [t.sourceId]: r.assetId }));
-      return r.assetId;
     }
 
     try {
@@ -142,36 +145,40 @@ export function CampaignMediaPicker({
 
   const selectedSet = useMemo(() => new Set(selectedAssetIds), [selectedAssetIds]);
 
+  const isSelected = (t: Thumb) => {
+    const aid = refToAsset[t.sourceId];
+    return Boolean(aid && selectedSet.has(aid));
+  };
+
   const toggle = async (t: Thumb) => {
     if (!workspaceId) {
       toast.error("Brak przestrzeni roboczej — odśwież stronę szkicu kampanii.");
       return;
     }
 
-    const assetId = refToAsset[t.sourceId] ?? (await resolveAssetId(t));
-    if (!assetId) return;
+    setBusyKey(t.key);
+    try {
+      const assetId = refToAsset[t.sourceId] ?? (await resolveAssetId(t));
+      if (!assetId) return;
 
-    if (selectedSet.has(assetId)) {
-      onChange(selectedAssetIds.filter((id) => id !== assetId));
-      return;
+      if (selectedSet.has(assetId)) {
+        onChange(selectedAssetIds.filter((id) => id !== assetId));
+        return;
+      }
+      if (selectedAssetIds.length >= maxPick) {
+        toast.message(`Możesz wybrać maksymalnie ${maxPick} materiałów do tej reklamy.`);
+        return;
+      }
+      const next = [...selectedAssetIds, assetId];
+      onChange(next);
+      if (onFormatChange) {
+        if (t.kind === "video") onFormatChange("video");
+        else if (next.length >= 2) onFormatChange("carousel");
+        else onFormatChange("single_image");
+      }
+    } finally {
+      setBusyKey(null);
     }
-    if (selectedAssetIds.length >= maxPick) {
-      toast.message(`Możesz wybrać maksymalnie ${maxPick} materiałów do tej reklamy.`);
-      return;
-    }
-    const next = [...selectedAssetIds, assetId];
-    onChange(next);
-    toast.success("Dodano materiał do kreacji kampanii");
-    if (onFormatChange) {
-      if (t.kind === "video") onFormatChange("video");
-      else if (next.length >= 2) onFormatChange("carousel");
-      else onFormatChange("single_image");
-    }
-  };
-
-  const isSelected = (t: Thumb) => {
-    const aid = refToAsset[t.sourceId];
-    return aid ? selectedSet.has(aid) : false;
   };
 
   if (!workspaceId) {
@@ -215,15 +222,13 @@ export function CampaignMediaPicker({
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
           {thumbs.map((t) => {
             const on = isSelected(t);
+            const picking = busyKey === t.key;
             return (
               <button
                 type="button"
                 key={t.key}
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true);
-                  void toggle(t).finally(() => setBusy(false));
-                }}
+                disabled={busyKey !== null}
+                onClick={() => void toggle(t)}
                 className={`relative overflow-hidden rounded-xl border-2 text-left transition ${
                   on ? "border-foreground ring-2 ring-foreground/20" : "border-transparent hover:border-border"
                 }`}
@@ -248,6 +253,11 @@ export function CampaignMediaPicker({
                 {on && (
                   <span className="absolute right-1.5 top-1.5 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
                     ✓
+                  </span>
+                )}
+                {picking && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <Loader2 className="h-5 w-5 animate-spin text-white" />
                   </span>
                 )}
               </button>

@@ -35,7 +35,7 @@ function CampaignComposerHome() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [metaConn, setMetaConn] = useState<{ id: string; selected_ad_account_id: string | null } | null>(null);
+  const [metaConn, setMetaConn] = useState<{ id: string; selected_ad_account_id: string | null; selected_page_id: string | null } | null>(null);
   const [liConn, setLiConn] = useState<{ id: string; selected_ad_account_id: string | null } | null>(null);
   const [ttConn, setTtConn] = useState<{ id: string; selected_advertiser_id: string | null } | null>(null);
 
@@ -55,7 +55,7 @@ function CampaignComposerHome() {
       const wsRes = await fnEnsure({ data: {} });
       const ws = wsRes.workspaceId;
       const [{ data: m }, { data: l }, { data: t }] = await Promise.all([
-        supabase.from("meta_connections").select("id,selected_ad_account_id").eq("user_id", u.user.id).maybeSingle(),
+        supabase.from("meta_connections").select("id,selected_ad_account_id,selected_page_id").eq("user_id", u.user.id).maybeSingle(),
         supabase.from("linkedin_connections").select("id,selected_ad_account_id").eq("user_id", u.user.id).maybeSingle(),
         supabase.from("tiktok_connections").select("id,selected_advertiser_id").eq("user_id", u.user.id).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
@@ -114,6 +114,7 @@ function CampaignComposerHome() {
           title,
           adAccountId: acc,
           metaConnectionId: provider === "meta" ? metaConn?.id : undefined,
+          metaPageId: provider === "meta" ? (metaConn?.selected_page_id ?? undefined) : undefined,
           linkedinConnectionId: provider === "linkedin" ? liConn?.id : undefined,
           tiktokConnectionId: provider === "tiktok" ? ttConn?.id : undefined,
         },

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CampaignMediaPicker } from "@/components/campaign-composer/CampaignMediaPicker";
 import { metaAdsFields, META_GENDER_OPTIONS } from "@/modules/campaign-composer/config/metaAdsFields";
 import { metaObjectiveSchema } from "@/modules/campaign-composer/domain/draft-schema";
+import { normalizeDestinationUrl } from "@/modules/campaign-composer/validation/preflight";
 import {
   Area,
   AuditList,
@@ -23,6 +24,8 @@ import { LaunchPanel } from "./LaunchPanel";
 export function MetaCampaignBuilder(props: BuilderProps) {
   const { value, onChange, account, workspaceId, pages, issues, preview } = props;
   const [step, setStep] = useState("account");
+  const latestValue = useRef(value);
+  latestValue.current = value;
   const draft = ensureFirstCreative(value);
   const meta = draft.meta;
   if (!meta) return <ConnectAccountPrompt providerLabel="Meta Ads" />;
@@ -163,8 +166,8 @@ export function MetaCampaignBuilder(props: BuilderProps) {
                 provider="meta"
                 selectedAssetIds={cr!.assetIds}
                 format={cr!.format}
-                onFormatChange={(fmt) => applyChange(patchCreative(draft, { format: fmt }))}
-                onChange={(assetIds) => applyChange(patchCreative(draft, { assetIds }))}
+                onFormatChange={(fmt) => applyChange(patchCreative(latestValue.current, { format: fmt }))}
+                onChange={(assetIds) => applyChange(patchCreative(latestValue.current, { assetIds }))}
               />
             </div>
             <Field label="Nagłówek">
@@ -174,10 +177,20 @@ export function MetaCampaignBuilder(props: BuilderProps) {
               <Area value={cr!.primaryText ?? ""} onChange={(v) => applyChange(patchCreative(draft, { primaryText: v }))} />
             </Field>
             <Field label="URL docelowy">
-              <Text value={cr!.destinationUrl ?? ""} onChange={(v) => applyChange(patchCreative(draft, { destinationUrl: v }))} placeholder="https://" />
+              <Text
+                value={cr!.destinationUrl ?? ""}
+                onChange={(v) => applyChange(patchCreative(draft, { destinationUrl: v }))}
+                onBlur={() => {
+                  const normalized = normalizeDestinationUrl(cr!.destinationUrl);
+                  if (normalized && normalized !== cr!.destinationUrl) {
+                    applyChange(patchCreative(latestValue.current, { destinationUrl: normalized }));
+                  }
+                }}
+                placeholder="https://twoja-strona.pl"
+              />
             </Field>
             <Field label="Przycisk akcji">
-              <Select value={cr!.cta ?? ""} onChange={(v) => applyChange(patchCreative(draft, { cta: v }))} options={metaAdsFields.ctaOptions} />
+              <Select value={cr!.cta ?? "LEARN_MORE"} onChange={(v) => applyChange(patchCreative(draft, { cta: v }))} options={metaAdsFields.ctaOptions} />
             </Field>
           </div>
         )}

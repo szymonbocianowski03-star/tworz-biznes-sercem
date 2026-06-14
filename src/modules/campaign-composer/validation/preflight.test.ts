@@ -12,11 +12,8 @@ describe("runPreflightValidation", () => {
     d.channel.metaPageId = "page1";
     d.meta!.specialAdCategory = "NONE";
     const issues = runPreflightValidation(d, {
-      hasMetaPage: true,
       hasMetaPixelWhenRequired: true,
       hasLinkedInOrg: true,
-      scopesMeta: ["ads_management"],
-      scopesLinkedIn: [],
     });
     expect(blockingCount(issues)).toBeGreaterThan(0);
     expect(issues.some((i) => i.code === "DESTINATION_URL")).toBe(true);
@@ -33,12 +30,25 @@ describe("runPreflightValidation", () => {
     d.linkedin!.objective = "WEBSITE_TRAFFIC";
     d.structure.adSets[0].creatives[0].destinationUrl = "https://example.com";
     const issues = runPreflightValidation(d, {
-      hasMetaPage: true,
       hasMetaPixelWhenRequired: true,
       hasLinkedInOrg: true,
-      scopesMeta: [],
-      scopesLinkedIn: ["r_ads"],
     });
     expect(issues.some((i) => i.code === "LI_CAMPAIGN_GROUP")).toBe(true);
+  });
+
+  it("akceptuje URL bez protokołu po normalizacji", () => {
+    const d = defaultDraftPayload({
+      provider: "meta",
+      adAccountId: "123",
+      campaignName: "T",
+    });
+    d.channel.metaPageId = "page1";
+    d.meta!.specialAdCategory = "NONE";
+    d.structure.adSets[0].creatives[0].destinationUrl = "example.com/oferta";
+    const issues = runPreflightValidation(d, {
+      hasMetaPixelWhenRequired: true,
+      hasLinkedInOrg: true,
+    });
+    expect(issues.some((i) => i.code === "DESTINATION_URL")).toBe(false);
   });
 });

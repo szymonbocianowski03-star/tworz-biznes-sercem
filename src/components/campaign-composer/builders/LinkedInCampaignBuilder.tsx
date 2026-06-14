@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CampaignMediaPicker } from "@/components/campaign-composer/CampaignMediaPicker";
 import { linkedinAdsFields } from "@/modules/campaign-composer/config/linkedinAdsFields";
 import { linkedInObjectiveSchema } from "@/modules/campaign-composer/domain/draft-schema";
@@ -21,6 +21,8 @@ import { LaunchPanel } from "./LaunchPanel";
 export function LinkedInCampaignBuilder(props: BuilderProps) {
   const { value, onChange, account, workspaceId, issues, preview } = props;
   const [step, setStep] = useState("account");
+  const latestValue = useRef(value);
+  latestValue.current = value;
   const li = value.linkedin;
   if (!li) return <ConnectAccountPrompt providerLabel="LinkedIn Ads" />;
 
@@ -145,8 +147,8 @@ export function LinkedInCampaignBuilder(props: BuilderProps) {
                 provider="linkedin"
                 selectedAssetIds={cr.assetIds}
                 format={cr.format}
-                onFormatChange={(fmt) => onChange(patchCreative(value, { format: fmt }))}
-                onChange={(assetIds) => onChange(patchCreative(value, { assetIds }))}
+                onFormatChange={(fmt) => onChange(patchCreative(latestValue.current, { format: fmt }))}
+                onChange={(assetIds) => onChange(patchCreative(latestValue.current, { assetIds }))}
               />
             </div>
             <Field label="Nagłówek">

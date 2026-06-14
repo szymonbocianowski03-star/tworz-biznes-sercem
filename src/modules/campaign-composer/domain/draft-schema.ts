@@ -407,6 +407,7 @@ export function defaultDraftPayload(partial: {
               id: crypto.randomUUID(),
               format: "single_image" as const,
               assetIds: [],
+              cta: partial.provider === "meta" ? "LEARN_MORE" : undefined,
             },
           ],
         },

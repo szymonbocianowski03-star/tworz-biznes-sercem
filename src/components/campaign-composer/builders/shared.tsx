@@ -51,15 +51,26 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 export function Text({
   value,
   onChange,
+  onBlur,
   placeholder,
   type = "text",
 }: {
   value: string;
   onChange: (v: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   type?: string;
 }) {
-  return <input type={type} className={inputCls} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
+  return (
+    <input
+      type={type}
+      className={inputCls}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+    />
+  );
 }
 
 export function Area({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
@@ -209,7 +220,7 @@ export function AuditList({ issues }: { issues: ValidationIssue[] }) {
       </p>
       <ul className="space-y-2">
         {issues.length === 0 ? (
-          <li className="text-emerald-700 dark:text-emerald-400">Brak zgłoszonych problemów. Uruchom przegląd, aby odświeżyć.</li>
+          <li className="text-emerald-700 dark:text-emerald-400">Brak zgłoszonych problemów — możesz opublikować kampanię.</li>
         ) : (
           issues.map((i) => (
             <li

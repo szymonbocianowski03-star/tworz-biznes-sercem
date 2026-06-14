@@ -10,10 +10,19 @@ export type ValidationIssue = {
   fieldPath?: string;
 };
 
+/** Akceptuje też adresy bez protokołu — przed walidacją dodaje https:// */
+export function normalizeDestinationUrl(s: string | undefined): string | undefined {
+  const t = s?.trim();
+  if (!t) return undefined;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://${t}`;
+}
+
 const URL_OK = (s: string | undefined) => {
-  if (!s || !s.trim()) return false;
+  const n = normalizeDestinationUrl(s);
+  if (!n) return false;
   try {
-    new URL(s);
+    new URL(n);
     return true;
   } catch {
     return false;
@@ -21,9 +30,10 @@ const URL_OK = (s: string | undefined) => {
 };
 
 const HTTPS_OK = (s: string | undefined) => {
-  if (!s || !s.trim()) return false;
+  const n = normalizeDestinationUrl(s);
+  if (!n) return false;
   try {
-    return new URL(s).protocol === "https:";
+    return new URL(n).protocol === "https:";
   } catch {
     return false;
   }
@@ -145,11 +155,8 @@ export function tiktokPreflight(draft: CampaignComposerDraftPayload): Validation
 export function runPreflightValidation(
   draft: CampaignComposerDraftPayload,
   ctx: {
-    hasMetaPage: boolean;
     hasMetaPixelWhenRequired: boolean;
     hasLinkedInOrg: boolean;
-    scopesMeta: string[];
-    scopesLinkedIn: string[];
   },
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -189,22 +196,12 @@ export function runPreflightValidation(
         fieldPath: "channel.metaPageId",
       });
     }
-    if (!ctx.hasMetaPage && (draft.channel.metaPageId == null || draft.channel.metaPageId === "")) {
-      issues.push({ code: "PAGE_SCOPE", severity: "warning", message: "Sprawdź uprawnienia strony w integracji Meta." });
-    }
     if (!ctx.hasMetaPixelWhenRequired) {
       issues.push({
         code: "PIXEL_OPTIONAL",
         severity: "warning",
         message: "Dla wybranego celu rozważ przypisanie piksela konwersji.",
         fieldPath: "channel.metaPixelId",
-      });
-    }
-    if (!ctx.scopesMeta.length) {
-      issues.push({
-        code: "META_SCOPES_UNKNOWN",
-        severity: "warning",
-        message: "Nie udało się zweryfikować zakresów OAuth Meta — upewnij się, że token obejmuje ads_management.",
       });
     }
   }
@@ -286,7 +283,7 @@ export function runPreflightValidation(
           fieldPath: `structure.adSets.${adset.id}.creatives.${cr.id}`,
         });
       }
-      if (!cr.cta?.trim()) {
+      if (!cr.cta?.trim() && draft.channel.provider !== "meta") {
         issues.push({
           code: "CTA_MISSING",
           severity: "warning",

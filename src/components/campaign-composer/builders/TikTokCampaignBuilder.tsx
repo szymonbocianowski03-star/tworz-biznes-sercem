@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CampaignMediaPicker } from "@/components/campaign-composer/CampaignMediaPicker";
 import { tiktokAdsFields, TIKTOK_AGE_OPTIONS, TIKTOK_GENDER_OPTIONS } from "@/modules/campaign-composer/config/tiktokAdsFields";
 import { tiktokAdsManagerUrl } from "@/lib/campaignComposerLabels";
@@ -22,6 +22,8 @@ import { LaunchPanel } from "./LaunchPanel";
 export function TikTokCampaignBuilder(props: BuilderProps) {
   const { value, onChange, account, workspaceId, issues, preview } = props;
   const [step, setStep] = useState("account");
+  const latestValue = useRef(value);
+  latestValue.current = value;
   const tt = value.tiktok;
   if (!tt) return <ConnectAccountPrompt providerLabel="TikTok Ads" />;
 
@@ -209,8 +211,8 @@ export function TikTokCampaignBuilder(props: BuilderProps) {
                     provider="tiktok"
                     selectedAssetIds={cr0.assetIds}
                     format={cr0.format === "video" ? "video" : "video"}
-                    onFormatChange={() => onChange(patchCreative(value, { format: "video" }))}
-                    onChange={(assetIds) => onChange(patchCreative(value, { assetIds }))}
+                    onFormatChange={() => onChange(patchCreative(latestValue.current, { format: "video" }))}
+                    onChange={(assetIds) => onChange(patchCreative(latestValue.current, { assetIds }))}
                   />
                 </div>
               )

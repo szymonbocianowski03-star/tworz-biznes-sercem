@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CampaignComposerNav } from "@/components/campaign-composer/CampaignComposerNav";
 import {
   ccGetDraft,
@@ -13,7 +13,9 @@ import {
 } from "@/modules/campaign-composer/campaign-composer.functions";
 import { labelProvider } from "@/lib/campaignComposerLabels";
 import { campaignComposerDraftPayloadSchema, type CampaignComposerDraftPayload } from "@/modules/campaign-composer/domain/draft-schema";
-import { blockingCount, type ValidationIssue } from "@/modules/campaign-composer/validation/preflight";
+import { blockingCount, runPreflightValidation } from "@/modules/campaign-composer/validation/preflight";
+import { buildLocalPreview } from "@/modules/campaign-composer/preview/engines";
+import { mergeIntegrationDefaults, preflightContext } from "@/modules/campaign-composer/integration-defaults";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,7 +56,6 @@ function DraftEditor() {
   const [title, setTitle] = useState("");
   const [payload, setPayload] = useState<CampaignComposerDraftPayload | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
-  const [issues, setIssues] = useState<ValidationIssue[]>([]);
   const [preview, setPreview] = useState<{ headline: string; body: string; destination: string } | null>(null);
   const [jobs, setJobs] = useState<{ id: string; status: string; intent: string }[]>([]);
   const [jobItems, setJobItems] = useState<{ step_kind: string; status: string; provider_message: string | null }[]>([]);
@@ -62,19 +63,30 @@ function DraftEditor() {
   const [pages, setPages] = useState<{ id: string; name: string }[]>([]);
   const [account, setAccount] = useState<AccountInfo>(EMPTY_ACCOUNT);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const payloadRef = useRef<CampaignComposerDraftPayload | null>(null);
+  payloadRef.current = payload;
 
   const loadAccount = useCallback(async (p: CampaignComposerDraftPayload) => {
     const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
+    if (!u.user) return null;
     if (p.channel.provider === "meta") {
-      const q = supabase.from("meta_connections").select("meta_user_name,ad_accounts,pixel_id,pages").eq("user_id", u.user.id);
+      const q = supabase
+        .from("meta_connections")
+        .select("meta_user_name,ad_accounts,pixel_id,pages,selected_page_id,selected_ad_account_id")
+        .eq("user_id", u.user.id);
       const { data } = await (p.channel.metaConnectionId ? q.eq("id", p.channel.metaConnectionId) : q).maybeSingle();
-      setPages(mapList(data?.pages, ["id"], ["name"]));
+      const pageList = mapList(data?.pages, ["id"], ["name"]);
+      setPages(pageList);
       setAccount({
         connected: !!data,
         name: data?.meta_user_name ?? undefined,
         adAccounts: mapList(data?.ad_accounts, ["id", "account_id"], ["name", "account_name"]),
         pixels: data?.pixel_id ? [{ id: String(data.pixel_id), name: String(data.pixel_id) }] : [],
+      });
+      return mergeIntegrationDefaults(p, {
+        metaPageId: data?.selected_page_id ?? pageList[0]?.id,
+        adAccountId: data?.selected_ad_account_id ?? mapList(data?.ad_accounts, ["id", "account_id"], ["name", "account_name"])[0]?.id,
+        metaPixelId: data?.pixel_id ? String(data.pixel_id) : undefined,
       });
     } else if (p.channel.provider === "tiktok") {
       const { data } = await supabase.from("tiktok_connections").select("advertiser_name,advertiser_accounts,tiktok_advertiser_id").eq("user_id", u.user.id).maybeSingle();
@@ -85,6 +97,9 @@ function DraftEditor() {
         adAccounts: accts.length ? accts : data?.tiktok_advertiser_id ? [{ id: String(data.tiktok_advertiser_id), name: String(data.advertiser_name ?? data.tiktok_advertiser_id) }] : [],
         pixels: [],
       });
+      return mergeIntegrationDefaults(p, {
+        adAccountId: data?.tiktok_advertiser_id ?? accts[0]?.id,
+      });
     } else if (p.channel.provider === "linkedin") {
       const { data } = await supabase.from("linkedin_connections").select("linkedin_user_name,ad_accounts,organizations").eq("user_id", u.user.id).maybeSingle();
       setAccount({
@@ -93,7 +108,13 @@ function DraftEditor() {
         adAccounts: mapList(data?.ad_accounts, ["id", "account_id"], ["name", "account_name"]),
         pixels: [],
       });
+      const orgs = mapList(data?.organizations, ["urn"], ["name"]);
+      return mergeIntegrationDefaults(p, {
+        adAccountId: data?.selected_ad_account_id ?? mapList(data?.ad_accounts, ["id", "account_id"], ["name", "account_name"])[0]?.id,
+        linkedinOrganizationUrn: orgs[0]?.id,
+      });
     }
+    return p;
   }, []);
 
   const load = useCallback(async () => {
@@ -101,36 +122,58 @@ function DraftEditor() {
     if (!draft) return;
     setTitle(draft.title);
     setWorkspaceId(draft.workspace_id);
-    const p = campaignComposerDraftPayloadSchema.parse(draft.draft_payload);
+    let p = campaignComposerDraftPayloadSchema.parse(draft.draft_payload);
     const sync = (draft.sync_state ?? {}) as Record<string, string | undefined>;
     if (!p.channel.metaConnectionId && sync.meta_connection_id) p.channel.metaConnectionId = sync.meta_connection_id;
     if (!p.channel.linkedinConnectionId && sync.linkedin_connection_id) p.channel.linkedinConnectionId = sync.linkedin_connection_id;
+    const merged = await loadAccount(p);
+    if (merged && merged !== p) {
+      p = merged;
+      await fnSave({
+        data: {
+          id: draftId,
+          workspaceId: draft.workspace_id,
+          title: draft.title,
+          provider: p.channel.provider,
+          draftPayload: p,
+          syncPatch: {
+            meta_connection_id: p.channel.metaConnectionId,
+            linkedin_connection_id: p.channel.linkedinConnectionId,
+          },
+        },
+      });
+    }
     setPayload(p);
-    await loadAccount(p);
     const pre = await fnPreflight({ data: { draftId } });
-    setIssues((pre.issues ?? []) as ValidationIssue[]);
     if (pre.preview) setPreview({ headline: pre.preview.headline, body: pre.preview.body, destination: pre.preview.destination });
-  }, [draftId, fnGet, fnPreflight, loadAccount]);
+  }, [draftId, fnGet, fnPreflight, fnSave, loadAccount]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const saveNow = useCallback(
-    async (next: CampaignComposerDraftPayload, nextTitle: string) => {
-      await fnSave({
-        data: {
-          id: draftId,
-          workspaceId,
-          title: nextTitle,
-          provider: next.channel.provider,
-          draftPayload: next,
-          syncPatch: {
-            meta_connection_id: next.channel.metaConnectionId,
-            linkedin_connection_id: next.channel.linkedinConnectionId,
+    async (next: CampaignComposerDraftPayload, nextTitle: string, quiet = false) => {
+      try {
+        await fnSave({
+          data: {
+            id: draftId,
+            workspaceId,
+            title: nextTitle,
+            provider: next.channel.provider,
+            draftPayload: next,
+            syncPatch: {
+              meta_connection_id: next.channel.metaConnectionId,
+              linkedin_connection_id: next.channel.linkedinConnectionId,
+            },
           },
-        },
-      });
+        });
+        if (!quiet) toast.success("Zapisano szkic");
+      } catch (e) {
+        toast.error("Nie udało się zapisać szkicu", {
+          description: e instanceof Error ? e.message : String(e),
+        });
+      }
     },
     [draftId, workspaceId, fnSave],
   );
@@ -138,7 +181,7 @@ function DraftEditor() {
   // Aktualizacja + cichy autozapis (debounce) — wyjątek: zmiana mediów zapisuje się od razu.
   const onChange = useCallback(
     (next: CampaignComposerDraftPayload) => {
-      const prevAssets = payload?.structure.adSets[0]?.creatives[0]?.assetIds ?? [];
+      const prevAssets = payloadRef.current?.structure.adSets[0]?.creatives[0]?.assetIds ?? [];
       const nextAssets = next.structure.adSets[0]?.creatives[0]?.assetIds ?? [];
       const assetsChanged =
         prevAssets.length !== nextAssets.length || prevAssets.some((id, i) => id !== nextAssets[i]);
@@ -146,20 +189,29 @@ function DraftEditor() {
       setPayload(next);
       if (saveTimer.current) clearTimeout(saveTimer.current);
       if (assetsChanged) {
-        void saveNow(next, title);
+        void saveNow(next, title, true);
         return;
       }
-      saveTimer.current = setTimeout(() => void saveNow(next, title), 700);
+      saveTimer.current = setTimeout(() => void saveNow(next, title, true), 700);
     },
-    [saveNow, title, payload],
+    [saveNow, title],
   );
 
+  const issues = useMemo(() => {
+    if (!payload) return [];
+    return runPreflightValidation(payload, preflightContext(payload));
+  }, [payload]);
+
+  const livePreview = useMemo(() => {
+    if (!payload) return null;
+    const snap = buildLocalPreview(payload, issues);
+    return { headline: snap.headline, body: snap.body, destination: snap.destination };
+  }, [payload, issues]);
+
   const runAudit = useCallback(async () => {
-    const r = await fnPreflight({ data: { draftId } });
-    setIssues((r.issues ?? []) as ValidationIssue[]);
-    if (r.preview) setPreview({ headline: r.preview.headline, body: r.preview.body, destination: r.preview.destination });
-    toast.success("Przegląd zaktualizowany");
-  }, [draftId, fnPreflight]);
+    if (payload) await saveNow(payload, title, true);
+    toast.success("Lista problemów jest aktualna");
+  }, [payload, title, saveNow]);
 
   const refreshJobs = useCallback(async () => {
     const j = await fnJobs({ data: { draftId } });
@@ -239,7 +291,7 @@ function DraftEditor() {
     pages,
     account,
     issues,
-    preview,
+    preview: livePreview ?? preview,
     jobs,
     jobItems,
     activeJob,

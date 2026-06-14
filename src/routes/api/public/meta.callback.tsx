@@ -139,6 +139,7 @@ export const Route = createFileRoute("/api/public/meta/callback")({
                 ad_accounts: adAccounts,
                 pages,
                 selected_ad_account_id: adAccounts[0]?.id ?? null,
+                selected_page_id: pages[0]?.id ?? null,
               },
               { onConflict: "user_id,meta_user_id" },
             );
