@@ -415,7 +415,9 @@ export function AgentChat() {
     if (!r.id) {
       if (r.error) {
         console.error("[uploadToGallery] przesłanie grafiki nie powiodło się", r.error);
-        toast.error(r.error ?? "Nie udało się przygotować kreacji. Zaloguj się i spróbuj ponownie.");
+        toast.error(r.error);
+      } else {
+        toast.error("Grafika wygenerowana, ale nie trafiła do galerii. Sprawdź połączenie i migracje Supabase (generated_images, bucket generations).");
       }
     }
     return { url: r.url, id: r.id };
@@ -503,6 +505,12 @@ export function AgentChat() {
       }
       const rawImages: string[] = Array.isArray(data?.images) ? data.images : [];
       const uploaded = await Promise.all(rawImages.map((src) => uploadToGallery(src, prompt, size)));
+      const savedCount = uploaded.filter((u) => u.id).length;
+      if (rawImages.length > 0 && savedCount < rawImages.length) {
+        toast.message(`Zapisano ${savedCount}/${rawImages.length} grafik w galerii Zasoby.`, {
+          description: savedCount === 0 ? "Sprawdź migracje Supabase (generated_images, bucket generations)." : undefined,
+        });
+      }
       const imageSet: ImageEntry[] = uploaded.map((r) => ({ url: r.url, dbId: r.id, prompt }));
       const prev = messagesRef.current;
       const updated: Msg = {

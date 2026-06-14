@@ -72,6 +72,7 @@ export async function saveImageToProjectAssets(
       image_url: publicUrl,
       storage_path: path,
       size: size ?? null,
+      user_reaction: "none",
     };
     const rowWithMeta: Record<string, unknown> = { ...baseRow };
     if (productName) rowWithMeta.product_name = productName;

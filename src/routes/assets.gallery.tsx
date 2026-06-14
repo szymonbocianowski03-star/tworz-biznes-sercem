@@ -46,8 +46,12 @@ function GalleryPage() {
       setLoading(false);
       return;
     }
-    let q = supabase.from("generated_images").select("*").order("created_at", { ascending: false });
-    if (filter === "all") q = q.neq("user_reaction", "dislike");
+    let q = supabase
+      .from("generated_images")
+      .select("*")
+      .eq("user_id", u.user.id)
+      .order("created_at", { ascending: false });
+    if (filter === "all") q = q.or("user_reaction.is.null,user_reaction.eq.none,user_reaction.eq.like");
     else if (filter === "like") q = q.eq("user_reaction", "like");
     else q = q.eq("user_reaction", "dislike");
     const { data, error } = await q;

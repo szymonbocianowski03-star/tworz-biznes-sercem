@@ -67,8 +67,9 @@ function VideoAssetsPage() {
     let q = supabase
       .from("generated_videos")
       .select("id,prompt,video_url,status,error_detail,created_at,user_reaction")
+      .eq("user_id", u.user.id)
       .order("created_at", { ascending: false });
-    if (filter === "all") q = q.neq("user_reaction", "dislike");
+    if (filter === "all") q = q.or("user_reaction.is.null,user_reaction.eq.none,user_reaction.eq.like");
     else if (filter === "like") q = q.eq("user_reaction", "like");
     else q = q.eq("user_reaction", "dislike");
     const { data, error } = await q;
