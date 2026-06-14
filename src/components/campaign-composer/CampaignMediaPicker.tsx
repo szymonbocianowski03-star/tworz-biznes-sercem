@@ -12,7 +12,7 @@ type Props = {
   workspaceId: string;
   provider: "meta" | "linkedin" | "tiktok";
   selectedAssetIds: string[];
-  onChange: (assetIds: string[]) => void;
+  onChange: (assetIds: string[], suggestedFormat?: Props["format"]) => void;
   format: "single_image" | "carousel" | "video" | "article_share" | "dark_post";
   onFormatChange?: (format: Props["format"]) => void;
 };
@@ -168,13 +168,12 @@ export function CampaignMediaPicker({
         return;
       }
       const next = [...selectedAssetIds, assetId];
-      onChange(next);
+      let suggestedFormat: Props["format"] | undefined;
+      if (t.kind === "video") suggestedFormat = "video";
+      else if (next.length >= 2) suggestedFormat = "carousel";
+      else suggestedFormat = "single_image";
+      onChange(next, suggestedFormat);
       toast.success("Dodano materiał do kreacji");
-      if (onFormatChange) {
-        if (t.kind === "video") onFormatChange("video");
-        else if (next.length >= 2) onFormatChange("carousel");
-        else onFormatChange("single_image");
-      }
     } finally {
       setBusyKey(null);
     }

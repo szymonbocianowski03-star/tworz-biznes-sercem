@@ -146,12 +146,17 @@ export function LinkedInCampaignBuilder(props: BuilderProps) {
               <CampaignMediaPicker
                 workspaceId={workspaceId}
                 provider="linkedin"
-                selectedAssetIds={cr.assetIds}
+                selectedAssetIds={cr.assetIds ?? []}
                 format={cr.format}
                 onFormatChange={(fmt) => onChange(patchCreative(latestValue.current, { format: fmt }))}
-                onChange={(assetIds) => {
+                onChange={(assetIds, suggestedFormat) => {
                   const base = ensureFirstCreative(latestValue.current);
-                  onChange(patchCreative(base, { assetIds }));
+                  onChange(
+                    patchCreative(base, {
+                      assetIds,
+                      ...(suggestedFormat ? { format: suggestedFormat } : {}),
+                    }),
+                  );
                 }}
               />
             </div>

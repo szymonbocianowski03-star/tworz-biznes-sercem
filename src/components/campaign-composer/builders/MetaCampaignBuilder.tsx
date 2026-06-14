@@ -164,12 +164,17 @@ export function MetaCampaignBuilder(props: BuilderProps) {
               <CampaignMediaPicker
                 workspaceId={workspaceId}
                 provider="meta"
-                selectedAssetIds={cr!.assetIds}
+                selectedAssetIds={cr!.assetIds ?? []}
                 format={cr!.format}
                 onFormatChange={(fmt) => applyChange(patchCreative(latestValue.current, { format: fmt }))}
-                onChange={(assetIds) => {
+                onChange={(assetIds, suggestedFormat) => {
                   const base = ensureFirstCreative(latestValue.current);
-                  applyChange(patchCreative(base, { assetIds }));
+                  applyChange(
+                    patchCreative(base, {
+                      assetIds,
+                      ...(suggestedFormat ? { format: suggestedFormat } : {}),
+                    }),
+                  );
                 }}
               />
             </div>
