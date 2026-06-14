@@ -7,6 +7,7 @@ import {
   AuditList,
   Chips,
   ConnectAccountPrompt,
+  ensureFirstCreative,
   Field,
   Money,
   MultiCheck,
@@ -212,7 +213,10 @@ export function TikTokCampaignBuilder(props: BuilderProps) {
                     selectedAssetIds={cr0.assetIds}
                     format={cr0.format === "video" ? "video" : "video"}
                     onFormatChange={() => onChange(patchCreative(latestValue.current, { format: "video" }))}
-                    onChange={(assetIds) => onChange(patchCreative(latestValue.current, { assetIds }))}
+                    onChange={(assetIds) => {
+                      const base = ensureFirstCreative(latestValue.current);
+                      onChange(patchCreative(base, { assetIds }));
+                    }}
                   />
                 </div>
               )

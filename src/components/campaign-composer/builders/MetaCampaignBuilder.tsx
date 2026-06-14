@@ -167,7 +167,10 @@ export function MetaCampaignBuilder(props: BuilderProps) {
                 selectedAssetIds={cr!.assetIds}
                 format={cr!.format}
                 onFormatChange={(fmt) => applyChange(patchCreative(latestValue.current, { format: fmt }))}
-                onChange={(assetIds) => applyChange(patchCreative(latestValue.current, { assetIds }))}
+                onChange={(assetIds) => {
+                  const base = ensureFirstCreative(latestValue.current);
+                  applyChange(patchCreative(base, { assetIds }));
+                }}
               />
             </div>
             <Field label="Nagłówek">

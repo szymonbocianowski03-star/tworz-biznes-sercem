@@ -1,8 +1,10 @@
-import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Image, Loader2, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ccImportGeneratedVideos, ccImportGeneratedImages, ccListAssets } from "@/modules/campaign-composer/campaign-composer.functions";
+import {
+  importGeneratedImageToCampaignAsset,
+  importGeneratedVideoToCampaignAsset,
+} from "@/lib/campaignAssetImport";
 import { toastSupabaseLoadError } from "@/lib/supabaseSchemaHint";
 import { toast } from "sonner";
 
@@ -31,10 +33,6 @@ export function CampaignMediaPicker({
   format,
   onFormatChange,
 }: Props) {
-  const fnImportVid = useServerFn(ccImportGeneratedVideos);
-  const fnImportImg = useServerFn(ccImportGeneratedImages);
-  const fnList = useServerFn(ccListAssets);
-
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Thumb[]>([]);
@@ -55,23 +53,34 @@ export function CampaignMediaPicker({
       setLoading(false);
       return;
     }
-    const [{ data: imgs, error: imgErr }, { data: vids, error: vidErr }, listRes] = await Promise.all([
-      supabase.from("generated_images").select("id,image_url,prompt").eq("user_id", u.user.id).order("created_at", { ascending: false }).limit(40),
+    const [{ data: imgs, error: imgErr }, { data: vids, error: vidErr }, assetsRes] = await Promise.all([
+      supabase
+        .from("generated_images")
+        .select("id,image_url,prompt")
+        .eq("user_id", u.user.id)
+        .or("user_reaction.is.null,user_reaction.eq.none,user_reaction.eq.like")
+        .order("created_at", { ascending: false })
+        .limit(40),
       supabase
         .from("generated_videos")
         .select("id,video_url,prompt,status")
         .eq("user_id", u.user.id)
         .eq("status", "succeeded")
+        .or("user_reaction.is.null,user_reaction.eq.none,user_reaction.eq.like")
         .order("created_at", { ascending: false })
         .limit(20),
-      fnList({ data: { workspaceId } }).catch(() => ({ assets: [] as { id: string; source_ref: string | null }[] })),
+      supabase
+        .from("cc_asset")
+        .select("id,source_ref")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", u.user.id),
     ]);
 
     if (imgErr) toastSupabaseLoadError(imgErr, "generated_images");
     if (vidErr) toastSupabaseLoadError(vidErr, "generated_videos");
 
     const map: Record<string, string> = {};
-    for (const a of (listRes.assets ?? []) as { id: string; source_ref: string | null }[]) {
+    for (const a of assetsRes.data ?? []) {
       if (a.source_ref) map[a.source_ref] = a.id;
     }
     setRefToAsset(map);
@@ -98,7 +107,7 @@ export function CampaignMediaPicker({
     }
     setThumbs(items);
     setLoading(false);
-  }, [workspaceId, fnList]);
+  }, [workspaceId]);
 
   useEffect(() => {
     void load();
@@ -108,39 +117,28 @@ export function CampaignMediaPicker({
     const existing = refToAsset[t.sourceId];
     if (existing) return existing;
 
-    if (t.kind === "image") {
-      try {
-        const { importedIds } = await fnImportImg({
-          data: { workspaceId, generatedImageIds: [t.sourceId] },
-        });
-        const id = importedIds?.[0];
-        if (!id) {
-          toast.error("Nie udało się dodać obrazu do kampanii.");
-          return null;
-        }
-        setRefToAsset((m) => ({ ...m, [t.sourceId]: id }));
-        return id;
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Nie udało się dodać obrazu do kampanii.");
-        return null;
-      }
-    }
+    const result =
+      t.kind === "image"
+        ? await importGeneratedImageToCampaignAsset({
+            workspaceId,
+            generatedImageId: t.sourceId,
+            imageUrl: t.url,
+            prompt: t.label,
+          })
+        : await importGeneratedVideoToCampaignAsset({
+            workspaceId,
+            generatedVideoId: t.sourceId,
+            videoUrl: t.url,
+            prompt: t.label,
+          });
 
-    try {
-      const { importedIds } = await fnImportVid({
-        data: { workspaceId, generatedVideoIds: [t.sourceId] },
-      });
-      const id = importedIds?.[0];
-      if (id) {
-        setRefToAsset((m) => ({ ...m, [t.sourceId]: id }));
-        return id;
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Nie udało się dodać wideo do kampanii.");
+    if (!result.ok) {
+      toast.error(result.error);
       return null;
     }
-    toast.error("Nie udało się dodać materiału do kampanii.");
-    return null;
+
+    setRefToAsset((m) => ({ ...m, [t.sourceId]: result.assetId }));
+    return result.assetId;
   };
 
   const selectedSet = useMemo(() => new Set(selectedAssetIds), [selectedAssetIds]);
@@ -171,6 +169,7 @@ export function CampaignMediaPicker({
       }
       const next = [...selectedAssetIds, assetId];
       onChange(next);
+      toast.success("Dodano materiał do kreacji");
       if (onFormatChange) {
         if (t.kind === "video") onFormatChange("video");
         else if (next.length >= 2) onFormatChange("carousel");
@@ -227,14 +226,15 @@ export function CampaignMediaPicker({
               <button
                 type="button"
                 key={t.key}
-                disabled={busyKey !== null}
+                disabled={picking}
                 onClick={() => void toggle(t)}
-                className={`relative overflow-hidden rounded-xl border-2 text-left transition ${
+                aria-pressed={on}
+                className={`relative cursor-pointer overflow-hidden rounded-xl border-2 text-left transition ${
                   on ? "border-foreground ring-2 ring-foreground/20" : "border-transparent hover:border-border"
-                }`}
+                } ${picking ? "opacity-80" : ""}`}
               >
                 {t.kind === "video" ? (
-                  <div className="relative aspect-square w-full bg-muted">
+                  <div className="pointer-events-none relative aspect-square w-full bg-muted">
                     <video src={t.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
                     <span className="absolute bottom-1 left-1 inline-flex items-center gap-0.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold text-white">
                       <Video className="h-3 w-3" />
@@ -242,8 +242,8 @@ export function CampaignMediaPicker({
                     </span>
                   </div>
                 ) : (
-                  <div className="relative aspect-square w-full">
-                    <img src={t.url} alt="" className="h-full w-full object-cover" />
+                  <div className="pointer-events-none relative aspect-square w-full">
+                    <img src={t.url} alt="" className="h-full w-full object-cover" draggable={false} />
                     <span className="absolute bottom-1 left-1 inline-flex items-center gap-0.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold text-white">
                       <Image className="h-3 w-3" />
                       Obraz
@@ -251,12 +251,12 @@ export function CampaignMediaPicker({
                   </div>
                 )}
                 {on && (
-                  <span className="absolute right-1.5 top-1.5 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
+                  <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
                     ✓
                   </span>
                 )}
                 {picking && (
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40">
                     <Loader2 className="h-5 w-5 animate-spin text-white" />
                   </span>
                 )}

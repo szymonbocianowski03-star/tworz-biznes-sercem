@@ -7,6 +7,7 @@ import {
   AuditList,
   Chips,
   ConnectAccountPrompt,
+  ensureFirstCreative,
   Field,
   Money,
   SectionTitle,
@@ -148,7 +149,10 @@ export function LinkedInCampaignBuilder(props: BuilderProps) {
                 selectedAssetIds={cr.assetIds}
                 format={cr.format}
                 onFormatChange={(fmt) => onChange(patchCreative(latestValue.current, { format: fmt }))}
-                onChange={(assetIds) => onChange(patchCreative(latestValue.current, { assetIds }))}
+                onChange={(assetIds) => {
+                  const base = ensureFirstCreative(latestValue.current);
+                  onChange(patchCreative(base, { assetIds }));
+                }}
               />
             </div>
             <Field label="Nagłówek">
