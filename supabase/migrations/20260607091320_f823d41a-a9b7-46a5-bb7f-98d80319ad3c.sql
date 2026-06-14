@@ -1,0 +1,2 @@
+ALTER TABLE public.cc_campaign_draft DROP CONSTRAINT IF EXISTS cc_campaign_draft_provider_check;
+ALTER TABLE public.cc_campaign_draft ADD CONSTRAINT cc_campaign_draft_provider_check CHECK (provider = ANY (ARRAY['meta'::text, 'linkedin'::text, 'tiktok'::text]));

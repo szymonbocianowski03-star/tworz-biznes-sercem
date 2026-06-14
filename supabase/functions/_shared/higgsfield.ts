@@ -1,0 +1,200 @@
+function higgsfieldApiOrigin(): string {
+  const base =
+    Deno.env.get("HIGGSFIELD_API_BASE_URL")?.trim() ||
+    Deno.env.get("HIGGSFIELD_API_ORIGIN")?.trim() ||
+    "https://platform.higgsfield.ai";
+  return base.replace(/\/$/, "");
+}
+
+const HIGGSFIELD_NEGATIVE_PROMPT =
+  "Avoid: AI-generated look, plastic skin, over-smoothed face, uncanny eyes, extra fingers, distorted hands, warped product label, fake text, unreadable logo, overly cinematic lighting, stock photo look, perfect symmetry, unrealistic body proportions, over-polished commercial studio style, CGI avatar look, cartoonish animation, unnatural lip sync, frozen facial expression.";
+
+const HIGGSFIELD_REALISM_SUFFIX =
+  "Handheld phone camera, slight camera shake, natural lighting, real skin texture, imperfect framing, subtle asymmetry, casual background, natural blinking, small head movements, realistic hand gestures, believable facial expression, slight motion blur, no over-polished commercial look.";
+
+export type HiggsfieldCredentials = {
+  keyId: string;
+  secret: string;
+};
+
+export type HiggsfieldStatusResponse = {
+  status?: string;
+  request_id?: string;
+  video?: { url?: string };
+  images?: Array<{ url?: string }>;
+  error?: string;
+  detail?: unknown;
+};
+
+export function getHiggsfieldCredentials(): HiggsfieldCredentials | null {
+  const combined =
+    Deno.env.get("HF_CREDENTIALS")?.trim() ||
+    Deno.env.get("HIGGSFIELD_CREDENTIALS")?.trim();
+  if (combined?.includes(":")) {
+    const idx = combined.indexOf(":");
+    const keyId = combined.slice(0, idx).trim();
+    const secret = combined.slice(idx + 1).trim();
+    if (keyId && secret) return { keyId, secret };
+  }
+
+  const keyId =
+    Deno.env.get("HIGGSFIELD_API_KEY_ID")?.trim() ||
+    Deno.env.get("HF_API_KEY")?.trim() ||
+    Deno.env.get("HIGGSFIELD_API_KEY")?.trim();
+  const secret =
+    Deno.env.get("HIGGSFIELD_API_SECRET")?.trim() ||
+    Deno.env.get("HF_API_SECRET")?.trim() ||
+    Deno.env.get("HF_SECRET")?.trim();
+  if (keyId && secret) return { keyId, secret };
+  return null;
+}
+
+export function higgsfieldAuthHeader(creds: HiggsfieldCredentials): string {
+  return `Key ${creds.keyId}:${creds.secret}`;
+}
+
+export function ratioToAspectRatio(ratio: string): string {
+  switch (ratio) {
+    case "720:1280":
+      return "9:16";
+    case "960:960":
+      return "1:1";
+    case "1280:720":
+    default:
+      return "16:9";
+  }
+}
+
+/** Domyślny endpoint Higgsfield DoP — tekst→wideo i UGC/viral short-form. */
+export function resolveVideoEndpoint(model?: string, hasImage?: boolean): string {
+  const m = (model ?? "").trim().toLowerCase();
+  if (m.includes("seedance")) return "bytedance/seedance/v1/pro/image-to-video";
+  if (m.includes("kling")) return "kling-video/v2.1/pro/image-to-video";
+  if (m.includes("preview") || m.includes("dop-lite")) return "higgsfield-ai/dop/preview";
+  if (hasImage) return "higgsfield-ai/dop/standard";
+  return "higgsfield-ai/dop/standard";
+}
+
+export function buildVideoPrompt(prompt: string, style?: string): string {
+  const p = prompt.trim();
+  if (!p) return "";
+  const s = (style ?? "").trim().toLowerCase();
+
+  let core: string;
+  switch (s) {
+    case "ugc":
+      core =
+        `A realistic handheld iPhone-style UGC video: ${p}. ` +
+        "Authentic TikTok/Reels selfie, not a polished commercial. Natural imperfect framing, subtle camera shake, real skin texture, slight asymmetry, casual facial expressions, realistic blinking, natural hand gestures, everyday lighting, slight background imperfections. Product visible naturally when relevant. Genuine enthusiasm and credibility. Grounded, realistic, human.";
+      break;
+    case "viral":
+      core =
+        `Viral short-form social video with scroll-stopping hook in the first second: ${p}. ` +
+        "Handheld smartphone aesthetic, dynamic but believable pacing, trending UGC energy, not studio polish.";
+      break;
+    case "product":
+      core =
+        `Realistic product-focused short ad video: ${p}. ` +
+        "Clear product visibility, natural demo feel, believable environment, handheld camera.";
+      break;
+    case "testimonial":
+      core =
+        `Realistic selfie testimonial UGC: ${p}. ` +
+        "Person speaks directly to camera with conversational tone, natural pauses, authentic emotion, phone-recorded look.";
+      break;
+    case "image-animate":
+      core =
+        `Animate this starting frame into a realistic short UGC-style video: ${p}. ` +
+        "Keep identity, face shape, jawline, cheekbones, nose, eye spacing, lips, hairline, body proportions, clothing and environment consistent with the reference. Subtle blinking, breathing, small head movement, micro expressions, natural camera shake. Do not change the face or identity.";
+      break;
+    default:
+      return `${p} ${HIGGSFIELD_REALISM_SUFFIX} Negative prompt: ${HIGGSFIELD_NEGATIVE_PROMPT}`;
+  }
+
+  return `${core} ${HIGGSFIELD_REALISM_SUFFIX} Negative prompt: ${HIGGSFIELD_NEGATIVE_PROMPT}`;
+}
+
+export async function higgsfieldStartVideo(
+  creds: HiggsfieldCredentials,
+  opts: {
+    endpoint: string;
+    prompt: string;
+    duration: number;
+    aspectRatio: string;
+    imageUrl?: string;
+  },
+): Promise<{ requestId: string; raw: HiggsfieldStatusResponse }> {
+  const body: Record<string, unknown> = {
+    prompt: opts.prompt,
+    duration: opts.duration,
+    aspect_ratio: opts.aspectRatio,
+  };
+  if (opts.imageUrl) {
+    body.image_url = opts.imageUrl;
+    body.input_images = [{ type: "image_url", image_url: opts.imageUrl }];
+  }
+
+  const endpoint = opts.endpoint.startsWith("/") ? opts.endpoint : `/${opts.endpoint}`;
+  const res = await fetch(`${higgsfieldApiOrigin()}${endpoint}`, {
+    method: "POST",
+    headers: {
+      Authorization: higgsfieldAuthHeader(creds),
+      "Content-Type": "application/json",
+      "User-Agent": "higgsfield-server-js/2.0",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const text = await res.text();
+  let parsed: HiggsfieldStatusResponse;
+  try {
+    parsed = JSON.parse(text) as HiggsfieldStatusResponse;
+  } catch {
+    throw new Error(`Higgsfield: niepoprawna odpowiedź (${res.status}): ${text.slice(0, 400)}`);
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      `Higgsfield start HTTP ${res.status}: ${typeof parsed.detail === "string" ? parsed.detail : text.slice(0, 400)}`,
+    );
+  }
+
+  const requestId = parsed.request_id;
+  if (!requestId) {
+    throw new Error(`Higgsfield: brak request_id w odpowiedzi: ${text.slice(0, 400)}`);
+  }
+
+  return { requestId, raw: parsed };
+}
+
+export async function higgsfieldPollStatus(
+  creds: HiggsfieldCredentials,
+  requestId: string,
+): Promise<HiggsfieldStatusResponse> {
+  const res = await fetch(`${higgsfieldApiOrigin()}/requests/${encodeURIComponent(requestId)}/status`, {
+    headers: {
+      Authorization: higgsfieldAuthHeader(creds),
+      "User-Agent": "higgsfield-server-js/2.0",
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Higgsfield poll HTTP ${res.status}: ${text.slice(0, 400)}`);
+  }
+  return JSON.parse(text) as HiggsfieldStatusResponse;
+}
+
+export function extractHiggsfieldVideoUrl(status: HiggsfieldStatusResponse): string | null {
+  if (status.video?.url && /^https?:\/\//i.test(status.video.url)) return status.video.url;
+  const imgs = status.images;
+  if (Array.isArray(imgs)) {
+    for (const item of imgs) {
+      if (item?.url && /^https?:\/\//i.test(item.url)) return item.url;
+    }
+  }
+  return null;
+}
+
+export function normHiggsfieldStatus(s: unknown): string {
+  return typeof s === "string" ? s.trim().toLowerCase() : "";
+}
