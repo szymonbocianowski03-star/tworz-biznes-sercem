@@ -105,6 +105,13 @@ function VideoAssetsPage() {
     }
   };
 
+  const stopGeneratingUi = () => {
+    stopPoll();
+    setStarting(false);
+    setPollingId(null);
+    toast.message("Zatrzymano sprawdzanie statusu. Wideo może dokończyć się w tle.");
+  };
+
   useEffect(() => () => stopPoll(), []);
 
   const setReaction = async (it: VideoRow, r: Reaction) => {
@@ -331,6 +338,15 @@ function VideoAssetsPage() {
             </>
           )}
         </button>
+        {generating && (
+          <button
+            type="button"
+            onClick={stopGeneratingUi}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background py-3 text-sm font-semibold hover:bg-muted/30"
+          >
+            Zatrzymaj
+          </button>
+        )}
       </div>
 
       {loading ? (

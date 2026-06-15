@@ -1545,7 +1545,7 @@ export function AgentChat() {
                 <ImagePlus className="h-4 w-4" strokeWidth={1.75} /> Zdjęcie
               </button>
               <div className="flex items-center gap-2 shrink-0">
-                {loading || imgLoading ? (
+                {loading || imgLoading || queue.length > 0 || (imgConfirmPrompts?.length ?? 0) > 0 ? (
                   <button
                     type="button"
                     onClick={stopGeneration}
