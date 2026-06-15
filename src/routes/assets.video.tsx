@@ -1,14 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Clapperboard, Download, Heart, Loader2, MessageSquareText, ThumbsDown, Trash2, Video } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AssetsTabs } from "@/components/AssetsTabs";
-import { AssetsToolbar } from "@/components/AssetsToolbar";
 import { ZasobyReactionFilter, type ZasobyReactionFilterValue } from "@/components/ZasobyReactionFilter";
+import { useCreditsUpgrade } from "@/contexts/CreditsUpgradeContext";
+import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
 import { supabaseFnHeaders } from "@/lib/supabaseFnHeaders";
 import { buildAssetAgentPrompt, setAssetAgentSeed } from "@/lib/assetAgentSeed";
 import { downloadMediaWithToast } from "@/lib/downloadMedia";
+import { notifyCreditsRefresh } from "@/lib/creditsRefresh";
+import { checkVideoGenerationAffordability, getVideoUsageEstimate } from "@/lib/videoCreditsGate";
+import { friendlyVideoError } from "@/lib/videoErrorDisplay";
 import { VIDEO_PROMPT_SEED_KEY } from "@/lib/saveProjectAsset";
 import { useProducts } from "@/hooks/useProducts";
 import { toast } from "sonner";
@@ -83,6 +87,8 @@ const VIDEO_PROMPT_IDEAS: { label: string; prompt: string; style: (typeof STYLES
 
 function VideoAssetsPage() {
   const navigate = useNavigate();
+  const { openCreditsUpgrade } = useCreditsUpgrade();
+  const credits = useCredits();
   const { active: brandProduct } = useProducts();
   const generatorRef = useRef<HTMLDivElement>(null);
   const [items, setItems] = useState<VideoRow[]>([]);
@@ -95,6 +101,18 @@ function VideoAssetsPage() {
   const [starting, setStarting] = useState(false);
   const [pollingId, setPollingId] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
+
+  const usageEstimate = useMemo(
+    () =>
+      getVideoUsageEstimate({
+        balance: credits.balance ?? 0,
+        current_plan: credits.current_plan ?? "free",
+        free_ai_usage_usd_cents: credits.free_ai_usage_usd_cents,
+      }),
+    [credits.balance, credits.current_plan, credits.free_ai_usage_usd_cents],
+  );
+
+  const isFreePlan = (credits.current_plan ?? "free") === "free";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -201,6 +219,7 @@ function VideoAssetsPage() {
         });
         if (row.status === "succeeded" && row.video_url) {
           toast.success("Wideo gotowe.");
+          notifyCreditsRefresh();
           setPollingId(null);
           stopPoll();
           await load();
@@ -215,8 +234,8 @@ function VideoAssetsPage() {
     [load],
   );
 
-  const startGenerate = async () => {
-    const p = prompt.trim();
+  const startGenerate = async (opts?: { promptOverride?: string; useStoredPrompt?: boolean; replaceFailedId?: string }) => {
+    const p = (opts?.promptOverride ?? prompt).trim();
     if (!p) {
       toast.error("Wpisz opis sceny (prompt).");
       return;
@@ -228,6 +247,16 @@ function VideoAssetsPage() {
     const headers = await supabaseFnHeaders();
     if (!headers) {
       toast.error("Zaloguj się, aby generować wideo.");
+      return;
+    }
+    const affordability = checkVideoGenerationAffordability({
+      balance: credits.balance ?? 0,
+      current_plan: credits.current_plan ?? "free",
+      free_ai_usage_usd_cents: credits.free_ai_usage_usd_cents,
+    });
+    if (!affordability.allowed) {
+      openCreditsUpgrade(affordability.reason);
+      toast.error(affordability.reason ?? "Brak kredytów na generację wideo.");
       return;
     }
     setStarting(true);
@@ -242,6 +271,7 @@ function VideoAssetsPage() {
           duration,
           productName: brandProduct?.name ?? null,
           ...(style ? { style } : {}),
+          ...(opts?.useStoredPrompt ? { use_stored_prompt: true } : {}),
         }),
       });
       const json = (await res.json().catch(() => ({}))) as {
@@ -250,7 +280,11 @@ function VideoAssetsPage() {
         details?: string;
       };
       if (!res.ok) {
-        toast.error(json.error ?? json.details ?? "Nie udało się uruchomić generacji wideo.");
+        const msg = json.error ?? "Nie udało się uruchomić generacji wideo.";
+        if (res.status === 402 || msg.toLowerCase().includes("kredyt") || msg.toLowerCase().includes("limit")) {
+          openCreditsUpgrade(json.details ?? msg);
+        }
+        toast.error(msg, { description: json.details });
         return;
       }
       const id = json.id;
@@ -258,8 +292,12 @@ function VideoAssetsPage() {
         toast.error("Brak identyfikatora zadania.");
         return;
       }
+      if (opts?.replaceFailedId) {
+        await supabase.from("generated_videos").delete().eq("id", opts.replaceFailedId);
+        setItems((prev) => prev.filter((x) => x.id !== opts.replaceFailedId));
+      }
       toast.message("Zadanie wideo w kolejce — przetwarzanie w tle…");
-      setPrompt("");
+      if (!opts?.promptOverride) setPrompt("");
       setPollingId(id);
       await load();
       stopPoll();
@@ -310,17 +348,24 @@ function VideoAssetsPage() {
     scrollToGenerator();
   }
 
+  function retryFailedVideo(it: VideoRow) {
+    if (generating) {
+      toast.message("Poczekaj na zakończenie bieżącej generacji.");
+      return;
+    }
+    void startGenerate({
+      promptOverride: it.prompt,
+      useStoredPrompt: true,
+      replaceFailedId: it.id,
+    });
+  }
+
   return (
     <div className="px-6 md:px-10 py-10 max-w-6xl">
       <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Zasoby</h1>
       <p className="mt-2 text-sm text-muted-foreground">Wideo z galerii — polubienia, nielubienia i edycja w czacie.</p>
       <AssetsTabs />
       <ZasobyReactionFilter value={filter} onChange={setFilter} />
-      <AssetsToolbar
-        placeholder="Szukaj wideo…"
-        ctaLabel="Nowe wideo"
-        onCtaClick={scrollToGenerator}
-      />
 
       <div
         ref={generatorRef}
@@ -329,7 +374,7 @@ function VideoAssetsPage() {
       >
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Clapperboard className="h-4 w-4" />
-          Nowe wideo (tekst → wideo)
+          Generator wideo (tekst → wideo)
         </div>
         <label className="block space-y-1.5">
           <span className="text-xs font-medium">Prompt</span>
@@ -400,13 +445,61 @@ function VideoAssetsPage() {
               disabled={generating}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
             />
-            <span className="text-[11px] text-muted-foreground">Model tekst→wideo: 5 lub 10 sekund.</span>
+            <span className="text-[11px] text-muted-foreground">Długość klipu: 5 lub 10 sekund.</span>
           </label>
+        </div>
+        <div
+          className={`rounded-xl border px-3 py-2.5 text-xs space-y-1.5 ${
+            usageEstimate.canAfford
+              ? "border-border bg-muted/30 text-muted-foreground"
+              : "border-destructive/30 bg-destructive/5 text-destructive"
+          }`}
+        >
+          <p className="font-semibold text-foreground">Estymacja zużycia AI</p>
+          <p>
+            Ta generacja: <span className="font-semibold text-foreground">{usageEstimate.creditsCost} kredytów</span>{" "}
+            (1 klip · {duration} s)
+          </p>
+          {credits.loading ? (
+            <p>Ładowanie salda…</p>
+          ) : isFreePlan ? (
+            <p>
+              Plan Free — limit AI:{" "}
+              <span className="font-medium text-foreground">
+                {(usageEstimate.freeRemainingCents / 100).toFixed(2)} $
+              </span>{" "}
+              pozostało
+              {usageEstimate.canAfford && usageEstimate.remainingAfter != null ? (
+                <>
+                  {" "}
+                  → po sukcesie ok.{" "}
+                  <span className="font-medium text-foreground">{usageEstimate.remainingAfter} kred.</span>
+                </>
+              ) : null}
+            </p>
+          ) : (
+            <p>
+              Saldo: <span className="font-medium text-foreground">{credits.balance ?? 0} kred.</span>
+              {usageEstimate.canAfford && usageEstimate.remainingAfter != null ? (
+                <>
+                  {" "}
+                  → po sukcesie ok.{" "}
+                  <span className="font-medium text-foreground">{usageEstimate.remainingAfter} kred.</span>
+                </>
+              ) : null}
+            </p>
+          )}
+          <p className="text-[11px] leading-relaxed opacity-90">
+            Kredyty odejmujemy dopiero po udanej generacji. Nieudana próba nie zużywa limitu.
+          </p>
+          {!usageEstimate.canAfford && usageEstimate.reason ? (
+            <p className="font-medium">{usageEstimate.reason}</p>
+          ) : null}
         </div>
         <button
           type="button"
           onClick={() => void startGenerate()}
-          disabled={generating || !prompt.trim()}
+          disabled={generating || !prompt.trim() || !usageEstimate.canAfford}
           className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-foreground text-background py-3 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
         >
           {generating ? (
@@ -465,9 +558,10 @@ function VideoAssetsPage() {
                     <div className="text-center px-4 py-8 text-muted-foreground text-sm">
                       {it.status === "failed" ? (
                         <div className="space-y-2">
-                          <span className="text-destructive block">{it.error_detail ?? "Błąd generacji"}</span>
-                          <span className="text-xs text-muted-foreground block">
-                            Wideo nie zostało zapisane — generacja się nie powiodła. Usuń wpis i spróbuj ponownie.
+                          <span className="text-destructive block text-left">{friendlyVideoError(it.error_detail)}</span>
+                          <span className="text-xs text-muted-foreground block text-left">
+                            Nie ma pliku wideo do zapisania — tylko udana generacja trafia do zasobów. Usuń wpis lub
+                            spróbuj ponownie.
                           </span>
                         </div>
                       ) : (
@@ -542,6 +636,17 @@ function VideoAssetsPage() {
                     {new Date(it.created_at).toLocaleString("pl-PL")} · {it.status}
                   </p>
                   <div className="flex flex-wrap items-center gap-3">
+                    {it.status === "failed" && (
+                      <button
+                        type="button"
+                        onClick={() => retryFailedVideo(it)}
+                        disabled={generating}
+                        className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:opacity-80 disabled:opacity-50"
+                      >
+                        <Video className="h-3 w-3" />
+                        Spróbuj ponownie
+                      </button>
+                    )}
                     {it.status === "succeeded" && it.video_url && (
                       <button
                         type="button"
@@ -557,9 +662,11 @@ function VideoAssetsPage() {
                         Pobierz na dysk
                       </button>
                     )}
-                    <Link to="/agent" className="text-xs text-accent font-medium hover:opacity-80">
-                      Otwórz czat →
-                    </Link>
+                    {it.status === "succeeded" && it.video_url ? (
+                      <Link to="/agent" className="text-xs text-accent font-medium hover:opacity-80">
+                        Otwórz czat →
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               </div>

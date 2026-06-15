@@ -1,8 +1,9 @@
-import { COST_PER_IMAGE_USD, CREDITS_PER_IMAGE, VIDEO_CREDITS } from "@/lib/plans";
+import { CREDITS_PER_IMAGE } from "@/lib/plans";
 
 /** Zgodne z supabase/functions/_shared/featurePricing.ts */
 export const CREDITS_PER_USD_CENT = 4;
 export const COST_PER_VIDEO_USD = 1;
+export const COST_PER_VIDEO_USD_CENTS = 100;
 export const VIDEO_CREDITS = 400;
 
 export type AiPriceRow = {

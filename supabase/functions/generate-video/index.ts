@@ -10,10 +10,9 @@ import {
   extractHiggsfieldVideoUrl,
   getHiggsfieldCredentials,
   higgsfieldPollStatus,
-  higgsfieldStartVideo,
+  higgsfieldStartVideoWithFallback,
   normHiggsfieldStatus,
   ratioToAspectRatio,
-  resolveVideoEndpoint,
 } from "../_shared/higgsfield.ts";
 
 async function persistVideoFromRemote(
@@ -226,6 +225,8 @@ Deno.serve(async (req) => {
       });
     }
 
+    const useStoredPrompt = body.use_stored_prompt === true;
+
     const ratio = typeof body.ratio === "string" && body.ratio.includes(":")
       ? body.ratio
       : "1280:720";
@@ -246,9 +247,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const prompt = buildVideoPrompt(promptRaw, style);
+    const prompt = useStoredPrompt ? promptRaw : buildVideoPrompt(promptRaw, style);
     const aspectRatio = ratioToAspectRatio(ratio);
-    const endpoint = resolveVideoEndpoint(model, Boolean(imageUrl));
 
     const { data: inserted, error: insErr } = await admin
       .from("generated_videos")
@@ -274,28 +274,35 @@ Deno.serve(async (req) => {
     const rowId = inserted.id as string;
 
     let requestId: string;
+    let usedEndpoint: string;
     try {
-      const started = await higgsfieldStartVideo(creds, {
-        endpoint,
+      const started = await higgsfieldStartVideoWithFallback(creds, {
+        model,
         prompt,
         duration,
         aspectRatio,
         imageUrl,
       });
       requestId = started.requestId;
+      usedEndpoint = started.endpoint;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("higgsfield start", msg);
+      const userHint = msg.includes("401") || msg.includes("403")
+        ? "Błąd logowania do Higgsfield — sprawdź HIGGSFIELD_API_KEY_ID i HIGGSFIELD_API_SECRET w sekretach Supabase."
+        : msg.includes("image_url")
+        ? "Ten model wymaga obrazu startowego — zmień styl lub dodaj grafikę."
+        : msg;
       await admin
         .from("generated_videos")
         .update({
           status: "failed",
-          error_detail: msg.slice(0, 800),
+          error_detail: userHint.slice(0, 800),
           updated_at: new Date().toISOString(),
         })
         .eq("id", rowId);
       const status = msg.includes("401") ? 401 : msg.includes("403") ? 403 : 500;
-      return new Response(JSON.stringify({ error: "Błąd generacji wideo (Higgsfield).", details: msg }), {
+      return new Response(JSON.stringify({ error: "Błąd generacji wideo (Higgsfield).", details: userHint }), {
         status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -311,7 +318,13 @@ Deno.serve(async (req) => {
       .eq("id", rowId);
 
     return new Response(
-      JSON.stringify({ id: rowId, runwayTaskId: requestId, status: "processing", provider: "higgsfield" }),
+      JSON.stringify({
+        id: rowId,
+        runwayTaskId: requestId,
+        status: "processing",
+        provider: "higgsfield",
+        endpoint: usedEndpoint,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

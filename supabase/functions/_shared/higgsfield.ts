@@ -6,6 +6,11 @@ function higgsfieldApiOrigin(): string {
   return base.replace(/\/$/, "");
 }
 
+const HIGGSFIELD_NEGATIVE_PROMPT_SHORT =
+  "blur, distort, low quality, AI look, plastic skin, extra fingers, warped text, cartoon, CGI";
+
+const KLING_MAX_PROMPT_CHARS = 2400;
+
 const HIGGSFIELD_NEGATIVE_PROMPT =
   "Avoid: AI-generated look, plastic skin, over-smoothed face, uncanny eyes, extra fingers, distorted hands, warped product label, fake text, unreadable logo, overly cinematic lighting, stock photo look, perfect symmetry, unrealistic body proportions, over-polished commercial studio style, CGI avatar look, cartoonish animation, unnatural lip sync, frozen facial expression.";
 
@@ -80,6 +85,51 @@ export function resolveVideoEndpoint(model?: string, hasImage?: boolean): string
   return "kling-video/v2.5-turbo/pro/text-to-video";
 }
 
+/** Kolejność prób — gdy pierwszy model zwróci błąd walidacji / 404. */
+export function resolveVideoEndpointCandidates(model?: string, hasImage?: boolean): string[] {
+  const primary = resolveVideoEndpoint(model, hasImage);
+  if (hasImage) {
+    return [
+      primary,
+      "higgsfield-ai/dop/standard",
+      "kling-video/v2.5-turbo/pro/image-to-video",
+      "bytedance/seedance/v1/pro/image-to-video",
+    ].filter((v, i, a) => a.indexOf(v) === i);
+  }
+  return [
+    primary,
+    "minimax/hailuo-2.3/standard/text-to-video",
+    "bytedance/seedance/v1/lite/text-to-video",
+    "kling-video/v2.1/master/text-to-video",
+  ].filter((v, i, a) => a.indexOf(v) === i);
+}
+
+export function formatHiggsfieldError(status: number, detail: unknown, rawText: string): string {
+  if (Array.isArray(detail)) {
+    const parts = detail.map((item) => {
+      if (item && typeof item === "object" && "msg" in item) {
+        const loc = Array.isArray((item as { loc?: unknown }).loc)
+          ? (item as { loc: unknown[] }).loc.join(".")
+          : "";
+        return loc ? `${loc}: ${String((item as { msg: unknown }).msg)}` : String((item as { msg: unknown }).msg);
+      }
+      return JSON.stringify(item);
+    });
+    return `Higgsfield HTTP ${status}: ${parts.join("; ")}`;
+  }
+  if (typeof detail === "string" && detail.trim()) {
+    return `Higgsfield HTTP ${status}: ${detail}`;
+  }
+  return `Higgsfield HTTP ${status}: ${rawText.slice(0, 500)}`;
+}
+
+function truncatePromptForEndpoint(prompt: string, endpoint: string): string {
+  const max = endpoint.toLowerCase().includes("kling") ? KLING_MAX_PROMPT_CHARS : 6000;
+  const p = prompt.trim();
+  if (p.length <= max) return p;
+  return `${p.slice(0, max - 1)}…`;
+}
+
 /** Niektóre modele (np. Kling) akceptują tylko 5 lub 10 s. */
 export function normalizeVideoDuration(duration: number, endpoint: string): number {
   const d = Number.isFinite(duration) ? duration : 5;
@@ -145,15 +195,19 @@ export async function higgsfieldStartVideo(
   const endpoint = opts.endpoint.startsWith("/") ? opts.endpoint : `/${opts.endpoint}`;
   const textToVideo = isTextToVideoEndpoint(endpoint);
   const duration = normalizeVideoDuration(opts.duration, endpoint);
+  const prompt = truncatePromptForEndpoint(opts.prompt, endpoint);
 
   const body: Record<string, unknown> = {
-    prompt: opts.prompt,
+    prompt,
     aspect_ratio: opts.aspectRatio,
     duration: textToVideo ? String(duration) : duration,
   };
 
   if (textToVideo) {
-    body.negative_prompt = HIGGSFIELD_NEGATIVE_PROMPT;
+    body.negative_prompt = HIGGSFIELD_NEGATIVE_PROMPT_SHORT;
+    if (endpoint.toLowerCase().includes("kling")) {
+      body.cfg_scale = 0.5;
+    }
   }
 
   if (opts.imageUrl) {
@@ -180,9 +234,7 @@ export async function higgsfieldStartVideo(
   }
 
   if (!res.ok) {
-    throw new Error(
-      `Higgsfield start HTTP ${res.status}: ${typeof parsed.detail === "string" ? parsed.detail : text.slice(0, 400)}`,
-    );
+    throw new Error(formatHiggsfieldError(res.status, parsed.detail, text));
   }
 
   const requestId = parsed.request_id;
@@ -191,6 +243,41 @@ export async function higgsfieldStartVideo(
   }
 
   return { requestId, raw: parsed };
+}
+
+/** Próbuje kolejnych modeli wideo, dopóki któryś nie przyjmie zadania. */
+export async function higgsfieldStartVideoWithFallback(
+  creds: HiggsfieldCredentials,
+  opts: {
+    model?: string;
+    prompt: string;
+    duration: number;
+    aspectRatio: string;
+    imageUrl?: string;
+  },
+): Promise<{ requestId: string; raw: HiggsfieldStatusResponse; endpoint: string }> {
+  const candidates = resolveVideoEndpointCandidates(opts.model, Boolean(opts.imageUrl));
+  let lastErr: Error | null = null;
+
+  for (const endpoint of candidates) {
+    try {
+      const started = await higgsfieldStartVideo(creds, {
+        endpoint,
+        prompt: opts.prompt,
+        duration: opts.duration,
+        aspectRatio: opts.aspectRatio,
+        imageUrl: opts.imageUrl,
+      });
+      return { ...started, endpoint };
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      lastErr = err;
+      console.error("higgsfield candidate failed", endpoint, err.message);
+      if (/\b(401|403)\b/.test(err.message)) throw err;
+    }
+  }
+
+  throw lastErr ?? new Error("Higgsfield: żaden model wideo nie przyjął zadania.");
 }
 
 export async function higgsfieldPollStatus(
@@ -212,6 +299,25 @@ export async function higgsfieldPollStatus(
 
 export function extractHiggsfieldVideoUrl(status: HiggsfieldStatusResponse): string | null {
   if (status.video?.url && /^https?:\/\//i.test(status.video.url)) return status.video.url;
+
+  const raw = status as Record<string, unknown>;
+  const outputs = raw.outputs;
+  if (Array.isArray(outputs)) {
+    for (const item of outputs) {
+      if (typeof item === "string" && /^https?:\/\//i.test(item)) return item;
+      if (item && typeof item === "object") {
+        const u = (item as { url?: string }).url;
+        if (u && /^https?:\/\//i.test(u)) return u;
+      }
+    }
+  }
+
+  const nestedVideo = raw.video;
+  if (nestedVideo && typeof nestedVideo === "object" && !Array.isArray(nestedVideo)) {
+    const u = (nestedVideo as { url?: string }).url;
+    if (u && /^https?:\/\//i.test(u)) return u;
+  }
+
   const imgs = status.images;
   if (Array.isArray(imgs)) {
     for (const item of imgs) {
