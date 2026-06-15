@@ -3,6 +3,12 @@ import {
   buildAuthSessionRedirect,
   createSupabaseSessionForGoogleUser,
 } from "@/lib/googleLoginSession.server";
+import { handleGoogleIntegrationOAuthCallback } from "@/lib/googleIntegrationOAuth.server";
+import {
+  getGoogleAuthOAuthRedirectUri,
+  getRequestOrigin,
+  isGoogleIntegrationOAuthState,
+} from "@/lib/googleOAuthRedirect.server";
 
 export const Route = createFileRoute("/api/public/auth/google/callback")({
   server: {
@@ -13,7 +19,12 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
         const state = url.searchParams.get("state");
         const error = url.searchParams.get("error");
         const errorDescription = url.searchParams.get("error_description");
-        const redirectUri = `${url.origin}/api/public/auth/google/callback`;
+        const redirectUri = getGoogleAuthOAuthRedirectUri(request);
+        const origin = getRequestOrigin(request);
+
+        if (isGoogleIntegrationOAuthState(state)) {
+          return handleGoogleIntegrationOAuthCallback(request, redirectUri);
+        }
 
         const redirectPath = parseRedirectPathFromCookie(request.headers.get("cookie"));
         const authPath = redirectPath ?? "/auth";
@@ -23,7 +34,7 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
             errorDescription ??
             error ??
             "Google nie zwróciło kodu autoryzacji. Sprawdź redirect URI w Google Cloud Console.";
-          return redirectAuthError(url.origin, authPath, String(detail).slice(0, 200));
+          return redirectAuthError(origin, authPath, String(detail).slice(0, 200));
         }
 
         const cookieHeader = request.headers.get("cookie") ?? "";
@@ -34,14 +45,14 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
           ?.split("=")[1];
 
         if (!cookieState || cookieState !== state || !state.startsWith("auth.")) {
-          return redirectAuthError(url.origin, authPath, "state_mismatch");
+          return redirectAuthError(origin, authPath, "state_mismatch");
         }
 
         const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID?.trim();
         const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim();
         if (!clientId || !clientSecret) {
           return redirectAuthError(
-            url.origin,
+            origin,
             authPath,
             "Brak GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET w .env",
           );
@@ -79,7 +90,7 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
             googleSub: (me.sub as string | undefined) ?? undefined,
           });
 
-          const location = buildAuthSessionRedirect(url.origin, authPath, session);
+          const location = buildAuthSessionRedirect(origin, authPath, session);
           return new Response(null, {
             status: 302,
             headers: {
@@ -93,7 +104,7 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
         } catch (e: unknown) {
           console.error("[google auth callback]", e);
           const message = e instanceof Error ? e.message : String(e);
-          return redirectAuthError(url.origin, authPath, message.slice(0, 200));
+          return redirectAuthError(origin, authPath, message.slice(0, 200));
         }
       },
     },

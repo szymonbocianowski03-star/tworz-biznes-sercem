@@ -1,3 +1,16 @@
+/** Publiczny origin żądania (uwzględnia proxy Lovable / x-forwarded-*). */
+export function getRequestOrigin(request: Request): string {
+  const url = new URL(request.url);
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedHost) {
+    const host = forwardedHost.split(",")[0]?.trim();
+    const proto = forwardedProto?.split(",")[0]?.trim() || "https";
+    if (host) return `${proto}://${host}`;
+  }
+  return url.origin;
+}
+
 /** Parsuje state OAuth Gmail/Kalendarz: `userId.service.uuid`. */
 export function parseGoogleIntegrationOAuthState(state: string | null): {
   userId: string;
@@ -12,18 +25,45 @@ export function parseGoogleIntegrationOAuthState(state: string | null): {
   return { userId, service };
 }
 
+export function isGoogleIntegrationOAuthState(state: string | null): boolean {
+  return parseGoogleIntegrationOAuthState(state) !== null;
+}
+
+function integrationRedirectFromEnv(): string | null {
+  const configured = process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim();
+  return configured || null;
+}
+
+/** Redirect URI logowania konta Google. */
+export function getGoogleAuthOAuthRedirectUri(request: Request): string {
+  const configured = integrationRedirectFromEnv();
+  if (configured) return configured;
+  return `${getRequestOrigin(request)}/api/public/auth/google/callback`;
+}
+
 /**
- * Redirect URI dla integracji Gmail / Google Calendar.
- * Domyślnie bieżący origin żądania — musi być zarejestrowany w Google Cloud Console.
- * Nadpisz tylko gdy świadomie ustawiasz GOOGLE_OAUTH_REDIRECT_URI w env.
+ * Redirect URI integracji Gmail / Kalendarz.
+ * Domyślnie ten sam co logowanie — zwykle już jest w Google Cloud Console.
  */
 export function getGoogleIntegrationOAuthRedirectUri(request: Request): string {
-  const configured = process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim();
+  return getGoogleAuthOAuthRedirectUri(request);
+}
+
+/** Legacy — osobny callback (dla kont, które mają tylko ten URI w Google Cloud). */
+export function getGoogleLegacyIntegrationOAuthRedirectUri(request: Request): string {
+  const configured = integrationRedirectFromEnv();
   if (configured) return configured;
-  const url = new URL(request.url);
-  return `${url.origin}/api/public/google/callback`;
+  return `${getRequestOrigin(request)}/api/public/google/callback`;
 }
 
 export function googleIntegrationRedirectHint(redirectUri: string): string {
-  return `W Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client → Authorized redirect URIs dodaj dokładnie: ${redirectUri} (to inny adres niż logowanie przez /api/public/auth/google/callback).`;
+  return `W Google Cloud Console → Credentials → OAuth 2.0 Client → Authorized redirect URIs dodaj dokładnie: ${redirectUri}`;
+}
+
+export function listGoogleOAuthRedirectUris(request: Request): string[] {
+  const origin = getRequestOrigin(request);
+  return [
+    `${origin}/api/public/auth/google/callback`,
+    `${origin}/api/public/google/callback`,
+  ];
 }

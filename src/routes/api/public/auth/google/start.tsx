@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { isLocalGoogleAuthConfigured } from "@/lib/googleAuthEnv.server";
 import { oauthStartErrorResponse } from "@/lib/oauthHtml";
+import { getGoogleAuthOAuthRedirectUri } from "@/lib/googleOAuthRedirect.server";
 
 const AUTH_SCOPES = ["openid", "email", "profile"];
 
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/api/public/auth/google/start")({
 
         const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID!.trim();
 
-        const redirectUri = `${url.origin}/api/public/auth/google/callback`;
+        const redirectUri = getGoogleAuthOAuthRedirectUri(request);
         const state = `auth.${crypto.randomUUID()}`;
 
         const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");

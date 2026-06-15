@@ -13,6 +13,9 @@ export const Route = createFileRoute("/api/public/oauth/config")({
         const metaAppIdValue = process.env.META_APP_ID?.trim() ?? "";
         const metaLoginConfigId = process.env.META_FB_LOGIN_CONFIG_ID?.trim() ?? "";
 
+        const googleId = Boolean(process.env.GOOGLE_OAUTH_CLIENT_ID?.trim());
+        const googleSecret = Boolean(process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim());
+
         return Response.json({
           meta: {
             canStart: metaAppId,
@@ -25,6 +28,10 @@ export const Route = createFileRoute("/api/public/oauth/config")({
           linkedin: {
             canStart: linkedinId,
             canComplete: linkedinId && linkedinSecret,
+          },
+          google: {
+            canStart: googleId,
+            canComplete: googleId && googleSecret,
           },
         });
       },
