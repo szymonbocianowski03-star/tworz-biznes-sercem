@@ -28,6 +28,27 @@ const CHAT_URL = supabaseEdgeFunctionUrl("chat");
 const SUGGEST_URL = supabaseEdgeFunctionUrl("suggest");
 const IMAGE_URL = supabaseEdgeFunctionUrl("generate-image");
 const ANON = getSupabasePublicEnv().anonKey ?? "";
+
+/** Prośba o generację wideo lub przejście do generatora — nie generuj grafik w czacie. */
+function shouldOpenVideoGenerator(text: string): boolean {
+  const t = text.toLowerCase();
+  if (/\b(wideo|film|filmik|reels|tiktok|rolk|short.?form|stories)\b/.test(t)) {
+    if (/\b(wygeneruj|generuj|stwórz|zrób|utwórz|nagraj|zrób mi|otwórz|przejdź)\b/.test(t)) return true;
+    if (/\b(generator wideo|generator film)\b/.test(t)) return true;
+  }
+  return false;
+}
+
+/** Użytkownik wyraźnie prosi o grafiki (nie wideo) — wtedy można auto-generować pojedynczy [IMG:]. */
+function userExplicitlyWantsImages(text: string): boolean {
+  const t = text.toLowerCase();
+  if (/\b(wideo|film|filmik|reels|tiktok)\b/.test(t)) return false;
+  return (
+    (/\b(generuj|wygeneruj|stwórz|zrób)\b/.test(t) &&
+      /\b(grafik|obraz|kreacj|baner|plakat|poster|visual|creative|reklam)\b/.test(t)) ||
+    /\b(generuj wszystko|wygeneruj wszystko)\b/.test(t)
+  );
+}
 const USER_SKILLS_KEY = "mn.userSkills.v1";
 const LLM_VIS_AGENT_SEED_KEY = "mn.llmVis.agentSeed";
 
@@ -301,14 +322,17 @@ export function AgentChat() {
   const qaInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [imgLoading, setImgLoading] = useState(false);
+  const [imgConfirmPrompts, setImgConfirmPrompts] = useState<string[] | null>(null);
+  const [imgConfirmMessageIdx, setImgConfirmMessageIdx] = useState<number | null>(null);
   const imgRatio = "1024x1024" as const;
   const imgDefaultN = 4;
 
   // Kolejka promptów: można wpisywać kolejne wiadomości, czekają na zakończenie bieżącej.
   const [queue, setQueue] = useState<string[]>([]);
-  // Zawieszenie generowania (Stop) — wstrzymuje też przetwarzanie kolejki.
+  // Zawieszenie generowania (Stop) — wstrzymuje też przetwarzanie kolejki i generację grafik.
   const [paused, setPaused] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const imgAbortRef = useRef<AbortController | null>(null);
   const sendingRef = useRef(false);
 
   /** Wiadomość z Zasobów (obraz / wideo) — jednorazowo po wejściu na czat. */
@@ -643,10 +667,31 @@ export function AgentChat() {
     void send(t);
   }
 
-  // Zatrzymaj (zawieś) bieżące generowanie i wstrzymaj kolejkę.
+  // Zatrzymaj (zawieś) bieżące generowanie, grafiki i kolejkę.
   function stopGeneration() {
     setPaused(true);
     abortRef.current?.abort();
+    imgAbortRef.current?.abort();
+    setImgLoading(false);
+    setImgConfirmPrompts(null);
+    setImgConfirmMessageIdx(null);
+    setQueue([]);
+  }
+
+  function answerQaOption(opt: string) {
+    setQaCustom("");
+    if (shouldOpenVideoGenerator(opt)) {
+      const lastUser = [...messagesRef.current].reverse().find((m) => m.role === "user");
+      try {
+        sessionStorage.setItem(VIDEO_PROMPT_SEED_KEY, lastUser?.content?.trim() || opt);
+      } catch {
+        /* ignore */
+      }
+      toast.message("Otwieram generator wideo…");
+      void navigate({ to: "/assets/video" });
+      return;
+    }
+    void send(opt);
   }
 
   function removeFromQueue(idx: number) {
@@ -663,13 +708,13 @@ export function AgentChat() {
 
   // Przetwarzaj kolejkę gdy nie trwa generowanie i nie jest wstrzymana.
   useEffect(() => {
-    if (loading || sendingRef.current || paused) return;
+    if (loading || imgLoading || sendingRef.current || paused) return;
     if (queue.length === 0) return;
     const nextPrompt = queue[0];
     setQueue((q) => q.slice(1));
     void send(nextPrompt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, queue, paused]);
+  }, [loading, imgLoading, queue, paused]);
 
   async function send(text: string) {
     const trimmed = text.trim();
@@ -678,6 +723,20 @@ export function AgentChat() {
     // Pozwól wysłać samo zdjęcie (bez tekstu), jeśli jest załączone.
     if ((!effective && !attachment) || loading) return;
     if (!active) return;
+
+    // Prośba o wideo → generator w Zasobach (czat nie generuje filmów).
+    if (effective && shouldOpenVideoGenerator(effective)) {
+      try {
+        sessionStorage.setItem(VIDEO_PROMPT_SEED_KEY, effective);
+      } catch {
+        /* ignore */
+      }
+      toast.message("Otwieram generator wideo…");
+      void navigate({ to: "/assets/video" });
+      setInput("");
+      return;
+    }
+
     sendingRef.current = true;
     const ac = new AbortController();
     abortRef.current = ac;
@@ -787,38 +846,80 @@ export function AgentChat() {
       sendingRef.current = false;
       abortRef.current = null;
       setLoading(false);
-      void detectAndGenerateImages();
+      if (!paused) void detectAndGenerateImages();
       // Nie pokazuj "Sugerowanych kroków" jeśli asystent sam zadał pytanie (Q&A) —
       // inaczej ekran dubluje opcje wyboru.
       const lastAssist = messagesRef.current[messagesRef.current.length - 1];
       const hasQA = !!lastAssist && lastAssist.role === "assistant" && /(^|\n)Q:\s/.test(lastAssist.content || "");
-      if (!hasQA) void fetchSuggestions();
+      if (!paused && !hasQA) void fetchSuggestions();
       else setSuggestions([]);
       scheduleCreditsRefresh();
     }
   }
 
-  // Wykrywa markery [IMG: prompt] w ostatniej wiadomości asystenta i generuje obrazy
-  // równolegle, a następnie wstawia je do tej wiadomości jako załączniki.
+  // Wykrywa markery [IMG: prompt] w ostatniej wiadomości asystenta.
+  // Generacja wymaga potwierdzenia (chyba że 1 marker + wyraźna prośba o grafikę).
   async function detectAndGenerateImages() {
-    if (!active) return;
+    if (!active || paused || imgLoading) return;
     const prev = messagesRef.current;
     const lastIdx = prev.length - 1;
     const last = prev[lastIdx];
     if (!last || last.role !== "assistant") return;
     const matches = [...last.content.matchAll(/\[IMG:\s*([^\]]+?)\s*\]/gi)];
     if (!matches.length) return;
-    const prompts = matches.map((m) => m[1].trim()).slice(0, 12);
-    // Usuń markery z treści, dodaj subtelny pasek statusu
+
+    const prompts = matches.map((m) => m[1].trim()).slice(0, 4);
     const cleaned = last.content.replace(/\[IMG:\s*[^\]]+?\s*\]\s*/gi, "").trim();
+    const lastUser = [...prev].reverse().find((m) => m.role === "user");
+    const lastUserText = lastUser?.content ?? "";
+    const autoOk = prompts.length === 1 && userExplicitlyWantsImages(lastUserText);
+
+    if (!autoOk) {
+      setImgConfirmPrompts(prompts);
+      setImgConfirmMessageIdx(lastIdx);
+      const n = prompts.length;
+      const statusLine = `\n\n_🎨 Przygotowano opis ${n} ${n === 1 ? "grafiki" : "grafik"}. Potwierdź generację przyciskiem poniżej — bez zgody nie zużyjemy kredytów._`;
+      update(active.id, {
+        messages: prev.map((m, i) => (i === lastIdx ? { ...m, content: cleaned + statusLine } : m)),
+      });
+      return;
+    }
+
+    await runImageGeneration(prompts, lastIdx, cleaned);
+  }
+
+  function cancelPendingImages() {
+    setImgConfirmPrompts(null);
+    setImgConfirmMessageIdx(null);
+  }
+
+  async function confirmPendingImages() {
+    if (!active || !imgConfirmPrompts?.length || imgConfirmMessageIdx == null) return;
+    const prompts = imgConfirmPrompts;
+    const lastIdx = imgConfirmMessageIdx;
+    const cleaned = (messagesRef.current[lastIdx]?.content ?? "")
+      .replace(/\[IMG:\s*[^\]]+?\s*\]\s*/gi, "")
+      .replace(/\n\n_🎨 Przygotowano opis[^_]*_\s*$/i, "")
+      .trim();
+    setImgConfirmPrompts(null);
+    setImgConfirmMessageIdx(null);
+    setPaused(false);
+    await runImageGeneration(prompts, lastIdx, cleaned);
+  }
+
+  async function runImageGeneration(prompts: string[], lastIdx: number, cleaned: string) {
+    if (!active || paused) return;
     const statusLine = `\n\n_🎨 Generuję ${prompts.length} ${prompts.length === 1 ? "kreację" : "kreacji"}…_`;
     update(active.id, {
-      messages: prev.map((m, i) => (i === lastIdx ? { ...m, content: cleaned + statusLine } : m)),
+      messages: messagesRef.current.map((m, i) => (i === lastIdx ? { ...m, content: cleaned + statusLine } : m)),
     });
     setImgLoading(true);
+    const ac = new AbortController();
+    imgAbortRef.current = ac;
     try {
       const results = await Promise.all(
         prompts.map(async (p) => {
+          if (ac.signal.aborted) return null;
           try {
             const { data: authData } = await supabase.auth.getSession();
             const token = authData?.session?.access_token;
@@ -832,6 +933,7 @@ export function AgentChat() {
                 apikey: ANON,
               },
               body: JSON.stringify({ prompt: finalPrompt, size, quality: "high", n: 1 }),
+              signal: ac.signal,
             });
             if (!r.ok) return null;
             const data = await r.json().catch(() => ({}));
@@ -840,14 +942,16 @@ export function AgentChat() {
           } catch {
             return null;
           }
-        })
+        }),
       );
+      if (ac.signal.aborted) return;
       const pairs = results
         .map((src, i) => (src ? { src, prompt: prompts[i] ?? "kreacja" } : null))
         .filter((x): x is { src: string; prompt: string } => Boolean(x));
       const uploaded = await Promise.all(
         pairs.map((p) => uploadToGallery(p.src, p.prompt, chooseImageSizeFromPrompt(p.prompt))),
       );
+      if (ac.signal.aborted) return;
       const newEntries: ImageEntry[] = uploaded.map((r, idx) => ({
         url: r.url,
         dbId: r.id,
@@ -868,6 +972,7 @@ export function AgentChat() {
       };
       update(active.id, { messages: cur.map((m, i) => (i === lastIdx ? updated : m)) });
     } finally {
+      imgAbortRef.current = null;
       setImgLoading(false);
       scheduleCreditsRefresh();
     }
@@ -1175,10 +1280,7 @@ export function AgentChat() {
                                       <button
                                         key={k}
                                         type="button"
-                                        onClick={() => {
-                                          setQaCustom("");
-                                          void send(opt);
-                                        }}
+                                        onClick={() => answerQaOption(opt)}
                                         disabled={loading}
                                         className="inline-flex items-center px-3 py-1.5 rounded-lg border border-neutral-200 bg-white text-[13px] text-neutral-800 hover:border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors disabled:opacity-50"
                                       >
@@ -1297,6 +1399,30 @@ export function AgentChat() {
 
       <div className="border-t border-neutral-200 bg-white/90 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-4">
+          {imgConfirmPrompts && imgConfirmPrompts.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-sm text-amber-950">
+                Agent chce wygenerować <strong>{imgConfirmPrompts.length}</strong>{" "}
+                {imgConfirmPrompts.length === 1 ? "grafikę" : "grafik"}. Każda zużywa kredyty — potwierdź, jeśli chcesz kontynuować.
+              </p>
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => void confirmPendingImages()}
+                  className="h-8 px-3 rounded-md bg-neutral-900 text-white text-xs font-medium hover:bg-neutral-800 transition-colors"
+                >
+                  Wygeneruj grafiki
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelPendingImages}
+                  className="h-8 px-3 rounded-md border border-neutral-300 bg-white text-neutral-700 text-xs font-medium hover:bg-neutral-50 transition-colors"
+                >
+                  Anuluj
+                </button>
+              </div>
+            </div>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -1419,7 +1545,7 @@ export function AgentChat() {
                 <ImagePlus className="h-4 w-4" strokeWidth={1.75} /> Zdjęcie
               </button>
               <div className="flex items-center gap-2 shrink-0">
-                {loading && (
+                {loading || imgLoading ? (
                   <button
                     type="button"
                     onClick={stopGeneration}
@@ -1428,7 +1554,7 @@ export function AgentChat() {
                   >
                     <Square className="h-3.5 w-3.5 fill-current" strokeWidth={2} /> Zatrzymaj
                   </button>
-                )}
+                ) : null}
                 <button
                   type="submit"
                   disabled={!input.trim() && !pendingImage}
