@@ -6,7 +6,7 @@ import { MetaIntegrationCard } from "@/components/MetaIntegrationCard";
 import { LinkedInIntegrationCard } from "@/components/LinkedInIntegrationCard";
 import { TikTokIntegrationCard } from "@/components/TikTokIntegrationCard";
 import { AutomatedEmailsCard } from "@/components/AutomatedEmailsCard";
-import { UserIntegrationsCard } from "@/components/UserIntegrationsCard";
+import { friendlyGoogleOAuthError } from "@/lib/googleOAuthErrors";
 
 export const Route = createFileRoute("/integrations/")({
   component: IntegrationsPage,
@@ -32,9 +32,9 @@ function IntegrationsPage() {
     if (tiktok === "connected") toast.success(`Połączono z TikTok Ads${name ? ` jako ${name}` : ""}`);
     else if (tiktok === "error") toast.error(`TikTok Ads: ${err ?? "błąd połączenia"}`);
     if (gmail === "connected") toast.success(`Połączono Gmail${name ? ` (${name})` : ""}`);
-    else if (gmail === "error") toast.error(`Gmail: ${err ?? "błąd"}`);
+    else if (gmail === "error") toast.error(`Gmail: ${friendlyGoogleOAuthError(err)}`, { duration: 8000 });
     if (gcal === "connected") toast.success(`Połączono Google Calendar${name ? ` (${name})` : ""}`);
-    else if (gcal === "error") toast.error(`Google Calendar: ${err ?? "błąd"}`);
+    else if (gcal === "error") toast.error(`Google Calendar: ${friendlyGoogleOAuthError(err)}`, { duration: 8000 });
     if (outlook === "connected") toast.success(`Połączono Outlook${name ? ` (${name})` : ""}`);
     else if (outlook === "error") toast.error(`Outlook: ${err ?? "błąd"}`);
     if (outcal === "connected") toast.success(`Połączono Outlook Calendar${name ? ` (${name})` : ""}`);

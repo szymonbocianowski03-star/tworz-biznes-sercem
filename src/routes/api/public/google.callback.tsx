@@ -1,5 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  getGoogleIntegrationOAuthRedirectUri,
+  googleIntegrationRedirectHint,
+  parseGoogleIntegrationOAuthState,
+} from "@/lib/googleOAuthRedirect.server";
+import { friendlyGoogleOAuthError } from "@/lib/googleOAuthErrors";
 
 export const Route = createFileRoute("/api/public/google/callback")({
   server: {
@@ -10,29 +16,24 @@ export const Route = createFileRoute("/api/public/google/callback")({
         const state = url.searchParams.get("state");
         const error = url.searchParams.get("error");
         const errorDescription = url.searchParams.get("error_description");
-        const redirectUri = `${url.origin}/api/public/google/callback`;
+        const redirectUri = getGoogleIntegrationOAuthRedirectUri(request);
+        const parsedState = parseGoogleIntegrationOAuthState(state);
+        const service = parsedState?.service ?? "gmail";
 
-        // Diagnostyka: pełny callback URL i obecność kluczowych parametrów.
         console.log("[google callback]", {
-          fullUrl: url.toString(),
           hasCode: Boolean(code),
           hasError: Boolean(error),
           error,
           errorDescription,
           redirectUri,
+          service,
         });
 
-        // Service zakodowany jest w state (userId.service.uuid) — wyciągnij go zawczasu,
-        // aby błąd trafił na właściwą kartę integracji (gmail vs calendar).
-        const serviceFromState = state?.split(".")[1];
-        const svc = serviceFromState === "calendar" ? "calendar" : "gmail";
-
         if (error || !code || !state) {
-          const detail =
-            errorDescription ??
-            error ??
-            "missing_code: Google nie zwróciło parametru code. Sprawdź, czy redirect_uri jest zarejestrowany w Google Cloud Console.";
-          return redirectBack(url.origin, svc, { ok: false, error: String(detail).slice(0, 200) });
+          const detail = friendlyGoogleOAuthError(
+            errorDescription ?? error ?? "missing_code: Google nie zwróciło parametru code.",
+          );
+          return redirectBack(url.origin, service, { ok: false, error: detail.slice(0, 240) });
         }
 
         const cookieHeader = request.headers.get("cookie") ?? "";
@@ -43,13 +44,20 @@ export const Route = createFileRoute("/api/public/google/callback")({
           ?.split("=")[1];
 
         if (!cookieState || cookieState !== state) {
-          return redirectBack(url.origin, "gmail", { ok: false, error: "state_mismatch" });
+          return redirectBack(url.origin, service, {
+            ok: false,
+            error: friendlyGoogleOAuthError("state_mismatch"),
+          });
         }
 
-        const [userId, service] = state.split(".");
-        if (!userId || (service !== "gmail" && service !== "calendar")) {
-          return redirectBack(url.origin, "gmail", { ok: false, error: "bad_state" });
+        if (!parsedState) {
+          return redirectBack(url.origin, service, {
+            ok: false,
+            error: friendlyGoogleOAuthError("bad_state"),
+          });
         }
+
+        const { userId, service: svc } = parsedState;
 
         const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID!;
         const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET!;
@@ -74,7 +82,6 @@ export const Route = createFileRoute("/api/public/google/callback")({
           const expiresIn: number = tokenJson.expires_in ?? 3600;
           const scope: string = tokenJson.scope ?? "";
 
-          // Get user email
           const meRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
@@ -91,19 +98,19 @@ export const Route = createFileRoute("/api/public/google/callback")({
           };
 
           const { error: upsertErr } =
-            service === "gmail"
-              ? await supabaseAdmin
-                  .from("gmail_connections")
-                  .upsert(baseRow, { onConflict: "user_id" })
-              : await supabaseAdmin
-                  .from("google_calendar_connections")
-                  .upsert(baseRow, { onConflict: "user_id" });
+            svc === "gmail"
+              ? await supabaseAdmin.from("gmail_connections").upsert(baseRow, { onConflict: "user_id" })
+              : await supabaseAdmin.from("google_calendar_connections").upsert(baseRow, { onConflict: "user_id" });
           if (upsertErr) throw upsertErr;
 
-          return redirectBack(url.origin, service, { ok: true, name: email });
-        } catch (e: any) {
+          return redirectBack(url.origin, svc, { ok: true, name: email });
+        } catch (e: unknown) {
           console.error("[google callback]", e);
-          return redirectBack(url.origin, service, { ok: false, error: String(e?.message ?? e).slice(0, 200) });
+          const msg = e instanceof Error ? e.message : String(e);
+          return redirectBack(url.origin, svc, {
+            ok: false,
+            error: friendlyGoogleOAuthError(msg).slice(0, 240),
+          });
         }
       },
     },
@@ -120,11 +127,14 @@ function redirectBack(
   qs.set(key, params.ok ? "connected" : "error");
   if (params.name) qs.set("name", params.name);
   if (params.error) qs.set("error", params.error);
+
+  const isSecure = origin.startsWith("https://");
+
   return new Response(null, {
     status: 302,
     headers: {
       Location: `${origin}/integrations?${qs.toString()}`,
-      "Set-Cookie": "google_oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure",
+      "Set-Cookie": `google_oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}`,
     },
   });
 }

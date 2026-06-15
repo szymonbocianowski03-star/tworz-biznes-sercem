@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { oauthStartErrorResponse } from "@/lib/oauthHtml";
+import {
+  getGoogleIntegrationOAuthRedirectUri,
+  googleIntegrationRedirectHint,
+} from "@/lib/googleOAuthRedirect.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const SCOPES_BY_SERVICE: Record<string, string[]> = {
@@ -14,6 +18,7 @@ const SCOPES_BY_SERVICE: Record<string, string[]> = {
     "email",
     "profile",
     "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/calendar",
   ],
 };
 
@@ -49,13 +54,21 @@ export const Route = createFileRoute("/api/public/google/start")({
 
         const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
         if (!clientId?.trim()) {
+          const redirectUri = getGoogleIntegrationOAuthRedirectUri(request);
           return oauthStartErrorResponse(500, {
             title: "Połączenie z Google niedostępne",
-            detail: "Brak GOOGLE_OAUTH_CLIENT_ID w konfiguracji aplikacji.",
+            detail: "Brak GOOGLE_OAUTH_CLIENT_ID w konfiguracji aplikacji (Lovable → Environment).",
+            hint: googleIntegrationRedirectHint(redirectUri),
+          });
+        }
+        if (!process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim()) {
+          return oauthStartErrorResponse(500, {
+            title: "Połączenie z Google niedostępne",
+            detail: "Brak GOOGLE_OAUTH_CLIENT_SECRET w konfiguracji aplikacji.",
           });
         }
 
-        const redirectUri = `${url.origin}/api/public/google/callback`;
+        const redirectUri = getGoogleIntegrationOAuthRedirectUri(request);
         const state = `${userId}.${service}.${crypto.randomUUID()}`;
 
         const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -63,10 +76,12 @@ export const Route = createFileRoute("/api/public/google/start")({
         authUrl.searchParams.set("redirect_uri", redirectUri);
         authUrl.searchParams.set("response_type", "code");
         authUrl.searchParams.set("access_type", "offline");
-        authUrl.searchParams.set("prompt", forceLogin ? "consent select_account" : "consent");
+        authUrl.searchParams.set("prompt", forceLogin ? "select_account consent" : "consent");
         authUrl.searchParams.set("include_granted_scopes", "true");
         authUrl.searchParams.set("state", state);
         authUrl.searchParams.set("scope", SCOPES_BY_SERVICE[service].join(" "));
+
+        console.log("[google start]", { service, redirectUri, scopes: SCOPES_BY_SERVICE[service] });
 
         const isSecure =
           url.protocol === "https:" &&

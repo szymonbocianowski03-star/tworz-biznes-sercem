@@ -236,6 +236,10 @@ export function UserIntegrationsCard() {
             <h2 className="font-display text-lg font-bold tracking-tight">Kalendarze (OAuth)</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
               Połącz kalendarz, żeby planowane posty trafiały automatycznie do Twojego kalendarza.
+              Jeśli Google pokazuje „nieprawidłowe żądanie”, w Google Cloud dodaj redirect URI:{" "}
+              <code className="text-[11px] bg-muted px-1 rounded">
+                {typeof window !== "undefined" ? `${window.location.origin}/api/public/google/callback` : "/api/public/google/callback"}
+              </code>
             </p>
           </div>
         </header>
