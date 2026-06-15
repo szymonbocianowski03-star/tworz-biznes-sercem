@@ -865,42 +865,6 @@ export type Database = {
         }
         Relationships: []
       }
-      llm_visibility_reports: {
-        Row: {
-          brand_name: string
-          created_at: string
-          domain: string
-          id: string
-          report: Json
-          score: number
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          brand_name: string
-          created_at?: string
-          domain: string
-          id?: string
-          report: Json
-          score?: number
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          brand_name?: string
-          created_at?: string
-          domain?: string
-          id?: string
-          report?: Json
-          score?: number
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       gmail_connections: {
         Row: {
           access_token: string
