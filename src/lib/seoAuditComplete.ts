@@ -31,7 +31,17 @@ function suggestFixForChecklist(title: string, detail?: string | null): string {
   return detail?.trim() || "Wdróż poprawkę zgodnie z rekomendacją audytu SEO.";
 }
 
-export function normalizeKeyProblemRow(raw: unknown): SeoAuditAnalysis["keyProblems"][number] | null {
+/** Standalone (nie zależy od schematu Zod) — żeby nie tworzyć cyklu typów z seoAuditAnalysis.ts. */
+export type SeoKeyProblem = {
+  problem: string;
+  whyItMatters: string;
+  howToFix: string;
+  priority: string;
+  difficulty: string;
+  estimatedImpact: string;
+};
+
+export function normalizeKeyProblemRow(raw: unknown): SeoKeyProblem | null {
   if (typeof raw === "string") {
     const s = raw.trim();
     if (!s) return null;

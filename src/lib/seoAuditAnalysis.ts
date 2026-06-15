@@ -49,22 +49,20 @@ export const SeoAuditAnalysisSchema = z.object({
     schemaJsonLd: z.string(),
     wordCount: z.coerce.number().int().min(0),
   }),
-  keyProblems: arr(
-    z.preprocess(
-      (v) => {
-        if (!Array.isArray(v)) return [];
-        return v.map((item) => normalizeKeyProblemRow(item)).filter(Boolean);
-      },
-      z.array(
-        z.object({
-          problem: z.string(),
-          whyItMatters: z.string(),
-          howToFix: z.string(),
-          priority: z.union([priorityEnum, z.string()]),
-          difficulty: z.union([difficultyEnum, z.string()]),
-          estimatedImpact: z.union([priorityEnum, z.string()]),
-        }),
-      ),
+  keyProblems: z.preprocess(
+    (v) => {
+      if (!Array.isArray(v)) return [];
+      return v.map((item) => normalizeKeyProblemRow(item)).filter(Boolean);
+    },
+    z.array(
+      z.object({
+        problem: z.string(),
+        whyItMatters: z.string(),
+        howToFix: z.string(),
+        priority: z.union([priorityEnum, z.string()]),
+        difficulty: z.union([difficultyEnum, z.string()]),
+        estimatedImpact: z.union([priorityEnum, z.string()]),
+      }),
     ),
   ),
   quickWins: arr(quickWinItemSchema),

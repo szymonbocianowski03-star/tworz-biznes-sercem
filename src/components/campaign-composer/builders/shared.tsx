@@ -277,7 +277,7 @@ export function ensureFirstCreative(value: CampaignComposerDraftPayload): Campai
 /** Aktualizuje pola pierwszej kreacji (assetIds/format) — wspólny nośnik mediów. */
 export function patchCreative(
   value: CampaignComposerDraftPayload,
-  patch: Partial<{ assetIds: string[]; format: CampaignComposerDraftPayload["structure"]["adSets"][number]["creatives"][number]["format"]; headline: string; primaryText: string; destinationUrl: string; cta: string }>,
+  patch: Partial<{ assetIds: string[]; format: CampaignComposerDraftPayload["structure"]["adSets"][number]["creatives"][number]["format"]; headline: string; primaryText: string; destinationUrl: string; cta: string; urlTags: string }>,
 ): CampaignComposerDraftPayload {
   const base = ensureFirstCreative(value);
   const adSets = base.structure.adSets.map((a, i) => {

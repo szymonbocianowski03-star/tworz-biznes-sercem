@@ -18,7 +18,7 @@ export async function saveIntegrationConnectionRow<T extends Record<string, unkn
   id: string,
   patch: Partial<T>,
 ): Promise<SaveResult> {
-  const { data, error } = await supabase.from(table).update(patch).eq("id", id).select("id").maybeSingle();
+  const { data, error } = await (supabase as any).from(table).update(patch).eq("id", id).select("id").maybeSingle();
   if (error) return { ok: false, error: formatSaveError(error) };
   if (!data?.id) {
     return {

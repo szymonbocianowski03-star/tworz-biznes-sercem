@@ -108,7 +108,7 @@ function VideoAssetsPage() {
       getVideoUsageEstimate({
         balance: credits.balance ?? 0,
         current_plan: credits.current_plan ?? "free",
-        free_ai_usage_usd_cents: credits.free_ai_usage_usd_cents,
+        free_ai_usage_usd_cents: credits.free_ai_usage_usd_cents ?? null,
       }),
     [credits.balance, credits.current_plan, credits.free_ai_usage_usd_cents],
   );
@@ -253,7 +253,7 @@ function VideoAssetsPage() {
     const affordability = checkVideoGenerationAffordability({
       balance: credits.balance ?? 0,
       current_plan: credits.current_plan ?? "free",
-      free_ai_usage_usd_cents: credits.free_ai_usage_usd_cents,
+      free_ai_usage_usd_cents: credits.free_ai_usage_usd_cents ?? null,
     });
     if (!affordability.allowed) {
       openCreditsUpgrade(affordability.reason);
@@ -488,7 +488,7 @@ function VideoAssetsPage() {
             <p>
               Plan Free — limit AI:{" "}
               <span className="font-medium text-foreground">
-                {(usageEstimate.freeRemainingCents / 100).toFixed(2)} $
+                {((usageEstimate.freeRemainingCents ?? 0) / 100).toFixed(2)} $
               </span>{" "}
               pozostało
               {usageEstimate.canAfford && usageEstimate.remainingAfter != null ? (

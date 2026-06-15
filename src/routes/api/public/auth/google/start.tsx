@@ -41,16 +41,10 @@ export const Route = createFileRoute("/api/public/auth/google/start")({
           url.hostname !== "localhost" &&
           url.hostname !== "127.0.0.1";
 
-        return new Response(null, {
-          status: 302,
-          headers: {
-            Location: authUrl.toString(),
-            "Set-Cookie": [
-              `google_auth_state=${state}; Path=/; Max-Age=600; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}`,
-              `google_auth_redirect=${encodeURIComponent(redirectTo)}; Path=/; Max-Age=600; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}`,
-            ],
-          },
-        });
+        const headers = new Headers({ Location: authUrl.toString() });
+        headers.append("Set-Cookie", `google_auth_state=${state}; Path=/; Max-Age=600; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}`);
+        headers.append("Set-Cookie", `google_auth_redirect=${encodeURIComponent(redirectTo)}; Path=/; Max-Age=600; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}`);
+        return new Response(null, { status: 302, headers });
       },
     },
   },
