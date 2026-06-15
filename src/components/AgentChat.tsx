@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useCreditsUpgrade } from "@/contexts/CreditsUpgradeContext";
 import { useChats } from "@/hooks/useChats";
 import { useProducts } from "@/hooks/useProducts";
+import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORY_META, type Scenario, type ScenarioCategory, SCENARIOS } from "@/lib/scenarioLibrary";
 import { saveImageToProjectAssets, VIDEO_PROMPT_SEED_KEY } from "@/lib/saveProjectAsset";
@@ -14,6 +15,7 @@ import { readImageAsDataUrl } from "@/lib/readImageAsDataUrl";
 import { supabaseFnHeaders } from "@/lib/supabaseFnHeaders";
 import { ASSET_AGENT_SEED_KEY, type AssetAgentSeedPayload } from "@/lib/assetAgentSeed";
 import { scheduleCreditsRefresh } from "@/lib/creditsRefresh";
+import { checkImageGenerationAffordability } from "@/lib/imageCreditsGate";
 import { GeneratedImageToolbar } from "@/components/GeneratedImageToolbar";
 import { getSupabasePublicEnv, supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
 
@@ -277,6 +279,7 @@ export function AgentChat() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { active: brandProduct } = useProducts();
+  const credits = useCredits();
   const legacyName =
     typeof window !== "undefined" ? localStorage.getItem("mn.activeProduct") : null;
   const activeProduct = brandProduct?.name || legacyName || "Nowy Produkt";
@@ -481,6 +484,27 @@ export function AgentChat() {
 
   async function generateImage(prompt: string) {
     if (!prompt.trim() || imgLoading || !active) return;
+
+    const affordability = checkImageGenerationAffordability(
+      {
+        balance: credits.balance ?? 0,
+        current_plan: credits.current_plan ?? "free",
+        free_ai_usage_usd_cents: credits.free_ai_usage_usd_cents ?? 0,
+      },
+      imgDefaultN,
+    );
+    if (!affordability.allowed) {
+      if (affordability.maxAffordable <= 0) {
+        openCreditsUpgrade(affordability.reason);
+        toast.error(affordability.reason ?? "Brak kredytów.");
+        return;
+      }
+      toast.message(`Masz limit na ${affordability.maxAffordable} grafik — generuję tyle.`, {
+        description: affordability.reason,
+      });
+    }
+    const nToGen = Math.max(1, Math.min(imgDefaultN, affordability.maxAffordable || imgDefaultN));
+
     const userMsg: Msg = { role: "user", content: `🎨 Wygeneruj kreację: ${prompt}` };
     update(active.id, {
       messages: [...messages, userMsg],
@@ -489,7 +513,7 @@ export function AgentChat() {
     setInput("");
     setImgLoading(true);
     // placeholder assistant
-    const placeholder: Msg = { role: "assistant", content: `Generuję ${imgDefaultN} warianty (wysoka jakość)…` };
+    const placeholder: Msg = { role: "assistant", content: `Generuję ${nToGen} warianty (wysoka jakość)…` };
     update(active.id, { messages: [...messagesRef.current, placeholder] });
     try {
       const size = chooseImageSizeFromPrompt(prompt);
@@ -503,7 +527,7 @@ export function AgentChat() {
           Authorization: `Bearer ${token || ANON}`,
           apikey: ANON,
         },
-        body: JSON.stringify({ prompt: finalPrompt, size, quality: "high", n: imgDefaultN }),
+        body: JSON.stringify({ prompt: finalPrompt, size, quality: "high", n: nToGen }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -909,6 +933,26 @@ export function AgentChat() {
 
   async function runImageGeneration(prompts: string[], lastIdx: number, cleaned: string) {
     if (!active || paused) return;
+    const affordability = checkImageGenerationAffordability(
+      {
+        balance: credits.balance ?? 0,
+        current_plan: credits.current_plan ?? "free",
+        free_ai_usage_usd_cents: credits.free_ai_usage_usd_cents ?? 0,
+      },
+      prompts.length,
+    );
+    if (!affordability.allowed) {
+      if (affordability.maxAffordable <= 0) {
+        openCreditsUpgrade(affordability.reason);
+        toast.error(affordability.reason ?? "Brak kredytów.");
+        return;
+      }
+      toast.message(`Masz limit na ${affordability.maxAffordable} grafik — generuję tyle.`, {
+        description: affordability.reason,
+      });
+      prompts = prompts.slice(0, affordability.maxAffordable);
+    }
+
     const statusLine = `\n\n_🎨 Generuję ${prompts.length} ${prompts.length === 1 ? "kreację" : "kreacji"}…_`;
     update(active.id, {
       messages: messagesRef.current.map((m, i) => (i === lastIdx ? { ...m, content: cleaned + statusLine } : m)),
@@ -1333,6 +1377,7 @@ export function AgentChat() {
                                     dbId={entry.dbId}
                                     prompt={entry.prompt}
                                     productName={activeProductName}
+                                    brandVisualRules={brandProduct?.brandVisualRules ?? null}
                                     onPromptUpdated={(next) => {
                                       if (!active) return;
                                       const cur = messagesRef.current;
@@ -1343,6 +1388,20 @@ export function AgentChat() {
                                       update(active.id, {
                                         messages: cur.map((x, idx) =>
                                           idx === i ? { ...x, imageSet: nextSet } : x,
+                                        ),
+                                      });
+                                    }}
+                                    onImageReplaced={({ dbId, url, prompt: nextPrompt }) => {
+                                      if (!active) return;
+                                      const cur = messagesRef.current;
+                                      const nextSet = (cur[i].imageSet ?? []).map((e, j) =>
+                                        j === k ? { ...e, dbId, url, prompt: nextPrompt } : e,
+                                      );
+                                      update(active.id, {
+                                        messages: cur.map((x, idx) =>
+                                          idx === i
+                                            ? { ...x, imageSet: nextSet, images: nextSet.map((e) => e.url) }
+                                            : x,
                                         ),
                                       });
                                     }}

@@ -224,8 +224,14 @@ function GalleryPage() {
                   dbId={it.id}
                   prompt={it.prompt}
                   productName={it.product_name}
+                  storagePath={it.storage_path}
                   onPromptUpdated={(next) => {
                     setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, prompt: next } : x)));
+                  }}
+                  onImageReplaced={({ url, prompt: nextPrompt }) => {
+                    setItems((prev) =>
+                      prev.map((x) => (x.id === it.id ? { ...x, image_url: url, prompt: nextPrompt } : x)),
+                    );
                   }}
                 />
                 <p className="text-[11px] text-muted-foreground">
