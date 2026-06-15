@@ -217,17 +217,6 @@ function Hero() {
               >
                 Rozpocznij za darmo
               </Link>
-              <a
-                href="#growth-wheel"
-                onClick={(e) => {
-                  e.preventDefault();
-                  sfx.chime();
-                  document.getElementById("growth-wheel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="inline-flex items-center justify-center border border-neutral-300 px-7 py-3.5 text-[12px] md:text-[13px] font-semibold uppercase tracking-[0.12em] text-neutral-800 hover:border-neutral-950 hover:bg-neutral-50 transition-colors text-center"
-              >
-                Widoczność w AI
-              </a>
             </div>
             <p className="mt-8 text-[11px] md:text-[12px] uppercase tracking-[0.16em] text-neutral-500">
               Reklamy · Hooki · Konkurencja · SEO · Maile · Kalendarz · Widoczność w AI
