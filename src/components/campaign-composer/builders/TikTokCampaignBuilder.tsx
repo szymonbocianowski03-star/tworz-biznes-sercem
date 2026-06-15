@@ -211,14 +211,13 @@ export function TikTokCampaignBuilder(props: BuilderProps) {
                     workspaceId={workspaceId}
                     provider="tiktok"
                     selectedAssetIds={cr0.assetIds ?? []}
-                    format={cr0.format === "video" ? "video" : "video"}
-                    onFormatChange={() => onChange(patchCreative(latestValue.current, { format: "video" }))}
-                    onChange={(assetIds, suggestedFormat) => {
+                    format="video"
+                    onChange={(assetIds) => {
                       const base = ensureFirstCreative(latestValue.current);
                       onChange(
                         patchCreative(base, {
                           assetIds,
-                          format: suggestedFormat ?? "video",
+                          format: "video",
                         }),
                       );
                     }}

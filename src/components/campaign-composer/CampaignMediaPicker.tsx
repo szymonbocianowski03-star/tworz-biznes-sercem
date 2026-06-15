@@ -25,6 +25,23 @@ type Thumb = {
   label: string;
 };
 
+const FORMAT_TABS: { value: "single_image" | "carousel" | "video"; label: string }[] = [
+  { value: "single_image", label: "Pojedynczy obraz" },
+  { value: "carousel", label: "Karuzela" },
+  { value: "video", label: "Wideo" },
+];
+
+function formatHint(format: "single_image" | "carousel" | "video", maxPick: number): string {
+  switch (format) {
+    case "single_image":
+      return "Wybierz jeden obraz z listy poniżej. Inne typy plików są ukryte.";
+    case "carousel":
+      return `Wybierz od 2 do ${maxPick} obrazów — kolejność kliknięć to kolejność slajdów w karuzeli.`;
+    case "video":
+      return "Wybierz jeden gotowy film z Zasobów → Wideo. Obrazy są ukryte.";
+  }
+}
+
 export function CampaignMediaPicker({
   workspaceId,
   provider,
@@ -40,6 +57,34 @@ export function CampaignMediaPicker({
   const [refToAsset, setRefToAsset] = useState<Record<string, string>>({});
 
   const maxPick = provider === "linkedin" ? 5 : 10;
+  const effectiveFormat: "single_image" | "carousel" | "video" =
+    provider === "tiktok" ? "video" : format === "carousel" || format === "video" ? format : "single_image";
+
+  const formatLimit = effectiveFormat === "carousel" ? maxPick : 1;
+
+  const assetKindById = useMemo(() => {
+    const m: Record<string, Thumb["kind"]> = {};
+    for (const t of thumbs) {
+      const aid = refToAsset[t.sourceId];
+      if (aid) m[aid] = t.kind;
+    }
+    return m;
+  }, [thumbs, refToAsset]);
+
+  const visibleThumbs = useMemo(() => {
+    if (effectiveFormat === "video") return thumbs.filter((t) => t.kind === "video");
+    return thumbs.filter((t) => t.kind === "image");
+  }, [thumbs, effectiveFormat]);
+
+  const pruneSelectionForFormat = useCallback(
+    (assetIds: string[], fmt: typeof effectiveFormat) => {
+      const want: Thumb["kind"] = fmt === "video" ? "video" : "image";
+      const compatible = assetIds.filter((id) => assetKindById[id] === want);
+      if (fmt === "single_image" || fmt === "video") return compatible.slice(0, 1);
+      return compatible.slice(0, formatLimit);
+    },
+    [assetKindById, formatLimit],
+  );
 
   const load = useCallback(async () => {
     if (!workspaceId) {
@@ -154,28 +199,53 @@ export function CampaignMediaPicker({
       return;
     }
 
+    if (effectiveFormat === "video" && t.kind !== "video") {
+      toast.error("W trybie wideo wybierz film — przełącz format lub wybierz klip z listy.");
+      return;
+    }
+    if (effectiveFormat !== "video" && t.kind === "video") {
+      toast.error("Ten format wymaga obrazów. Przełącz na „Wideo”, aby dodać film.");
+      return;
+    }
+
     setBusyKey(t.key);
     try {
       const assetId = refToAsset[t.sourceId] ?? (await resolveAssetId(t));
       if (!assetId) return;
 
       if (selectedSet.has(assetId)) {
-        onChange(selectedAssetIds.filter((id) => id !== assetId));
+        onChange(pruneSelectionForFormat(selectedAssetIds.filter((id) => id !== assetId), effectiveFormat), effectiveFormat);
         return;
       }
-      if (selectedAssetIds.length >= maxPick) {
-        toast.message(`Możesz wybrać maksymalnie ${maxPick} materiałów do tej reklamy.`);
+
+      if (effectiveFormat === "single_image" || effectiveFormat === "video") {
+        onChange([assetId], effectiveFormat);
+        toast.success(effectiveFormat === "video" ? "Wybrano wideo" : "Wybrano obraz");
         return;
       }
+
+      if (selectedAssetIds.length >= formatLimit) {
+        toast.message(`Karuzela: maksymalnie ${formatLimit} obrazów. Odznacz jeden, aby dodać inny.`);
+        return;
+      }
+
       const next = [...selectedAssetIds, assetId];
-      let suggestedFormat: Props["format"] | undefined;
-      if (t.kind === "video") suggestedFormat = "video";
-      else if (next.length >= 2) suggestedFormat = "carousel";
-      else suggestedFormat = "single_image";
-      onChange(next, suggestedFormat);
-      toast.success("Dodano materiał do kreacji");
+      onChange(next, "carousel");
+      toast.success(`Dodano slajd ${next.length}/${formatLimit}`);
     } finally {
       setBusyKey(null);
+    }
+  };
+
+  const handleFormatChange = (fmt: "single_image" | "carousel" | "video") => {
+    if (!onFormatChange) return;
+    onFormatChange(fmt);
+    const pruned = pruneSelectionForFormat(selectedAssetIds, fmt);
+    if (pruned.length !== selectedAssetIds.length) {
+      onChange(pruned, fmt);
+      if (selectedAssetIds.length > 0) {
+        toast.message("Dostosowano wybór do nowego formatu reklamy.");
+      }
     }
   };
 
@@ -189,22 +259,37 @@ export function CampaignMediaPicker({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">
-          Wybierz zdjęcia lub filmy z Zasobów (wygenerowane w aplikacji). Wybrano{" "}
-          <span className="font-semibold text-foreground">{selectedAssetIds.length}</span> z {maxPick}.
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            Wybrano{" "}
+            <span className="font-semibold text-foreground">{selectedAssetIds.length}</span>
+            {effectiveFormat === "carousel" ? ` / min. 2, max ${formatLimit}` : " / 1"}
+          </p>
+          {provider !== "tiktok" && onFormatChange && (
+            <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
+              {FORMAT_TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => handleFormatChange(tab.value)}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
+                    effectiveFormat === tab.value
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <p className="rounded-lg border border-border/80 bg-background px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
+          {provider === "tiktok"
+            ? "TikTok Ads wymaga wideo — poniżej widać tylko gotowe filmy z Zasobów."
+            : formatHint(effectiveFormat, formatLimit)}
         </p>
-        {onFormatChange && (
-          <select
-            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
-            value={format}
-            onChange={(e) => onFormatChange(e.target.value as Props["format"])}
-          >
-            <option value="single_image">Pojedynczy obraz</option>
-            <option value="carousel">Karuzela (2+ obrazy)</option>
-            <option value="video">Wideo</option>
-          </select>
-        )}
       </div>
 
       {loading ? (
@@ -212,13 +297,15 @@ export function CampaignMediaPicker({
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Ładowanie biblioteki…
         </p>
-      ) : thumbs.length === 0 ? (
+      ) : visibleThumbs.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border bg-muted/30 px-3 py-4 text-xs text-muted-foreground">
-          Brak materiałów. Wygeneruj obrazy w agencie lub wideo w Zasobach → Wideo, a potem wróć tutaj.
+          {effectiveFormat === "video"
+            ? "Brak gotowych filmów. Wygeneruj wideo w Zasobach → Wideo i wróć tutaj."
+            : "Brak obrazów. Wygeneruj grafiki w agencie (Zasoby → Obrazy) i wróć tutaj."}
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-          {thumbs.map((t) => {
+          {visibleThumbs.map((t) => {
             const on = isSelected(t);
             const picking = busyKey === t.key;
             return (
@@ -249,7 +336,12 @@ export function CampaignMediaPicker({
                     </span>
                   </div>
                 )}
-                {on && (
+                {on && effectiveFormat === "carousel" && refToAsset[t.sourceId] && (
+                  <span className="pointer-events-none absolute left-1.5 top-1.5 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
+                    {selectedAssetIds.indexOf(refToAsset[t.sourceId]) + 1}
+                  </span>
+                )}
+                {on && effectiveFormat !== "carousel" && (
                   <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
                     ✓
                   </span>
