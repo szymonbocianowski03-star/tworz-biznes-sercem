@@ -35,7 +35,7 @@ export async function fetchCloudReports(userId: string): Promise<{
   reports: AiVisibilityReport[];
   schemaMissing?: boolean;
 }> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("llm_visibility_reports")
     .select("id, user_id, domain, brand_name, score, status, report, created_at, updated_at")
     .eq("user_id", userId)
@@ -50,7 +50,7 @@ export async function fetchCloudReports(userId: string): Promise<{
     };
   }
 
-  const reports = (data ?? [])
+  const reports = ((data ?? []) as Parameters<typeof rowToReport>[0][])
     .map(rowToReport)
     .filter((r): r is AiVisibilityReport => r != null);
 
@@ -61,7 +61,7 @@ export async function upsertCloudReport(
   userId: string,
   report: AiVisibilityReport,
 ): Promise<{ ok: boolean; error?: string; schemaMissing?: boolean }> {
-  const { error } = await supabase.from("llm_visibility_reports").upsert(
+  const { error } = await (supabase as any).from("llm_visibility_reports").upsert(
     {
       id: report.id,
       user_id: userId,
@@ -90,7 +90,7 @@ export async function deleteCloudReport(
   userId: string,
   reportId: string,
 ): Promise<{ ok: boolean; schemaMissing?: boolean }> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from("llm_visibility_reports")
     .delete()
     .eq("user_id", userId)
