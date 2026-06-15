@@ -20,7 +20,7 @@ export const AI_PRICE_LIST: AiPriceRow[] = [
   { id: "extract-skill", label: "Ekstrakcja skilla", credits: 8 },
   { id: "chat", label: "Czat z agentem (1 odpowiedź)", credits: 16, note: "zależy od długości" },
   { id: "competitor-scan", label: "Skan konkurencji", credits: 24, note: "do 100 kred." },
-  { id: "llm-visibility", label: "Widoczność w LLM", credits: 100 },
+  { id: "llm-visibility", label: "Widoczność w LLM", credits: 32, note: "do 100 kred." },
   { id: "seo-audit", label: "Audyt SEO", credits: 80, note: "do 200 kred." },
   { id: "generate-image", label: "Generowanie obrazu", credits: CREDITS_PER_IMAGE },
   { id: "generate-video", label: "Generowanie wideo", credits: VIDEO_CREDITS },

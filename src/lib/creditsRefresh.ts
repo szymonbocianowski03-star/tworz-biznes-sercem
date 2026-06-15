@@ -27,7 +27,5 @@ export function scheduleCreditsRefresh(delayMs = 1600): void {
   window.setTimeout(() => notifyCreditsRefresh(), delayMs + 2500);
 }
 
-import { FREE_TIER_AI_USD_CAP_CENTS } from "@/lib/plans";
-
 /** Budżet kosztu API planu Free w centach USD ($1,00). */
 export const FREE_AI_USAGE_BUDGET_CENTS = FREE_TIER_AI_USD_CAP_CENTS;
