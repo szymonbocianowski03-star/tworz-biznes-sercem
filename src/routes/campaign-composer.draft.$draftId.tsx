@@ -112,7 +112,7 @@ function DraftEditor() {
       });
       const orgs = mapList(data?.organizations, ["urn"], ["name"]);
       return mergeIntegrationDefaults(p, {
-        adAccountId: data?.selected_ad_account_id ?? mapList(data?.ad_accounts, ["id", "account_id"], ["name", "account_name"])[0]?.id,
+        adAccountId: (data as { selected_ad_account_id?: string } | null)?.selected_ad_account_id ?? mapList(data?.ad_accounts, ["id", "account_id"], ["name", "account_name"])[0]?.id,
         linkedinOrganizationUrn: orgs[0]?.id,
       });
     }

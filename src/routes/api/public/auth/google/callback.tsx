@@ -91,16 +91,10 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
           });
 
           const location = buildAuthSessionRedirect(origin, authPath, session);
-          return new Response(null, {
-            status: 302,
-            headers: {
-              Location: location,
-              "Set-Cookie": [
-                "google_auth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
-                "google_auth_redirect=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
-              ],
-            },
-          });
+          const cookieHeaders = new Headers({ Location: location });
+          cookieHeaders.append("Set-Cookie", "google_auth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+          cookieHeaders.append("Set-Cookie", "google_auth_redirect=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+          return new Response(null, { status: 302, headers: cookieHeaders });
         } catch (e: unknown) {
           console.error("[google auth callback]", e);
           const message = e instanceof Error ? e.message : String(e);
@@ -133,14 +127,8 @@ function parseRedirectPathFromCookie(cookieHeader: string | null): string | null
 function redirectAuthError(origin: string, redirectPath: string, error: string): Response {
   const safePath = redirectPath.startsWith("/") ? redirectPath : "/auth";
   const qs = new URLSearchParams({ error: "google_auth_failed", error_description: error });
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: `${origin}${safePath}?${qs.toString()}`,
-      "Set-Cookie": [
-        "google_auth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
-        "google_auth_redirect=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
-      ],
-    },
-  });
+  const headers = new Headers({ Location: `${origin}${safePath}?${qs.toString()}` });
+  headers.append("Set-Cookie", "google_auth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+  headers.append("Set-Cookie", "google_auth_redirect=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+  return new Response(null, { status: 302, headers });
 }
