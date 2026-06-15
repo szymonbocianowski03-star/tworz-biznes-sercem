@@ -14,26 +14,13 @@ export function parseGoogleIntegrationOAuthState(state: string | null): {
 
 /**
  * Redirect URI dla integracji Gmail / Google Calendar.
- * Musi być identyczny w Google Cloud Console (Authorized redirect URIs).
+ * Domyślnie bieżący origin żądania — musi być zarejestrowany w Google Cloud Console.
+ * Nadpisz tylko gdy świadomie ustawiasz GOOGLE_OAUTH_REDIRECT_URI w env.
  */
 export function getGoogleIntegrationOAuthRedirectUri(request: Request): string {
   const configured = process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim();
   if (configured) return configured;
-
   const url = new URL(request.url);
-  const publicBase =
-    process.env.PUBLIC_APP_URL?.trim() ||
-    process.env.VITE_LOVABLE_APP_URL?.trim() ||
-    process.env.LOVABLE_APP_URL?.trim();
-
-  if (publicBase) {
-    try {
-      return `${new URL(publicBase).origin}/api/public/google/callback`;
-    } catch {
-      /* fall through */
-    }
-  }
-
   return `${url.origin}/api/public/google/callback`;
 }
 

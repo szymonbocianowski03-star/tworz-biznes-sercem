@@ -6,6 +6,7 @@ import { MetaIntegrationCard } from "@/components/MetaIntegrationCard";
 import { LinkedInIntegrationCard } from "@/components/LinkedInIntegrationCard";
 import { TikTokIntegrationCard } from "@/components/TikTokIntegrationCard";
 import { AutomatedEmailsCard } from "@/components/AutomatedEmailsCard";
+import { UserIntegrationsCard } from "@/components/UserIntegrationsCard";
 import { friendlyGoogleOAuthError } from "@/lib/googleOAuthErrors";
 
 export const Route = createFileRoute("/integrations/")({
