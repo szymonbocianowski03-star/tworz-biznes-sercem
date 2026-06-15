@@ -204,6 +204,19 @@ export function runPreflightValidation(
         fieldPath: "channel.metaPixelId",
       });
     }
+    for (const adset of draft.structure.adSets) {
+      for (const cr of adset.creatives) {
+        const needsMedia = cr.format === "single_image" || cr.format === "video" || cr.format === "carousel";
+        if (needsMedia && cr.assetIds.length === 0) {
+          issues.push({
+            code: "META_MEDIA_REQUIRED",
+            severity: "blocking",
+            message: `Meta: dodaj grafikę lub wideo do reklamy „${adset.name}”.`,
+            fieldPath: `structure.adSets.${adset.id}.creatives.${cr.id}.assetIds`,
+          });
+        }
+      }
+    }
   }
 
   if (draft.channel.provider === "linkedin") {

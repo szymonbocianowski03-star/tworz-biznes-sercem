@@ -3,6 +3,132 @@ import { supabase } from "@/integrations/supabase/client";
 /** sessionStorage — wstępny prompt na stronie generatora wideo */
 export const VIDEO_PROMPT_SEED_KEY = "mn.assets.videoPromptSeed";
 
+export type SaveVideoAssetInput = {
+  videoUrl: string;
+  prompt: string;
+  dbId?: string | null;
+  productName?: string | null;
+  campaignName?: string | null;
+};
+
+function isGenerationsPublicUrl(url: string): boolean {
+  return /\/storage\/v1\/object\/public\/generations\//.test(url);
+}
+
+/** Zapisuje wideo do biblioteki (storage + generated_videos). */
+export async function saveVideoToProjectAssets(
+  input: SaveVideoAssetInput,
+): Promise<{ url: string; id: string | null; alreadySaved?: boolean; error?: string }> {
+  const { videoUrl, prompt, dbId, productName, campaignName } = input;
+  const trimmedUrl = videoUrl?.trim();
+  if (!trimmedUrl) {
+    return { url: "", id: dbId ?? null, error: "Brak pliku wideo do zapisania." };
+  }
+
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return { url: trimmedUrl, id: dbId ?? null, error: "Nie jesteś zalogowany." };
+
+    if (dbId && isGenerationsPublicUrl(trimmedUrl)) {
+      return { url: trimmedUrl, id: dbId, alreadySaved: true };
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(trimmedUrl);
+    } catch (e) {
+      console.error("[saveVideoToProjectAssets] fetch", e);
+      return { url: trimmedUrl, id: dbId ?? null, error: "Nie udało się pobrać wideo (możliwe ograniczenie CORS)." };
+    }
+    if (!res.ok) {
+      return { url: trimmedUrl, id: dbId ?? null, error: `Nie udało się pobrać wideo (HTTP ${res.status}).` };
+    }
+
+    const blob = await res.blob();
+    const mime = blob.type || "video/mp4";
+    const buf = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+
+    const ext = mime.includes("webm") ? "webm" : "mp4";
+    const path =
+      dbId != null
+        ? `${u.user.id}/videos/${dbId}.${ext}`
+        : `${u.user.id}/videos/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("generations")
+      .upload(path, bytes, { contentType: mime, upsert: true });
+    if (upErr) {
+      console.error("[saveVideoToProjectAssets] upload", upErr);
+      return { url: trimmedUrl, id: dbId ?? null, error: `Błąd zapisu pliku: ${upErr.message}` };
+    }
+
+    const { data: pub } = supabase.storage.from("generations").getPublicUrl(path);
+    const publicUrl = pub.publicUrl;
+
+    const baseRow: Record<string, unknown> = {
+      user_id: u.user.id,
+      prompt: prompt || "Wideo reklamowe",
+      video_url: publicUrl,
+      storage_path: path,
+      status: "succeeded",
+      user_reaction: "none",
+    };
+    const rowWithMeta: Record<string, unknown> = { ...baseRow };
+    if (productName) rowWithMeta.product_name = productName;
+    if (campaignName) rowWithMeta.campaign_name = campaignName;
+
+    if (dbId) {
+      const updateRow = async (row: Record<string, unknown>) =>
+        supabase.from("generated_videos").update(row as never).eq("id", dbId).select("id").single();
+
+      let { data: rowData, error: updErr } = await updateRow(rowWithMeta);
+      if (updErr && rowWithMeta !== baseRow) {
+        const msg = `${updErr.message} ${updErr.code ?? ""}`.toLowerCase();
+        const missingMetaColumn =
+          msg.includes("product_name") ||
+          msg.includes("campaign_name") ||
+          msg.includes("schema cache") ||
+          updErr.code === "PGRST204";
+        if (missingMetaColumn) {
+          console.warn("[saveVideoToProjectAssets] brak kolumn metadanych — zapis bez nich", updErr.message);
+          ({ data: rowData, error: updErr } = await updateRow(baseRow));
+        }
+      }
+      if (updErr) {
+        console.error("[saveVideoToProjectAssets] update", updErr);
+        return { url: publicUrl, id: dbId, error: `Błąd zapisu w bazie: ${updErr.message}` };
+      }
+      return { url: publicUrl, id: rowData?.id ?? dbId };
+    }
+
+    const insertRow = async (row: Record<string, unknown>) =>
+      supabase.from("generated_videos").insert(row as never).select("id").single();
+
+    let { data: rowData, error: insErr } = await insertRow(rowWithMeta);
+    if (insErr && rowWithMeta !== baseRow) {
+      const msg = `${insErr.message} ${insErr.code ?? ""}`.toLowerCase();
+      const missingMetaColumn =
+        msg.includes("product_name") ||
+        msg.includes("campaign_name") ||
+        msg.includes("schema cache") ||
+        insErr.code === "PGRST204";
+      if (missingMetaColumn) {
+        console.warn("[saveVideoToProjectAssets] brak kolumn metadanych — zapis bez nich", insErr.message);
+        ({ data: rowData, error: insErr } = await insertRow(baseRow));
+      }
+    }
+    if (insErr) {
+      console.error("[saveVideoToProjectAssets] insert", insErr);
+      return { url: publicUrl, id: null, error: `Błąd zapisu w bazie: ${insErr.message}` };
+    }
+    return { url: publicUrl, id: rowData?.id ?? null };
+  } catch (e) {
+    console.error("[saveVideoToProjectAssets]", e);
+    return { url: trimmedUrl, id: dbId ?? null, error: e instanceof Error ? e.message : "Nieznany błąd zapisu." };
+  }
+}
+
 export type SaveImageAssetInput = {
   imageUrl: string;
   prompt: string;

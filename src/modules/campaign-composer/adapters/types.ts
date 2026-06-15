@@ -19,6 +19,11 @@ export type ProviderOk = { ok: true; externalId: string; raw?: unknown };
 export type ProviderErr = { ok: false; message: string; code?: string; retryable?: boolean; raw?: unknown };
 export type ProviderResult = ProviderOk | ProviderErr;
 
+export type ResolvedCampaignAsset = {
+  publicUrl: string;
+  source: string;
+};
+
 export type AdapterContext = {
   dryRun: boolean;
   accessToken: string;
@@ -26,6 +31,8 @@ export type AdapterContext = {
   adAccountId: string;
   /** true = utwórz obiekty ze statusem ACTIVE (go_live), false = PAUSED */
   publishLive?: boolean;
+  /** cc_asset id → URL pliku do uploadu u providera */
+  resolvedAssets?: Record<string, ResolvedCampaignAsset>;
 };
 
 export interface AdsPlatformAdapter {

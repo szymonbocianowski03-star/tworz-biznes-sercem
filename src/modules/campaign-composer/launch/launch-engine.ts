@@ -5,7 +5,8 @@ import { campaignComposerDraftPayloadSchema } from "../domain/draft-schema";
 import { metaMarketingAdapter } from "../adapters/meta.adapter";
 import { linkedInAdsAdapter } from "../adapters/linkedin.adapter";
 import { tiktokAdsAdapter } from "../adapters/tiktok.adapter";
-import type { AdsPlatformAdapter, ProviderStepKind } from "../adapters/types";
+import type { AdsPlatformAdapter, ProviderStepKind, ResolvedCampaignAsset } from "../adapters/types";
+import type { CampaignComposerDraftPayload } from "../domain/draft-schema";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -37,8 +38,39 @@ export type ProcessLaunchJobResult = {
   message?: string;
 };
 
-export function isCampaignComposerDryRun(): boolean {
-  return (process.env.CAMPAIGN_COMPOSER_DRY_RUN ?? "true").toLowerCase() !== "false";
+export function isCampaignComposerDryRun(intent?: "draft_only" | "go_live"): boolean {
+  const raw = (process.env.CAMPAIGN_COMPOSER_DRY_RUN ?? "").toLowerCase();
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  // Nieustawione: symulacja tylko dla draft_only; „Opublikuj kampanię” idzie na prawdziwe API.
+  return intent !== "go_live";
+}
+
+async function resolveDraftAssets(
+  admin: AdminClient,
+  draft: CampaignComposerDraftPayload,
+  userId: string,
+): Promise<Record<string, ResolvedCampaignAsset>> {
+  const ids = new Set<string>();
+  for (const adset of draft.structure.adSets) {
+    for (const cr of adset.creatives) {
+      for (const id of cr.assetIds) ids.add(id);
+    }
+  }
+  if (ids.size === 0) return {};
+
+  const { data } = await admin
+    .from("cc_asset")
+    .select("id, public_url, source")
+    .in("id", [...ids])
+    .eq("user_id", userId);
+
+  const map: Record<string, ResolvedCampaignAsset> = {};
+  for (const row of data ?? []) {
+    if (!row.public_url) continue;
+    map[row.id] = { publicUrl: row.public_url, source: row.source ?? "url" };
+  }
+  return map;
 }
 
 /**
@@ -77,14 +109,25 @@ export async function processLaunchJob(admin: AdminClient, jobId: string): Promi
   }
   const payload = parsed.data;
 
-  const dryRun = isCampaignComposerDryRun();
+  const dryRun = isCampaignComposerDryRun(job.intent as "draft_only" | "go_live");
+  const resolvedAssets = await resolveDraftAssets(admin, payload, job.user_id);
 
   let accessToken = "";
   if (payload.channel.provider === "meta") {
-    const mid = (draft.sync_state as Record<string, Json> | null)?.meta_connection_id ?? payload.channel.metaConnectionId;
+    let mid = (draft.sync_state as Record<string, Json> | null)?.meta_connection_id ?? payload.channel.metaConnectionId;
+    if (!mid || typeof mid !== "string") {
+      const { data: fallbackConn } = await admin
+        .from("meta_connections")
+        .select("id")
+        .eq("user_id", job.user_id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      mid = fallbackConn?.id;
+    }
     if (!mid || typeof mid !== "string") {
       await admin.from("cc_launch_job").update({ status: "failed", last_error: { code: "NO_META_CONNECTION" } as unknown as Json }).eq("id", jobId);
-      return { jobId, finalStatus: "failed", message: "Brak powiązania meta_connection_id" };
+      return { jobId, finalStatus: "failed", message: "Brak połączenia Meta — połącz konto w Integracjach." };
     }
     const { data: conn } = await admin.from("meta_connections").select("access_token").eq("id", mid).maybeSingle();
     accessToken = conn?.access_token ?? "";
@@ -145,6 +188,7 @@ export async function processLaunchJob(admin: AdminClient, jobId: string): Promi
       accessToken: accessToken || "dry",
       adAccountId: payload.channel.adAccountId,
       publishLive: job.intent === "go_live" && !dryRun && Boolean(accessToken),
+      resolvedAssets,
     };
 
     const result = await adapter.executeStep(ctx, payload, step.kind, priorIds);

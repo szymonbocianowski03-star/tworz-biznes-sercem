@@ -4,7 +4,7 @@
 
 | Zmienna | Opis |
 |---------|------|
-| `CAMPAIGN_COMPOSER_DRY_RUN` | Domyślnie `true`. Ustaw `false` aby wykonać prawdziwe wywołania Marketing API (Meta) / REST (LinkedIn) — wymaga ważnych tokenów w `meta_connections` / `linkedin_connections`. |
+| `CAMPAIGN_COMPOSER_DRY_RUN` | Opcjonalnie `true` — wymusza symulację bez wywołań API. Gdy **nieustawione**, przycisk „Opublikuj kampanię” wysyła na prawdziwe Meta/TikTok API (wymaga tokenów w `meta_connections`). |
 | `CAMPAIGN_LAUNCH_WORKER_SECRET` | Bearer dla endpointu `POST /lovable/campaign-composer/queue/process` (cron / zewnętrzny worker). |
 | `SUPABASE_SERVICE_ROLE_KEY` | Już używane w projekcie — worker przetwarza joby z pominięciem RLS. |
 | `SUPABASE_URL` | URL projektu Supabase. |

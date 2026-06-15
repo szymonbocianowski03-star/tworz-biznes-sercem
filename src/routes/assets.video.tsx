@@ -1,5 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Clapperboard, Download, Heart, Loader2, MessageSquareText, ThumbsDown, Trash2, Video } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Clapperboard, Download, FolderOpen, Heart, Loader2, MessageSquareText, ThumbsDown, Trash2, Video } from "lucide-react";
+import { GeneratedVideoToolbar } from "@/components/GeneratedVideoToolbar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AssetsTabs } from "@/components/AssetsTabs";
 import { ZasobyReactionFilter, type ZasobyReactionFilterValue } from "@/components/ZasobyReactionFilter";
@@ -13,7 +14,7 @@ import { downloadMediaWithToast } from "@/lib/downloadMedia";
 import { notifyCreditsRefresh } from "@/lib/creditsRefresh";
 import { checkVideoGenerationAffordability, getVideoUsageEstimate } from "@/lib/videoCreditsGate";
 import { friendlyVideoError } from "@/lib/videoErrorDisplay";
-import { VIDEO_PROMPT_SEED_KEY } from "@/lib/saveProjectAsset";
+import { saveVideoToProjectAssets, VIDEO_PROMPT_SEED_KEY } from "@/lib/saveProjectAsset";
 import { useProducts } from "@/hooks/useProducts";
 import { toast } from "sonner";
 import { toastSupabaseLoadError } from "@/lib/supabaseSchemaHint";
@@ -348,6 +349,27 @@ function VideoAssetsPage() {
     scrollToGenerator();
   }
 
+  async function saveVideoToAssets(it: VideoRow) {
+    if (!it.video_url) {
+      toast.error("Brak pliku wideo — poczekaj na zakończenie generacji.");
+      return;
+    }
+    const r = await saveVideoToProjectAssets({
+      videoUrl: it.video_url,
+      prompt: it.prompt,
+      dbId: it.id,
+      productName: brandProduct?.name ?? null,
+    });
+    if (r.error && !r.id) {
+      toast.error(r.error);
+      return;
+    }
+    if (r.url !== it.video_url) {
+      setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, video_url: r.url, status: "succeeded" } : x)));
+    }
+    toast.success(r.alreadySaved ? "Już w zasobach" : "Zapisano w zasobach");
+  }
+
   function retryFailedVideo(it: VideoRow) {
     if (generating) {
       toast.message("Poczekaj na zakończenie bieżącej generacji.");
@@ -599,6 +621,14 @@ function VideoAssetsPage() {
                       <>
                         <button
                           type="button"
+                          title="Zapisz do zasobów"
+                          onClick={() => void saveVideoToAssets(it)}
+                          className="h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                        >
+                          <FolderOpen className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
                           title="Pobierz na dysk"
                           onClick={() =>
                             void downloadMediaWithToast(it.video_url!, {
@@ -630,44 +660,35 @@ function VideoAssetsPage() {
                     </button>
                   </div>
                 </div>
-                <div className="p-3 space-y-1">
+                <div className="p-3 space-y-2">
                   <p className="text-sm font-medium line-clamp-3">{it.prompt}</p>
+                  <GeneratedVideoToolbar
+                    videoUrl={it.video_url}
+                    dbId={it.id}
+                    prompt={it.prompt}
+                    status={it.status}
+                    productName={brandProduct?.name ?? null}
+                    onOpenInAgent={() => openInAgent(it)}
+                    onSaved={({ url }) => {
+                      setItems((prev) =>
+                        prev.map((x) => (x.id === it.id ? { ...x, video_url: url, status: "succeeded" } : x)),
+                      );
+                    }}
+                  />
                   <p className="text-[11px] text-muted-foreground">
                     {new Date(it.created_at).toLocaleString("pl-PL")} · {it.status}
                   </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {it.status === "failed" && (
-                      <button
-                        type="button"
-                        onClick={() => retryFailedVideo(it)}
-                        disabled={generating}
-                        className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:opacity-80 disabled:opacity-50"
-                      >
-                        <Video className="h-3 w-3" />
-                        Spróbuj ponownie
-                      </button>
-                    )}
-                    {it.status === "succeeded" && it.video_url && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void downloadMediaWithToast(it.video_url!, {
-                            filenameBase: `wideo-${it.id.slice(0, 8)}`,
-                            kind: "video",
-                          })
-                        }
-                        className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:opacity-80"
-                      >
-                        <Download className="h-3 w-3" />
-                        Pobierz na dysk
-                      </button>
-                    )}
-                    {it.status === "succeeded" && it.video_url ? (
-                      <Link to="/agent" className="text-xs text-accent font-medium hover:opacity-80">
-                        Otwórz czat →
-                      </Link>
-                    ) : null}
-                  </div>
+                  {it.status === "failed" && (
+                    <button
+                      type="button"
+                      onClick={() => retryFailedVideo(it)}
+                      disabled={generating}
+                      className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:opacity-80 disabled:opacity-50"
+                    >
+                      <Video className="h-3 w-3" />
+                      Spróbuj ponownie
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

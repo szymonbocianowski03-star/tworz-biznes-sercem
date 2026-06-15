@@ -183,7 +183,7 @@ export const ccEnqueueLaunch = createServerFn({ method: "POST" })
     }
 
     const launch = await processLaunchJob(supabaseAdmin, job.id);
-    const dryRun = isCampaignComposerDryRun();
+    const dryRun = isCampaignComposerDryRun(data.intent);
 
     return { ok: true as const, jobId: job.id, issues, launch, dryRun };
   });

@@ -243,7 +243,10 @@ function DraftEditor() {
       const msg = r.launch?.message;
 
       if (r.dryRun) {
-        toast.message("Publikacja wstrzymana w konfiguracji serwera — skontaktuj się z administratorem, aby włączyć wysyłkę na Meta.");
+        toast.error("Publikacja zablokowana (tryb testowy)", {
+          description:
+            "Serwer ma CAMPAIGN_COMPOSER_DRY_RUN=true. Ustaw false w zmiennych środowiskowych Lovable, aby wysłać kampanię na Facebook.",
+        });
         return;
       }
 
