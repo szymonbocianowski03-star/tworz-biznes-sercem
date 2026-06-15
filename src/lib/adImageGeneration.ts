@@ -129,7 +129,7 @@ export async function replaceGeneratedImage(input: {
   };
   if (input.productName) patch.product_name = input.productName;
 
-  const { error: updErr } = await supabase.from("generated_images").update(patch).eq("id", input.dbId);
+  const { error: updErr } = await (supabase as any).from("generated_images").update(patch).eq("id", input.dbId);
   if (updErr) {
     await supabase.storage.from("generations").remove([path]);
     return { error: updErr.message };

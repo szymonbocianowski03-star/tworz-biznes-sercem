@@ -87,7 +87,7 @@ function DraftEditor() {
       });
       return mergeIntegrationDefaults(p, {
         metaPageId: data?.selected_page_id ?? pageList[0]?.id,
-        adAccountId: data?.selected_ad_account_id ?? mapList(data?.ad_accounts, ["id", "account_id"], ["name", "account_name"])[0]?.id,
+        adAccountId: (data as { selected_ad_account_id?: string } | null)?.selected_ad_account_id ?? mapList(data?.ad_accounts, ["id", "account_id"], ["name", "account_name"])[0]?.id,
         metaPixelId: data?.pixel_id ? String(data.pixel_id) : undefined,
       });
     } else if (p.channel.provider === "tiktok") {
