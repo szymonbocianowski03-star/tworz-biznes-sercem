@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { saveIntegrationConnectionRow } from "@/lib/integrationConnectionSave";
 import { isAdPlatformComingSoon } from "@/lib/adPlatform";
 import { toast } from "sonner";
 
@@ -96,12 +97,13 @@ export function LinkedInIntegrationCard() {
 
   const updateField = async (patch: Partial<Connection>) => {
     if (!conn) return;
-    const { error } = await supabase.from("linkedin_connections").update(patch).eq("id", conn.id);
-    if (error) toast.error(error.message);
-    else {
-      setConn({ ...conn, ...patch });
-      toast.success("Zapisano");
+    const r = await saveIntegrationConnectionRow("linkedin_connections", conn.id, patch);
+    if (!r.ok) {
+      toast.error(r.error);
+      return;
     }
+    setConn({ ...conn, ...patch });
+    toast.success("Zapisano");
   };
 
   return (

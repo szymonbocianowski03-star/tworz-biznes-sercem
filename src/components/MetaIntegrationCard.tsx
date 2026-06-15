@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { saveIntegrationConnectionRow } from "@/lib/integrationConnectionSave";
 import { MetaFacebookLoginButton } from "@/components/MetaFacebookLoginButton";
 import { loadMetaFacebookSdk, getMetaFacebookLoginStatus, metaFacebookLogin, metaFacebookStatusLabel, type MetaFbLoginResponse, type MetaFbLoginStatus } from "@/lib/metaFacebookSdk";
 import { toast } from "sonner";
@@ -218,15 +219,13 @@ export function MetaIntegrationCard() {
 
   const updateField = async (patch: Partial<Connection>) => {
     if (!conn) return;
-    const { error } = await supabase
-      .from("meta_connections")
-      .update(patch)
-      .eq("id", conn.id);
-    if (error) toast.error(error.message);
-    else {
-      setConn({ ...conn, ...patch });
-      toast.success("Zapisano");
+    const r = await saveIntegrationConnectionRow("meta_connections", conn.id, patch);
+    if (!r.ok) {
+      toast.error(r.error);
+      return;
     }
+    setConn({ ...conn, ...patch });
+    toast.success("Zapisano");
   };
 
   return (

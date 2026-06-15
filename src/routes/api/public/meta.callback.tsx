@@ -126,6 +126,23 @@ export const Route = createFileRoute("/api/public/meta/callback")({
             name: p.name,
           }));
 
+          const { data: existing } = await supabaseAdmin
+            .from("meta_connections")
+            .select("selected_ad_account_id, selected_page_id, pixel_id")
+            .eq("user_id", userId)
+            .eq("meta_user_id", me.id)
+            .maybeSingle();
+
+          const pickAd =
+            existing?.selected_ad_account_id &&
+            adAccounts.some((a: { id?: string }) => a.id === existing.selected_ad_account_id)
+              ? existing.selected_ad_account_id
+              : (adAccounts[0]?.id ?? null);
+          const pickPage =
+            existing?.selected_page_id && pages.some((p: { id: string }) => p.id === existing.selected_page_id)
+              ? existing.selected_page_id
+              : (pages[0]?.id ?? null);
+
           // 6. upsert
           const { error: upsertErr } = await supabaseAdmin
             .from("meta_connections")
@@ -138,8 +155,9 @@ export const Route = createFileRoute("/api/public/meta/callback")({
                 token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
                 ad_accounts: adAccounts,
                 pages,
-                selected_ad_account_id: adAccounts[0]?.id ?? null,
-                selected_page_id: pages[0]?.id ?? null,
+                selected_ad_account_id: pickAd,
+                selected_page_id: pickPage,
+                pixel_id: existing?.pixel_id ?? null,
               },
               { onConflict: "user_id,meta_user_id" },
             );

@@ -64,7 +64,9 @@ function DraftEditor() {
   const [account, setAccount] = useState<AccountInfo>(EMPTY_ACCOUNT);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const payloadRef = useRef<CampaignComposerDraftPayload | null>(null);
+  const titleRef = useRef("");
   payloadRef.current = payload;
+  titleRef.current = title;
 
   const loadAccount = useCallback(async (p: CampaignComposerDraftPayload) => {
     const { data: u } = await supabase.auth.getUser();
@@ -178,6 +180,28 @@ function DraftEditor() {
     [draftId, workspaceId, fnSave],
   );
 
+  useEffect(() => {
+    const flush = () => {
+      const p = payloadRef.current;
+      if (!p) return;
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      void saveNow(p, titleRef.current, true);
+    };
+    const onVis = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("beforeunload", flush);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("beforeunload", flush);
+      document.removeEventListener("visibilitychange", onVis);
+      flush();
+    };
+  }, [saveNow]);
+
   // Aktualizacja + cichy autozapis (debounce) — wyjątek: zmiana mediów zapisuje się od razu.
   const onChange = useCallback(
     (next: CampaignComposerDraftPayload) => {
@@ -192,7 +216,7 @@ function DraftEditor() {
         void saveNow(next, title, true);
         return;
       }
-      saveTimer.current = setTimeout(() => void saveNow(next, title, true), 700);
+      saveTimer.current = setTimeout(() => void saveNow(next, title, true), 400);
     },
     [saveNow, title],
   );

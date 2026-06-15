@@ -216,7 +216,7 @@ export function MetaCampaignBuilder(props: BuilderProps) {
             <Field label="UTM / parametry URL">
               <Text
                 value={cr?.urlTags ?? ""}
-                onChange={(v) => setAdset({ creatives: adset.creatives.map((c, j) => (j === 0 ? { ...c, urlTags: v } : c)) })}
+                onChange={(v) => applyChange(patchCreative(draft, { urlTags: v }))}
                 placeholder="utm_source=facebook"
               />
             </Field>
