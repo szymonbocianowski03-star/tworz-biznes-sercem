@@ -65,14 +65,32 @@ export function ratioToAspectRatio(ratio: string): string {
   }
 }
 
-/** Domyślny endpoint Higgsfield DoP — tekst→wideo i UGC/viral short-form. */
+/** Domyślny endpoint — tekst→wideo (Kling) lub obraz→wideo (DoP). */
 export function resolveVideoEndpoint(model?: string, hasImage?: boolean): string {
   const m = (model ?? "").trim().toLowerCase();
-  if (m.includes("seedance")) return "bytedance/seedance/v1/pro/image-to-video";
-  if (m.includes("kling")) return "kling-video/v2.1/pro/image-to-video";
+  if (m.includes("seedance") && hasImage) return "bytedance/seedance/v1/pro/image-to-video";
+  if (m.includes("seedance")) return "bytedance/seedance/v1/lite/text-to-video";
+  if (m.includes("kling") && hasImage) return "kling-video/v2.5-turbo/pro/image-to-video";
+  if (m.includes("kling")) return "kling-video/v2.5-turbo/pro/text-to-video";
+  if (m.includes("hailuo") && hasImage) return "minimax/hailuo-2.3/standard/image-to-video";
+  if (m.includes("hailuo")) return "minimax/hailuo-2.3/standard/text-to-video";
   if (m.includes("preview") || m.includes("dop-lite")) return "higgsfield-ai/dop/preview";
+  // DoP standard/turbo wymaga image_url — nie używaj do samego tekstu.
   if (hasImage) return "higgsfield-ai/dop/standard";
-  return "higgsfield-ai/dop/standard";
+  return "kling-video/v2.5-turbo/pro/text-to-video";
+}
+
+/** Niektóre modele (np. Kling) akceptują tylko 5 lub 10 s. */
+export function normalizeVideoDuration(duration: number, endpoint: string): number {
+  const d = Number.isFinite(duration) ? duration : 5;
+  if (endpoint.toLowerCase().includes("text-to-video") || endpoint.toLowerCase().includes("kling")) {
+    return d > 7 ? 10 : 5;
+  }
+  return Math.min(10, Math.max(2, Math.round(d)));
+}
+
+export function isTextToVideoEndpoint(endpoint: string): boolean {
+  return endpoint.toLowerCase().includes("text-to-video");
 }
 
 export function buildVideoPrompt(prompt: string, style?: string): string {
@@ -124,17 +142,25 @@ export async function higgsfieldStartVideo(
     imageUrl?: string;
   },
 ): Promise<{ requestId: string; raw: HiggsfieldStatusResponse }> {
+  const endpoint = opts.endpoint.startsWith("/") ? opts.endpoint : `/${opts.endpoint}`;
+  const textToVideo = isTextToVideoEndpoint(endpoint);
+  const duration = normalizeVideoDuration(opts.duration, endpoint);
+
   const body: Record<string, unknown> = {
     prompt: opts.prompt,
-    duration: opts.duration,
     aspect_ratio: opts.aspectRatio,
+    duration: textToVideo ? String(duration) : duration,
   };
+
+  if (textToVideo) {
+    body.negative_prompt = HIGGSFIELD_NEGATIVE_PROMPT;
+  }
+
   if (opts.imageUrl) {
     body.image_url = opts.imageUrl;
     body.input_images = [{ type: "image_url", image_url: opts.imageUrl }];
   }
 
-  const endpoint = opts.endpoint.startsWith("/") ? opts.endpoint : `/${opts.endpoint}`;
   const res = await fetch(`${higgsfieldApiOrigin()}${endpoint}`, {
     method: "POST",
     headers: {

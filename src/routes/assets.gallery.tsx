@@ -7,6 +7,7 @@ import { GeneratedImageToolbar } from "@/components/GeneratedImageToolbar";
 import { ZasobyReactionFilter, type ZasobyReactionFilterValue } from "@/components/ZasobyReactionFilter";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAssetAgentPrompt, setAssetAgentSeed } from "@/lib/assetAgentSeed";
+import { downloadMediaWithToast } from "@/lib/downloadMedia";
 import { toast } from "sonner";
 import { toastSupabaseLoadError } from "@/lib/supabaseSchemaHint";
 
@@ -174,15 +175,19 @@ function GalleryPage() {
                   </div>
                 </div>
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">
-                  <a
-                    href={it.image_url}
-                    download
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    title="Pobierz na dysk"
+                    onClick={() =>
+                      void downloadMediaWithToast(it.image_url, {
+                        filenameBase: `kreacja-${it.id.slice(0, 8)}`,
+                        kind: "image",
+                      })
+                    }
                     className="h-9 w-9 rounded-full bg-white/95 text-black flex items-center justify-center hover:bg-white pointer-events-auto"
                   >
                     <Download className="h-4 w-4" />
-                  </a>
+                  </button>
                   <button
                     type="button"
                     onClick={() => openInAgent(it)}
@@ -239,6 +244,19 @@ function GalleryPage() {
                   {it.product_name ? ` · ${it.product_name}` : ""}
                   {it.campaign_name ? ` · ${it.campaign_name}` : ""}
                 </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void downloadMediaWithToast(it.image_url, {
+                      filenameBase: `kreacja-${it.id.slice(0, 8)}`,
+                      kind: "image",
+                    })
+                  }
+                  className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:opacity-80"
+                >
+                  <Download className="h-3 w-3" />
+                  Pobierz na dysk
+                </button>
               </div>
             </div>
           ))}

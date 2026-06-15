@@ -235,6 +235,17 @@ Deno.serve(async (req) => {
     const imageUrl = typeof body.image_url === "string" ? body.image_url.trim() : undefined;
     const productName = typeof body.productName === "string" ? body.productName.trim().slice(0, 255) : null;
     const campaignName = typeof body.campaignName === "string" ? body.campaignName.trim().slice(0, 255) : null;
+
+    if (style === "image-animate" && !imageUrl) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Styl „Animacja zdjęcia → wideo” wymaga obrazu startowego. Wybierz grafikę z galerii lub zmień styl na UGC / reklamę produktu.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const prompt = buildVideoPrompt(promptRaw, style);
     const aspectRatio = ratioToAspectRatio(ratio);
     const endpoint = resolveVideoEndpoint(model, Boolean(imageUrl));

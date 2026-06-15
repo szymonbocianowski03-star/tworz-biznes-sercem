@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Clapperboard, Heart, Loader2, MessageSquareText, ThumbsDown, Trash2, Video } from "lucide-react";
+import { Clapperboard, Download, Heart, Loader2, MessageSquareText, ThumbsDown, Trash2, Video } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AssetsTabs } from "@/components/AssetsTabs";
 import { AssetsToolbar } from "@/components/AssetsToolbar";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
 import { supabaseFnHeaders } from "@/lib/supabaseFnHeaders";
 import { buildAssetAgentPrompt, setAssetAgentSeed } from "@/lib/assetAgentSeed";
+import { downloadMediaWithToast } from "@/lib/downloadMedia";
 import { VIDEO_PROMPT_SEED_KEY } from "@/lib/saveProjectAsset";
 import { useProducts } from "@/hooks/useProducts";
 import { toast } from "sonner";
@@ -42,9 +43,48 @@ const STYLES = [
   { value: "", label: "Standard (bez szablonu UGC)" },
 ] as const;
 
+const VIDEO_PROMPT_IDEAS: { label: string; prompt: string; style: (typeof STYLES)[number]["value"]; ratio: (typeof RATIOS)[number] }[] = [
+  {
+    label: "UGC TikTok — hook w 2 s",
+    style: "ugc",
+    ratio: "720:1280",
+    prompt:
+      "Kobieta 28 lat w kuchni, trzyma produkt do twarzy, mówi do kamery szczerze — hook: «przestałam ukrywać czerwone plamy». Naturalne światło, napisy po polsku, styl UGC.",
+  },
+  {
+    label: "Reklama produktu — close-up",
+    style: "product",
+    ratio: "720:1280",
+    prompt:
+      "Zbliżenie na produkt na jasnym blacie, ręce pokazują konsystencję i aplikację. Czyste tło, premium look, krótki napis CTA po polsku na końcu.",
+  },
+  {
+    label: "Opinia klienta",
+    style: "testimonial",
+    ratio: "720:1280",
+    prompt:
+      "Osoba 35+ przed lustrem w łazience, pokazuje efekt po 7 dniach, mówi jednym zdaniem o zmianie. Autentyczny ton, selfie-style, napisy PL.",
+  },
+  {
+    label: "Viral hook — problem → rozwiązanie",
+    style: "viral",
+    ratio: "720:1280",
+    prompt:
+      "Pierwsze 2 sekundy: zaskoczony wyraz twarzy i napis «To działa?». Potem szybkie ujęcia przed/po. Energetyczny montaż short-form, język polski.",
+  },
+  {
+    label: "Poziomy baner 16:9",
+    style: "product",
+    ratio: "1280:720",
+    prompt:
+      "Produkt na środku kadru, delikatny ruch kamery, minimalistyczne tło. Nagłówek po polsku i wyraźne CTA. Styl reklamy e-commerce.",
+  },
+];
+
 function VideoAssetsPage() {
   const navigate = useNavigate();
   const { active: brandProduct } = useProducts();
+  const generatorRef = useRef<HTMLDivElement>(null);
   const [items, setItems] = useState<VideoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<ZasobyReactionFilterValue>("all");
@@ -253,15 +293,40 @@ function VideoAssetsPage() {
 
   const generating = starting || pollingId !== null;
 
+  function scrollToGenerator() {
+    generatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      const ta = generatorRef.current?.querySelector("textarea");
+      ta?.focus();
+    }, 400);
+  }
+
+  function applyPromptIdea(idea: (typeof VIDEO_PROMPT_IDEAS)[number]) {
+    const product = brandProduct?.name?.trim();
+    const base = idea.prompt;
+    setPrompt(product ? base.replace(/produkt/gi, product).replace(/Produkt/g, product) : base);
+    setStyle(idea.style);
+    setRatio(idea.ratio);
+    scrollToGenerator();
+  }
+
   return (
     <div className="px-6 md:px-10 py-10 max-w-6xl">
       <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Zasoby</h1>
       <p className="mt-2 text-sm text-muted-foreground">Wideo z galerii — polubienia, nielubienia i edycja w czacie.</p>
       <AssetsTabs />
       <ZasobyReactionFilter value={filter} onChange={setFilter} />
-      <AssetsToolbar placeholder="Szukaj wideo…" ctaLabel="Nowe wideo" />
+      <AssetsToolbar
+        placeholder="Szukaj wideo…"
+        ctaLabel="Nowe wideo"
+        onCtaClick={scrollToGenerator}
+      />
 
-      <div className="mt-8 rounded-2xl border border-border bg-surface-elevated p-5 md:p-6 shadow-soft space-y-4">
+      <div
+        ref={generatorRef}
+        id="video-generator"
+        className="mt-8 rounded-2xl border border-border bg-surface-elevated p-5 md:p-6 shadow-soft space-y-4"
+      >
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Clapperboard className="h-4 w-4" />
           Nowe wideo (tekst → wideo)
@@ -276,6 +341,22 @@ function VideoAssetsPage() {
             placeholder="Np. kobieta 28 lat w kuchni, trzyma serum, mówi do kamery o pierwszych efektach po 7 dniach — hook: «przestałam ukrywać czerwone plamy»…"
           />
         </label>
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Propozycje promptów — kliknij, aby wstawić</p>
+          <div className="flex flex-wrap gap-2">
+            {VIDEO_PROMPT_IDEAS.map((idea) => (
+              <button
+                key={idea.label}
+                type="button"
+                disabled={generating}
+                onClick={() => applyPromptIdea(idea)}
+                className="inline-flex items-center rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40 disabled:opacity-50 transition-colors"
+              >
+                {idea.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block space-y-1.5">
             <span className="text-xs font-medium">Styl wideo</span>
@@ -311,13 +392,15 @@ function VideoAssetsPage() {
             <span className="text-xs font-medium">Czas trwania (s)</span>
             <input
               type="number"
-              min={2}
+              min={5}
               max={10}
+              step={5}
               value={duration}
               onChange={(e) => setDuration(Number(e.target.value) || 5)}
               disabled={generating}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
             />
+            <span className="text-[11px] text-muted-foreground">Model tekst→wideo: 5 lub 10 sekund.</span>
           </label>
         </div>
         <button
@@ -381,7 +464,12 @@ function VideoAssetsPage() {
                   ) : (
                     <div className="text-center px-4 py-8 text-muted-foreground text-sm">
                       {it.status === "failed" ? (
-                        <span className="text-destructive">{it.error_detail ?? "Błąd generacji"}</span>
+                        <div className="space-y-2">
+                          <span className="text-destructive block">{it.error_detail ?? "Błąd generacji"}</span>
+                          <span className="text-xs text-muted-foreground block">
+                            Wideo nie zostało zapisane — generacja się nie powiodła. Usuń wpis i spróbuj ponownie.
+                          </span>
+                        </div>
                       ) : (
                         <span className="inline-flex items-center gap-2 justify-center">
                           <Loader2 className="h-5 w-5 animate-spin shrink-0" />
@@ -414,14 +502,29 @@ function VideoAssetsPage() {
                   </div>
                   <div className="absolute top-2 right-2 flex gap-1 z-10">
                     {it.status === "succeeded" && it.video_url && (
-                      <button
-                        type="button"
-                        title="Edytuj w czacie"
-                        onClick={() => openInAgent(it)}
-                        className="h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
-                      >
-                        <MessageSquareText className="h-4 w-4" />
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          title="Pobierz na dysk"
+                          onClick={() =>
+                            void downloadMediaWithToast(it.video_url!, {
+                              filenameBase: `wideo-${it.id.slice(0, 8)}`,
+                              kind: "video",
+                            })
+                          }
+                          className="h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Edytuj w czacie"
+                          onClick={() => openInAgent(it)}
+                          className="h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                        >
+                          <MessageSquareText className="h-4 w-4" />
+                        </button>
+                      </>
                     )}
                     <button
                       type="button"
@@ -438,9 +541,26 @@ function VideoAssetsPage() {
                   <p className="text-[11px] text-muted-foreground">
                     {new Date(it.created_at).toLocaleString("pl-PL")} · {it.status}
                   </p>
-                  <Link to="/agent" className="text-xs text-accent font-medium hover:opacity-80">
-                    Otwórz czat →
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {it.status === "succeeded" && it.video_url && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void downloadMediaWithToast(it.video_url!, {
+                            filenameBase: `wideo-${it.id.slice(0, 8)}`,
+                            kind: "video",
+                          })
+                        }
+                        className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:opacity-80"
+                      >
+                        <Download className="h-3 w-3" />
+                        Pobierz na dysk
+                      </button>
+                    )}
+                    <Link to="/agent" className="text-xs text-accent font-medium hover:opacity-80">
+                      Otwórz czat →
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}

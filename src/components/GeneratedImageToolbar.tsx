@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { FolderOpen, Pencil, RefreshCw, Rocket } from "lucide-react";
+import { FolderOpen, Download, Pencil, RefreshCw, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { useCreditsUpgrade } from "@/contexts/CreditsUpgradeContext";
 import { useCredits } from "@/hooks/useCredits";
 import { saveImageToProjectAssets } from "@/lib/saveProjectAsset";
 import { replaceGeneratedImage } from "@/lib/adImageGeneration";
+import { downloadMediaWithToast } from "@/lib/downloadMedia";
 import { checkImageGenerationAffordability } from "@/lib/imageCreditsGate";
 import {
   Dialog,
@@ -181,6 +182,20 @@ export function GeneratedImageToolbar({
         >
           <RefreshCw className="h-3 w-3" strokeWidth={2} />
           Wygeneruj ponownie
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            void downloadMediaWithToast(imageUrl, {
+              filenameBase: effectiveDbId ? `kreacja-${effectiveDbId.slice(0, 8)}` : "kreacja",
+              kind: "image",
+            })
+          }
+          className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md border border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50"
+          title="Pobierz grafikę na dysk"
+        >
+          <Download className="h-3 w-3" strokeWidth={2} />
+          Pobierz
         </button>
         <button
           type="button"
