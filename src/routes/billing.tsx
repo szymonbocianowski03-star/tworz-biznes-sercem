@@ -122,7 +122,7 @@ function BillingPage() {
   }
 
   const isFreePlan = (credits.current_plan ?? "free") === "free";
-  const freePlanMonthlyCredits = PLANS.find((p) => p.id === "free")?.credits ?? 1000;
+  const freePlanMonthlyCredits = PLANS.find((p) => p.id === "free")?.credits ?? 400;
   const freeUsageCents = credits.free_ai_usage_usd_cents ?? 0;
   const displayBalance = credits.balance != null ? credits.balance : isFreePlan ? freePlanMonthlyCredits : 0;
 
@@ -153,6 +153,9 @@ function BillingPage() {
 
         <section className="mt-10 mx-auto max-w-2xl">
           <h2 className="font-display text-lg font-extrabold tracking-tight text-center">Cennik AI (kredyty)</h2>
+          <p className="mt-2 text-xs text-muted-foreground text-center">
+            100 kred. = $0,25 (1 obraz). Inne funkcje: koszt API × 4. Plan Free: max $1 (~400 kred.).
+          </p>
           <ul className="mt-4 divide-y divide-border rounded-2xl border border-border bg-surface-elevated text-sm">
             {AI_PRICE_LIST.map((row) => (
               <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">

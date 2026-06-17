@@ -8,6 +8,8 @@ export const COST_PER_IMAGE_USD_CENTS = 25;
 // 1 obraz = $0,25 kosztu API = 100 kredytów (×4 za cent USD).
 export const COST_PER_IMAGE_PLN = 1;
 export const CREDITS_PER_IMAGE = 100;
+/** Limit AI planu Free w kredytach (100¢ × 4 = 400 kred., ~4 obrazy). */
+export const FREE_PLAN_AI_CREDITS = FREE_TIER_AI_USD_CAP_CENTS * 4;
 // Prowizja właściciela = 50%: połowa ceny to marża, druga połowa pokrywa koszt generacji.
 export const CREDIT_MARGIN_FRAC = 0.5;
 
@@ -68,7 +70,7 @@ export function planYearlyMonthlyEquivalentGrossPln(monthlyGrossPln: number): nu
 // Tekst pod ceną: Free — pula na start, płatne — miesięczna pula.
 export function formatPlanCreditsLabel(p: Plan): string {
   if (p.id === "free") {
-    return `${p.credits.toLocaleString("pl-PL")} kredytów na start`;
+    return `${p.credits.toLocaleString("pl-PL")} kred. limit AI (~4 obrazy)`;
   }
   return `${p.credits.toLocaleString("pl-PL")} kredytów / mies.`;
 }
@@ -90,7 +92,7 @@ export const PLANS: Plan[] = [
     id: "free",
     name: "Free",
     monthly: 0,
-    credits: 1000,
+    credits: FREE_PLAN_AI_CREDITS,
     monthlyPriceId: null,
     yearlyPriceId: null,
     features: [...PLAN_FEATURES_SHARED],
