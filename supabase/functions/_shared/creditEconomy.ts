@@ -19,7 +19,10 @@ function imagesForPln(pln: number): number {
 
 /** Jednorazowa paczka kredytów: marża 50%, ×100 kredytów za obraz. */
 export function creditsForRetailPln(pln: number): number {
-  return imagesForPln(pln) * CREDITS_PER_IMAGE;
+  if (pln <= 0) return 0;
+  // Paczki zaokrąglamy w górę do pełnych „obrazów”, żeby wartości były czytelne (np. 19 zł → 1000 kred.).
+  const images = Math.ceil((pln * (1 - CREDIT_MARGIN_FRAC)) / COST_PER_IMAGE_PLN);
+  return images * CREDITS_PER_IMAGE;
 }
 
 /** 1 obraz = 100 kredytów (stała jednostka rozliczeniowa). */
