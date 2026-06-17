@@ -10,6 +10,8 @@ export const FREE_TIER_AI_USD_CAP_CENTS = 100;
 export const COST_PER_IMAGE_PLN = 1;
 export const CREDITS_PER_IMAGE = 100;
 export const CREDIT_MARGIN_FRAC = 0.5;
+/** Ułamek ceny paczki jednorazowej na generacje (subskrypcja = 50%, paczka = 25%). */
+export const RETAIL_POOL_FRAC = 0.25;
 
 /** Ile obrazów finansuje kwota w zł przy 50% marży (reszta to koszt 1 zł/obraz). */
 function imagesForPln(pln: number): number {
@@ -17,11 +19,10 @@ function imagesForPln(pln: number): number {
   return Math.floor((pln * (1 - CREDIT_MARGIN_FRAC)) / COST_PER_IMAGE_PLN);
 }
 
-/** Jednorazowa paczka kredytów: marża 50%, ×100 kredytów za obraz. */
+/** Jednorazowa paczka kredytów — drożej za kredyt niż subskrypcja (25% ceny → generacje). */
 export function creditsForRetailPln(pln: number): number {
   if (pln <= 0) return 0;
-  // Paczki zaokrąglamy w górę do pełnych „obrazów”, żeby wartości były czytelne (np. 19 zł → 1000 kred.).
-  const images = Math.ceil((pln * (1 - CREDIT_MARGIN_FRAC)) / COST_PER_IMAGE_PLN);
+  const images = Math.floor((pln * RETAIL_POOL_FRAC) / COST_PER_IMAGE_PLN);
   return images * CREDITS_PER_IMAGE;
 }
 
