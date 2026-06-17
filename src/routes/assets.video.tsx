@@ -12,6 +12,7 @@ import { supabaseFnHeaders } from "@/lib/supabaseFnHeaders";
 import { buildAssetAgentPrompt, setAssetAgentSeed } from "@/lib/assetAgentSeed";
 import { downloadMediaWithToast } from "@/lib/downloadMedia";
 import { notifyCreditsRefresh } from "@/lib/creditsRefresh";
+import { freeUsageCentsToCredits } from "@/lib/creditUsageDisplay";
 import { checkVideoGenerationAffordability, getVideoUsageEstimate } from "@/lib/videoCreditsGate";
 import { friendlyVideoError } from "@/lib/videoErrorDisplay";
 import { saveVideoToProjectAssets, VIDEO_PROMPT_SEED_KEY } from "@/lib/saveProjectAsset";
@@ -486,11 +487,10 @@ function VideoAssetsPage() {
             <p>Ładowanie salda…</p>
           ) : isFreePlan ? (
             <p>
-              Plan Free — limit AI:{" "}
+              Plan Free — pozostało:{" "}
               <span className="font-medium text-foreground">
-                {((usageEstimate.freeRemainingCents ?? 0) / 100).toFixed(2)} $
-              </span>{" "}
-              pozostało
+                {freeUsageCentsToCredits(usageEstimate.freeRemainingCents ?? 0).toLocaleString("pl-PL")} kred.
+              </span>
               {usageEstimate.canAfford && usageEstimate.remainingAfter != null ? (
                 <>
                   {" "}

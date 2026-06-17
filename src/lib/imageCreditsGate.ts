@@ -55,7 +55,7 @@ export function checkImageGenerationAffordability(
       maxAffordable: 0,
       requested,
       reason: isFree
-        ? "Wykorzystałeś limit planu Free ($1 na AI). Ulepsz plan, aby generować więcej grafik."
+        ? "Wykorzystałeś limit planu Free (400 kred.). Ulepsz plan, aby generować więcej grafik."
         : "Brak kredytów na koncie. Otwórz „Plan i kredyty”, aby dokupić pakiet.",
     };
   }
@@ -68,7 +68,7 @@ export function checkImageGenerationAffordability(
       maxAffordable,
       requested,
       reason: isFree
-        ? `Na planie Free zostało Ci miejsce na max ${maxAffordable} ${graf} (limit $1 AI), a prosisz o ${requested}. Zmniejsz liczbę lub ulepsz plan.`
+        ? `Na planie Free zostało Ci miejsce na max ${maxAffordable} ${graf} (limit 400 kred.), a prosisz o ${requested}. Zmniejsz liczbę lub ulepsz plan.`
         : `Masz kredytów na max ${maxAffordable} ${graf}, a prosisz o ${requested} ${potrzeba}. Zmniejsz liczbę lub dokup kredyty.`,
     };
   }

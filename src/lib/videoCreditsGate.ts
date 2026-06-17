@@ -40,7 +40,7 @@ export function getVideoUsageEstimate(credits: CreditsSnapshot | null | undefine
       canAfford,
       reason: canAfford
         ? undefined
-        : "Na planie Free wideo zużywa cały limit AI ($1). Wykorzystałeś go lub zostało za mało — ulepsz plan.",
+        : "Na planie Free wideo zużywa cały limit AI (400 kred.). Wykorzystałeś go lub zostało za mało — ulepsz plan.",
     };
   }
 
