@@ -239,20 +239,25 @@ export class MetaMarketingAdapter implements AdsPlatformAdapter {
         const adset = draft.structure.adSets[0];
         const daily = adset?.budget?.dailyBudgetMinorUnits ?? 500;
         const objective = draft.meta?.objective ?? "OUTCOME_TRAFFIC";
+        const budgetType = draft.meta?.campaignBudgetType ?? "daily";
+        const bidStrategy = adset?.budget?.bidStrategy || draft.meta?.adSet?.bidStrategy || "LOWEST_COST_WITHOUT_CAP";
         const params: Record<string, string | number | boolean | undefined> = {
           name: adset?.name ?? "Ad set",
           campaign_id: campaignId,
           billing_event: "IMPRESSIONS",
           optimization_goal: adset?.optimizationGoal ?? "LINK_CLICKS",
-          bid_strategy: "LOWEST_COST_WITHOUT_CAP",
-          daily_budget: Math.max(daily, 100),
-          targeting: JSON.stringify({
-            geo_locations: { countries: adset?.audience?.geoInclude?.length ? adset.audience.geoInclude : ["PL"] },
-          }),
+          bid_strategy: bidStrategy,
+          targeting: JSON.stringify(buildMetaTargeting(draft)),
           status: liveStatus,
           start_time: adset?.schedule?.startAt,
           end_time: adset?.schedule?.endAt,
         };
+        // Budżet: dzienny albo całkowity (lifetime). Lifetime wymaga end_time.
+        if (budgetType === "lifetime") {
+          params.lifetime_budget = Math.max(daily, 100);
+        } else {
+          params.daily_budget = Math.max(daily, 100);
+        }
         if (objective.startsWith("OUTCOME_")) {
           params.destination_type = "WEBSITE";
         }
