@@ -58,6 +58,75 @@ function isVideoAsset(asset: ResolvedCampaignAsset): boolean {
   return /\.(mp4|webm|mov)(\?|$)/i.test(asset.publicUrl);
 }
 
+/** Mapowanie wartości placementu z UI -> publisher_platforms + pozycje Meta. */
+const META_PLACEMENT_MAP: Record<string, { platform: string; position?: string }> = {
+  FACEBOOK_FEED: { platform: "facebook", position: "feed" },
+  FACEBOOK_STORIES: { platform: "facebook", position: "story" },
+  FACEBOOK_MARKETPLACE: { platform: "facebook", position: "marketplace" },
+  FACEBOOK_VIDEO_FEEDS: { platform: "facebook", position: "video_feeds" },
+  INSTAGRAM_FEED: { platform: "instagram", position: "stream" },
+  INSTAGRAM_STORIES: { platform: "instagram", position: "story" },
+  INSTAGRAM_REELS: { platform: "instagram", position: "reels" },
+  MESSENGER_INBOX: { platform: "messenger", position: "messenger_home" },
+  AUDIENCE_NETWORK: { platform: "audience_network", position: "classic" },
+};
+
+/** Budowa pełnego obiektu targeting Meta z parametrów ustawionych przez użytkownika. */
+function buildMetaTargeting(draft: CampaignComposerDraftPayload): Record<string, unknown> {
+  const adset = draft.structure.adSets[0];
+  const audience = adset?.audience;
+  const metaAdSet = draft.meta?.adSet;
+
+  const targeting: Record<string, unknown> = {
+    geo_locations: {
+      countries: audience?.geoInclude?.length ? audience.geoInclude : ["PL"],
+    },
+  };
+
+  // Wiek
+  if (typeof audience?.ageMin === "number") targeting.age_min = audience.ageMin;
+  if (typeof audience?.ageMax === "number") targeting.age_max = audience.ageMax;
+
+  // Płeć — 1 = mężczyźni, 2 = kobiety. "all"/puste = bez ograniczenia.
+  const genders = metaAdSet?.genders ?? [];
+  if (genders.length && !genders.includes("all")) {
+    const map: Record<string, number> = { male: 1, female: 2 };
+    const ids = genders.map((g) => map[g]).filter((n): n is number => Boolean(n));
+    if (ids.length) targeting.genders = ids;
+  }
+
+  // Placementy — tylko gdy tryb ręczny i wybrano konkretne pozycje.
+  const placementMode = metaAdSet?.placementMode ?? "advantage";
+  const placements = (metaAdSet?.placements ?? []).filter((p) => p && p !== "ADVANTAGE_PLUS");
+  if (placementMode === "manual" && placements.length) {
+    const platforms = new Set<string>();
+    const positionsByPlatform: Record<string, Set<string>> = {};
+    for (const p of placements) {
+      const m = META_PLACEMENT_MAP[p];
+      if (!m) continue;
+      platforms.add(m.platform);
+      if (m.position) {
+        (positionsByPlatform[m.platform] ??= new Set()).add(m.position);
+      }
+    }
+    if (platforms.size) {
+      targeting.publisher_platforms = Array.from(platforms);
+      const posKey: Record<string, string> = {
+        facebook: "facebook_positions",
+        instagram: "instagram_positions",
+        messenger: "messenger_positions",
+        audience_network: "audience_network_positions",
+      };
+      for (const [platform, positions] of Object.entries(positionsByPlatform)) {
+        const key = posKey[platform];
+        if (key) targeting[key] = Array.from(positions);
+      }
+    }
+  }
+
+  return targeting;
+}
+
 function resolveCreativeAssets(ctx: AdapterContext, creative: CampaignComposerDraftPayload["structure"]["adSets"][0]["creatives"][0]) {
   return creative.assetIds
     .map((id) => {
@@ -170,20 +239,25 @@ export class MetaMarketingAdapter implements AdsPlatformAdapter {
         const adset = draft.structure.adSets[0];
         const daily = adset?.budget?.dailyBudgetMinorUnits ?? 500;
         const objective = draft.meta?.objective ?? "OUTCOME_TRAFFIC";
+        const budgetType = draft.meta?.campaignBudgetType ?? "daily";
+        const bidStrategy = adset?.budget?.bidStrategy || draft.meta?.adSet?.bidStrategy || "LOWEST_COST_WITHOUT_CAP";
         const params: Record<string, string | number | boolean | undefined> = {
           name: adset?.name ?? "Ad set",
           campaign_id: campaignId,
           billing_event: "IMPRESSIONS",
           optimization_goal: adset?.optimizationGoal ?? "LINK_CLICKS",
-          bid_strategy: "LOWEST_COST_WITHOUT_CAP",
-          daily_budget: Math.max(daily, 100),
-          targeting: JSON.stringify({
-            geo_locations: { countries: adset?.audience?.geoInclude?.length ? adset.audience.geoInclude : ["PL"] },
-          }),
+          bid_strategy: bidStrategy,
+          targeting: JSON.stringify(buildMetaTargeting(draft)),
           status: liveStatus,
           start_time: adset?.schedule?.startAt,
           end_time: adset?.schedule?.endAt,
         };
+        // Budżet: dzienny albo całkowity (lifetime). Lifetime wymaga end_time.
+        if (budgetType === "lifetime") {
+          params.lifetime_budget = Math.max(daily, 100);
+        } else {
+          params.daily_budget = Math.max(daily, 100);
+        }
         if (objective.startsWith("OUTCOME_")) {
           params.destination_type = "WEBSITE";
         }
