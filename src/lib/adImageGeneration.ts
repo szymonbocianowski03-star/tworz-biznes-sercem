@@ -1,7 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
+import { buildAdImagePrompt } from "@/lib/adImagePromptBuilder";
 import { supabaseFnHeaders } from "@/lib/supabaseFnHeaders";
 import { scheduleCreditsRefresh } from "@/lib/creditsRefresh";
+
+export { buildAdImagePrompt } from "@/lib/adImagePromptBuilder";
 
 const IMAGE_URL = supabaseEdgeFunctionUrl("generate-image");
 
@@ -14,38 +17,6 @@ export function chooseImageSizeFromPrompt(p: string): "1024x1024" | "1024x1536" 
     return "1536x1024";
   }
   return "1024x1024";
-}
-
-/** Buduje prompt do API obrazów. singleVariant=true przy ponownej generacji jednej kreacji. */
-export function buildAdImagePrompt(
-  userPrompt: string,
-  brandVisualRules?: string | null,
-  singleVariant = false,
-): string {
-  const clean = String(userPrompt ?? "").trim();
-  const brand = brandVisualRules?.trim();
-  const lines = [
-    "Wygeneruj nowoczesną kreację reklamową o jakości studyjnej (fotorealizm, czyste światło, spójna kompozycja).",
-    "Priorytet: czytelność i estetyka jak w kampaniach e-commerce premium.",
-    "Zasady:",
-    "- JĘZYK: cały tekst widoczny na obrazie (nagłówki, CTA, etykiety, ceny, znaczki, badge, opisy) MUSI być w języku polskim z poprawnymi polskimi znakami diakrytycznymi (ą, ć, ę, ł, ń, ó, ś, ź, ż). Nigdy nie używaj angielskiego ani innego języka w napisach na grafice;",
-    "- zero losowego tekstu, znaków wodnych i logotypów; jeśli w prompt jest dokładny tekst CTA/cena, użyj tylko jego i nic więcej (po polsku);",
-    "- unikaj zniekształceń (ręce/twarze/napisy), unikaj sztucznego 'AI look';",
-    "- tło i rekwizyty minimalistyczne, dopasowane do produktu;",
-    singleVariant
-      ? "- jedna spójna kompozycja dopasowana do briefu."
-      : "- 4 wyraźnie różne warianty (inny kadr/kompozycja/kolorystyka), ale ten sam przekaz.",
-    "",
-    `BRIEF (PL — wszystkie napisy na obrazie po polsku): ${clean}`,
-  ];
-  if (brand) {
-    lines.push(
-      "",
-      "TOŻSAMOŚĆ WIZUALNA MARKI (pilnuj spójności — pierwszeństwo przed „domyślnym” stylem):",
-      brand.slice(0, 3500),
-    );
-  }
-  return lines.join("\n");
 }
 
 async function imageUrlToBytes(imageUrl: string): Promise<{ bytes: Uint8Array; mime: string } | { error: string }> {

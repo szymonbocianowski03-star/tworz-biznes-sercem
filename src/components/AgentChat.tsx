@@ -15,7 +15,7 @@ import { readImageAsDataUrl } from "@/lib/readImageAsDataUrl";
 import { supabaseFnHeaders } from "@/lib/supabaseFnHeaders";
 import { ASSET_AGENT_SEED_KEY, type AssetAgentSeedPayload } from "@/lib/assetAgentSeed";
 import { scheduleCreditsRefresh } from "@/lib/creditsRefresh";
-import { callGenerateImageApi } from "@/lib/adImageGeneration";
+import { callGenerateImageApi, chooseImageSizeFromPrompt } from "@/lib/adImageGeneration";
 import { checkImageGenerationAffordability } from "@/lib/imageCreditsGate";
 import { GeneratedImageToolbar } from "@/components/GeneratedImageToolbar";
 import { supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
@@ -375,43 +375,6 @@ export function AgentChat() {
     return () => window.clearTimeout(t);
   }, [messages, loading]);
 
-  function chooseImageSizeFromPrompt(p: string): "1024x1024" | "1024x1536" | "1536x1024" {
-    const s = (p || "").toLowerCase();
-    // Prefer explicit ratios
-    if (s.includes("9:16") || s.includes("pion") || s.includes("vertical") || s.includes("story") || s.includes("reels")) {
-      return "1024x1536";
-    }
-    if (s.includes("16:9") || s.includes("poziom") || s.includes("horizontal") || s.includes("banner") || s.includes("landscape")) {
-      return "1536x1024";
-    }
-    return "1024x1024";
-  }
-
-  function buildAdImagePrompt(userPrompt: string): string {
-    const clean = String(userPrompt ?? "").trim();
-    const brand = brandProduct?.brandVisualRules?.trim();
-    const lines = [
-      "Wygeneruj nowoczesną kreację reklamową o jakości studyjnej (fotorealizm, czyste światło, spójna kompozycja).",
-      "Priorytet: czytelność i estetyka jak w kampaniach e-commerce premium.",
-      "Zasady:",
-      "- JĘZYK: cały tekst widoczny na obrazie (nagłówki, CTA, etykiety, ceny, znaczki, badge, opisy) MUSI być w języku polskim z poprawnymi polskimi znakami diakrytycznymi (ą, ć, ę, ł, ń, ó, ś, ź, ż). Nigdy nie używaj angielskiego ani innego języka w napisach na grafice;",
-      "- zero losowego tekstu, znaków wodnych i logotypów; jeśli w prompt jest dokładny tekst CTA/cena, użyj tylko jego i nic więcej (po polsku);",
-      "- unikaj zniekształceń (ręce/twarze/napisy), unikaj sztucznego 'AI look';",
-      "- tło i rekwizyty minimalistyczne, dopasowane do produktu;",
-      "- 4 wyraźnie różne warianty (inny kadr/kompozycja/kolorystyka), ale ten sam przekaz.",
-      "",
-      `BRIEF (PL — wszystkie napisy na obrazie po polsku): ${clean}`,
-    ];
-    if (brand) {
-      lines.push(
-        "",
-        "TOŻSAMOŚĆ WIZUALNA MARKI (pilnuj spójności — pierwszeństwo przed „domyślnym” stylem):",
-        brand.slice(0, 3500),
-      );
-    }
-    return lines.join("\n");
-  }
-
   function buildScenarioRunPrompt(s: { title: string; goal: string; requiredInputs: string[]; starterPrompt: string }) {
     const req = (s.requiredInputs ?? []).slice(0, 8).join(", ");
     return [
@@ -519,7 +482,7 @@ export function AgentChat() {
       const api = await callGenerateImageApi({
         prompt,
         brandVisualRules: brandRules,
-        singleVariant: false,
+        singleVariant: true,
         n: nToGen,
       });
       if (!api.ok) {
@@ -970,7 +933,7 @@ export function AgentChat() {
             const api = await callGenerateImageApi({
               prompt: p,
               brandVisualRules: brandRules,
-              singleVariant: false,
+              singleVariant: true,
               n: 1,
               signal: ac.signal,
             });
