@@ -15,9 +15,10 @@ import { readImageAsDataUrl } from "@/lib/readImageAsDataUrl";
 import { supabaseFnHeaders } from "@/lib/supabaseFnHeaders";
 import { ASSET_AGENT_SEED_KEY, type AssetAgentSeedPayload } from "@/lib/assetAgentSeed";
 import { scheduleCreditsRefresh } from "@/lib/creditsRefresh";
+import { callGenerateImageApi } from "@/lib/adImageGeneration";
 import { checkImageGenerationAffordability } from "@/lib/imageCreditsGate";
 import { GeneratedImageToolbar } from "@/components/GeneratedImageToolbar";
-import { getSupabasePublicEnv, supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
+import { supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
 
 type ImageEntry = { url: string; dbId: string | null; prompt: string };
 type Msg = { role: "user" | "assistant"; content: string; images?: string[]; imageSet?: ImageEntry[] };
@@ -28,8 +29,6 @@ function chatMessagesPayload(messages: Msg[]): { role: Msg["role"]; content: str
 
 const CHAT_URL = supabaseEdgeFunctionUrl("chat");
 const SUGGEST_URL = supabaseEdgeFunctionUrl("suggest");
-const IMAGE_URL = supabaseEdgeFunctionUrl("generate-image");
-const ANON = getSupabasePublicEnv().anonKey ?? "";
 
 /** Prośba o generację wideo lub przejście do generatora — nie generuj grafik w czacie. */
 function shouldOpenVideoGenerator(text: string): boolean {
@@ -516,42 +515,33 @@ export function AgentChat() {
     const placeholder: Msg = { role: "assistant", content: `Generuję ${nToGen} warianty (wysoka jakość)…` };
     update(active.id, { messages: [...messagesRef.current, placeholder] });
     try {
-      const size = chooseImageSizeFromPrompt(prompt);
-      const finalPrompt = buildAdImagePrompt(prompt);
-      const { data: authData } = await supabase.auth.getSession();
-      const token = authData?.session?.access_token;
-      const r = await fetch(IMAGE_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token || ANON}`,
-          apikey: ANON,
-        },
-        body: JSON.stringify({ prompt: finalPrompt, size, quality: "high", n: nToGen }),
+      const brandRules = brandProduct?.brandVisualRules ?? null;
+      const api = await callGenerateImageApi({
+        prompt,
+        brandVisualRules: brandRules,
+        singleVariant: false,
+        n: nToGen,
       });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        if (r.status === 402) {
-          let t =
-            "Nie masz kredytów albo wykorzystałeś limit planu Free. Otwórz „Plan i kredyty”.";
-          const j = data as { message?: string };
-          if (j?.message) t = j.message;
-          openCreditsUpgrade(t);
-          const prev = messagesRef.current;
-          update(active.id, {
-            messages: prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: `💳 ${t}` } : m)),
-          });
-          return;
+      if (!api.ok) {
+        if (api.isCredits) {
+          openCreditsUpgrade(api.error);
         }
-        const msg =
-          r.status === 401 ? "❌ Brak dostępu do generowania obrazów." :
-          r.status === 429 ? "⏳ Limit — spróbuj za chwilę." :
-          `❌ Błąd generowania obrazu: ${(data as { error?: string })?.error ?? r.statusText}`;
         const prev = messagesRef.current;
-        update(active.id, { messages: prev.map((m, i) => i === prev.length - 1 ? { ...m, content: msg } : m) });
+        const content = api.isCredits
+          ? `💳 ${api.error}`
+          : api.status === 401
+            ? "❌ Zaloguj się, aby generować obrazy."
+            : api.status === 429
+              ? "⏳ Limit — spróbuj za chwilę."
+              : `❌ Błąd generowania obrazu: ${api.error}`;
+        update(active.id, {
+          messages: prev.map((m, i) => (i === prev.length - 1 ? { ...m, content } : m)),
+        });
+        if (!api.isCredits) toast.error(api.error);
         return;
       }
-      const rawImages: string[] = Array.isArray(data?.images) ? data.images : [];
+      const size = api.size;
+      const rawImages: string[] = api.images;
       const uploaded = await Promise.all(rawImages.map((src) => uploadToGallery(src, prompt, size)));
       const savedCount = uploaded.filter((u) => u.id).length;
       if (rawImages.length > 0 && savedCount < rawImages.length) {
@@ -961,35 +951,34 @@ export function AgentChat() {
     const ac = new AbortController();
     imgAbortRef.current = ac;
     try {
+      const brandRules = brandProduct?.brandVisualRules ?? null;
+      const headers = await supabaseFnHeaders();
+      if (!headers) {
+        toast.error("Zaloguj się, aby generować grafiki.");
+        update(active.id, {
+          messages: messagesRef.current.map((m, i) =>
+            i === lastIdx ? { ...m, content: `${cleaned}\n\n_⚠️ Zaloguj się, aby generować obrazy._` } : m,
+          ),
+        });
+        return;
+      }
+
       const results = await Promise.all(
         prompts.map(async (p): Promise<{ src: string } | { error: string } | null> => {
           if (ac.signal.aborted) return null;
           try {
-            const { data: authData } = await supabase.auth.getSession();
-            const token = authData?.session?.access_token;
-            const size = chooseImageSizeFromPrompt(p);
-            const finalPrompt = buildAdImagePrompt(p);
-            const r = await fetch(IMAGE_URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token || ANON}`,
-                apikey: ANON,
-              },
-              body: JSON.stringify({ prompt: finalPrompt, size, quality: "high", n: 1 }),
+            const api = await callGenerateImageApi({
+              prompt: p,
+              brandVisualRules: brandRules,
+              singleVariant: false,
+              n: 1,
               signal: ac.signal,
             });
-            const data = await r.json().catch(() => ({}));
-            if (!r.ok) {
-              const msg =
-                (typeof data?.error === "string" && data.error) ||
-                (typeof data?.message === "string" && data.message) ||
-                `HTTP ${r.status}`;
-              const detail = typeof data?.details === "string" ? data.details.slice(0, 200) : "";
-              return { error: detail ? `${msg}: ${detail}` : msg };
+            if (!api.ok) {
+              if (api.isCredits) openCreditsUpgrade(api.error);
+              return { error: api.error };
             }
-            const arr = Array.isArray(data?.images) ? data.images : [];
-            return arr[0] ? { src: arr[0] } : { error: "Brak obrazu w odpowiedzi API" };
+            return api.images[0] ? { src: api.images[0] } : { error: "Brak obrazu w odpowiedzi API" };
           } catch (e) {
             return { error: e instanceof Error ? e.message : "Błąd sieci" };
           }
@@ -1009,11 +998,13 @@ export function AgentChat() {
         pairs.map((p) => uploadToGallery(p.src, p.prompt, chooseImageSizeFromPrompt(p.prompt))),
       );
       if (ac.signal.aborted) return;
-      const newEntries: ImageEntry[] = uploaded.map((r, idx) => ({
-        url: r.url,
-        dbId: r.id,
-        prompt: pairs[idx]?.prompt ?? "",
-      }));
+      const newEntries: ImageEntry[] = uploaded
+        .map((r, idx) => ({
+          url: r.url || pairs[idx]?.src || "",
+          dbId: r.id,
+          prompt: pairs[idx]?.prompt ?? "",
+        }))
+        .filter((e) => Boolean(e.url));
       const cur = messagesRef.current;
       const prevSet = cur[lastIdx].imageSet ?? (cur[lastIdx].images ?? []).map((url) => ({ url, dbId: null, prompt: "" }));
       const merged = [...prevSet, ...newEntries];

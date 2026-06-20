@@ -142,6 +142,70 @@ export async function replaceGeneratedImage(input: {
   return { url: publicUrl, storagePath: path, prompt: trimmed };
 }
 
+export type GenerateImageApiResult =
+  | { ok: true; images: string[]; size: string }
+  | { ok: false; error: string; status?: number; isCredits?: boolean };
+
+/** Wywołanie Edge Function generate-image (wymaga zalogowanego użytkownika). */
+export async function callGenerateImageApi(input: {
+  prompt: string;
+  brandVisualRules?: string | null;
+  singleVariant?: boolean;
+  n?: number;
+  signal?: AbortSignal;
+}): Promise<GenerateImageApiResult> {
+  const headers = await supabaseFnHeaders();
+  if (!headers) {
+    return { ok: false, error: "Zaloguj się, aby generować grafiki.", status: 401 };
+  }
+
+  const trimmed = input.prompt.trim();
+  if (!trimmed) return { ok: false, error: "Opis nie może być pusty." };
+
+  const size = chooseImageSizeFromPrompt(trimmed);
+  const finalPrompt = buildAdImagePrompt(trimmed, input.brandVisualRules, input.singleVariant ?? true);
+  const n = Math.max(1, Math.min(4, Math.floor(input.n ?? 1)));
+
+  const r = await fetch(IMAGE_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ prompt: finalPrompt, size, quality: "high", n }),
+    signal: input.signal,
+  });
+  const data = (await r.json().catch(() => ({}))) as {
+    images?: string[];
+    error?: string;
+    message?: string;
+    details?: string;
+  };
+
+  scheduleCreditsRefresh();
+
+  if (!r.ok) {
+    if (r.status === 402) {
+      return {
+        ok: false,
+        error: data.message ?? "Brak kredytów — otwórz Plan i kredyty.",
+        status: 402,
+        isCredits: true,
+      };
+    }
+    if (r.status === 401) {
+      return { ok: false, error: "Sesja wygasła — zaloguj się ponownie.", status: 401 };
+    }
+    if (r.status === 429) {
+      return { ok: false, error: "Limit zapytań — spróbuj za chwilę.", status: 429 };
+    }
+    const detail = typeof data.details === "string" ? data.details.slice(0, 200) : "";
+    const base = data.error ?? data.message ?? `HTTP ${r.status}`;
+    return { ok: false, error: detail ? `${base}: ${detail}` : base, status: r.status };
+  }
+
+  const images = Array.isArray(data.images) ? data.images.filter(Boolean) : [];
+  if (!images.length) return { ok: false, error: "Brak obrazu w odpowiedzi serwera." };
+  return { ok: true, images, size };
+}
+
 /** Generuje pojedynczą grafikę (bez zapisu do bazy). */
 export async function fetchGeneratedImageDataUrl(
   prompt: string,
