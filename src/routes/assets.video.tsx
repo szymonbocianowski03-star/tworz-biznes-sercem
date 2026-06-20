@@ -519,17 +519,16 @@ function VideoAssetsPage() {
           </label>
           <label className="block space-y-1.5">
             <span className="text-xs font-medium">Czas trwania (s)</span>
-            <input
-              type="number"
-              min={5}
-              max={10}
-              step={5}
+            <select
               value={duration}
-              onChange={(e) => setDuration(Number(e.target.value) || 5)}
+              onChange={(e) => setDuration(Number(e.target.value) === 10 ? 10 : 5)}
               disabled={generating}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
-            <span className="text-[11px] text-muted-foreground">Długość klipu: 5 lub 10 sekund.</span>
+            >
+              <option value={5}>5 sekund</option>
+              <option value={10}>10 sekund</option>
+            </select>
+            <span className="text-[11px] text-muted-foreground">Higgsfield obsługuje tylko 5 lub 10 sekund.</span>
           </label>
         </div>
         <div

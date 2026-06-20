@@ -11,6 +11,7 @@ import {
   getHiggsfieldCredentials,
   higgsfieldPollStatus,
   higgsfieldStartVideoWithFallback,
+  coerceHiggsfieldDuration,
   normHiggsfieldStatus,
   ratioToAspectRatio,
 } from "../_shared/higgsfield.ts";
@@ -230,7 +231,7 @@ Deno.serve(async (req) => {
     const ratio = typeof body.ratio === "string" && body.ratio.includes(":")
       ? body.ratio
       : "1280:720";
-    const duration = Math.min(10, Math.max(2, Number(body.duration) || 5));
+    const duration = coerceHiggsfieldDuration(body.duration);
     const model = typeof body.model === "string" ? body.model : undefined;
     const style = typeof body.style === "string" ? body.style : undefined;
     const imageUrl = typeof body.image_url === "string" ? body.image_url.trim() : undefined;

@@ -130,13 +130,21 @@ function truncatePromptForEndpoint(prompt: string, endpoint: string): string {
   return `${p.slice(0, max - 1)}…`;
 }
 
-/** Niektóre modele (np. Kling) akceptują tylko 5 lub 10 s. */
-export function normalizeVideoDuration(duration: number, endpoint: string): number {
-  const d = Number.isFinite(duration) ? duration : 5;
-  if (endpoint.toLowerCase().includes("text-to-video") || endpoint.toLowerCase().includes("kling")) {
-    return d > 7 ? 10 : 5;
+/** Higgsfield akceptuje wyłącznie duration: 5 lub 10 jako liczbę całkowitą (nie string). */
+export function coerceHiggsfieldDuration(raw: unknown): 5 | 10 {
+  let n: number;
+  if (typeof raw === "string") {
+    n = parseInt(raw.trim(), 10);
+  } else {
+    n = Number(raw);
   }
-  return Math.min(10, Math.max(2, Math.round(d)));
+  if (!Number.isFinite(n)) return 5;
+  return n > 7 ? 10 : 5;
+}
+
+/** Niektóre modele (np. Kling) akceptują tylko 5 lub 10 s. */
+export function normalizeVideoDuration(duration: number, _endpoint?: string): 5 | 10 {
+  return coerceHiggsfieldDuration(duration);
 }
 
 export function isTextToVideoEndpoint(endpoint: string): boolean {
@@ -194,13 +202,12 @@ export async function higgsfieldStartVideo(
 ): Promise<{ requestId: string; raw: HiggsfieldStatusResponse }> {
   const endpoint = opts.endpoint.startsWith("/") ? opts.endpoint : `/${opts.endpoint}`;
   const textToVideo = isTextToVideoEndpoint(endpoint);
-  const duration = normalizeVideoDuration(opts.duration, endpoint);
+  const duration = coerceHiggsfieldDuration(opts.duration);
   const prompt = truncatePromptForEndpoint(opts.prompt, endpoint);
 
   const body: Record<string, unknown> = {
     prompt,
     aspect_ratio: opts.aspectRatio,
-    // Higgsfield waliduje duration jako liczbę (5 lub 10) — nie wysyłaj jako string.
     duration,
   };
 
