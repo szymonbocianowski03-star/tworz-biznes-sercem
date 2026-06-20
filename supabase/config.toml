@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.dispatch-notification]
 verify_jwt = false
+
+[functions.generate-ad-creative]
+verify_jwt = false
