@@ -45,6 +45,7 @@ import { Route as AssetsVideoRouteImport } from './routes/assets.video'
 import { Route as AssetsGenerationsRouteImport } from './routes/assets.generations'
 import { Route as AssetsGalleryRouteImport } from './routes/assets.gallery'
 import { Route as AssetsCopyRouteImport } from './routes/assets.copy'
+import { Route as AssetsAdStudioRouteImport } from './routes/assets.ad-studio'
 import { Route as AgentSkillsRouteImport } from './routes/agent.skills'
 import { Route as AgentCustomizeRouteImport } from './routes/agent.customize'
 import { Route as CampaignComposerDraftDraftIdRouteImport } from './routes/campaign-composer.draft.$draftId'
@@ -250,6 +251,11 @@ const AssetsCopyRoute = AssetsCopyRouteImport.update({
   path: '/copy',
   getParentRoute: () => AssetsRoute,
 } as any)
+const AssetsAdStudioRoute = AssetsAdStudioRouteImport.update({
+  id: '/ad-studio',
+  path: '/ad-studio',
+  getParentRoute: () => AssetsRoute,
+} as any)
 const AgentSkillsRoute = AgentSkillsRouteImport.update({
   id: '/skills',
   path: '/skills',
@@ -399,6 +405,7 @@ export interface FileRoutesByFullPath {
   '/viral-search': typeof ViralSearchRoute
   '/agent/customize': typeof AgentCustomizeRoute
   '/agent/skills': typeof AgentSkillsRoute
+  '/assets/ad-studio': typeof AssetsAdStudioRoute
   '/assets/copy': typeof AssetsCopyRoute
   '/assets/gallery': typeof AssetsGalleryRoute
   '/assets/generations': typeof AssetsGenerationsRoute
@@ -456,6 +463,7 @@ export interface FileRoutesByTo {
   '/viral-search': typeof ViralSearchRoute
   '/agent/customize': typeof AgentCustomizeRoute
   '/agent/skills': typeof AgentSkillsRoute
+  '/assets/ad-studio': typeof AssetsAdStudioRoute
   '/assets/copy': typeof AssetsCopyRoute
   '/assets/gallery': typeof AssetsGalleryRoute
   '/assets/generations': typeof AssetsGenerationsRoute
@@ -518,6 +526,7 @@ export interface FileRoutesById {
   '/viral-search': typeof ViralSearchRoute
   '/agent/customize': typeof AgentCustomizeRoute
   '/agent/skills': typeof AgentSkillsRoute
+  '/assets/ad-studio': typeof AssetsAdStudioRoute
   '/assets/copy': typeof AssetsCopyRoute
   '/assets/gallery': typeof AssetsGalleryRoute
   '/assets/generations': typeof AssetsGenerationsRoute
@@ -581,6 +590,7 @@ export interface FileRouteTypes {
     | '/viral-search'
     | '/agent/customize'
     | '/agent/skills'
+    | '/assets/ad-studio'
     | '/assets/copy'
     | '/assets/gallery'
     | '/assets/generations'
@@ -638,6 +648,7 @@ export interface FileRouteTypes {
     | '/viral-search'
     | '/agent/customize'
     | '/agent/skills'
+    | '/assets/ad-studio'
     | '/assets/copy'
     | '/assets/gallery'
     | '/assets/generations'
@@ -699,6 +710,7 @@ export interface FileRouteTypes {
     | '/viral-search'
     | '/agent/customize'
     | '/agent/skills'
+    | '/assets/ad-studio'
     | '/assets/copy'
     | '/assets/gallery'
     | '/assets/generations'
@@ -1034,6 +1046,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssetsCopyRouteImport
       parentRoute: typeof AssetsRoute
     }
+    '/assets/ad-studio': {
+      id: '/assets/ad-studio'
+      path: '/ad-studio'
+      fullPath: '/assets/ad-studio'
+      preLoaderRoute: typeof AssetsAdStudioRouteImport
+      parentRoute: typeof AssetsRoute
+    }
     '/agent/skills': {
       id: '/agent/skills'
       path: '/skills'
@@ -1213,6 +1232,7 @@ const AgentRouteChildren: AgentRouteChildren = {
 const AgentRouteWithChildren = AgentRoute._addFileChildren(AgentRouteChildren)
 
 interface AssetsRouteChildren {
+  AssetsAdStudioRoute: typeof AssetsAdStudioRoute
   AssetsCopyRoute: typeof AssetsCopyRoute
   AssetsGalleryRoute: typeof AssetsGalleryRoute
   AssetsGenerationsRoute: typeof AssetsGenerationsRoute
@@ -1220,6 +1240,7 @@ interface AssetsRouteChildren {
 }
 
 const AssetsRouteChildren: AssetsRouteChildren = {
+  AssetsAdStudioRoute: AssetsAdStudioRoute,
   AssetsCopyRoute: AssetsCopyRoute,
   AssetsGalleryRoute: AssetsGalleryRoute,
   AssetsGenerationsRoute: AssetsGenerationsRoute,

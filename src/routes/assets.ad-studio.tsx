@@ -251,7 +251,7 @@ function AdStudioPage() {
 
         {/* Prawa kolumna — podgląd + akcje */}
         <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-surface-sunken p-5 shadow-soft">
+          <div className="rounded-2xl border border-border bg-muted/40 p-5 shadow-soft">
             <div className="flex min-h-[420px] items-center justify-center">
               {creative ? (
                 <div className="relative">
