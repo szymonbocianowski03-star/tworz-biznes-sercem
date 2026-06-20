@@ -91,7 +91,13 @@ function DraftEditor() {
         metaPixelId: data?.pixel_id ? String(data.pixel_id) : undefined,
       });
     } else if (p.channel.provider === "tiktok") {
-      const { data } = await supabase.from("tiktok_connections").select("advertiser_name,advertiser_accounts,tiktok_advertiser_id").eq("user_id", u.user.id).maybeSingle();
+      const q = supabase
+        .from("tiktok_connections")
+        .select("id,advertiser_name,advertiser_accounts,tiktok_advertiser_id,selected_advertiser_id")
+        .eq("user_id", u.user.id)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      const { data } = await (p.channel.tiktokConnectionId ? q.eq("id", p.channel.tiktokConnectionId) : q).maybeSingle();
       const accts = mapList(data?.advertiser_accounts, ["advertiser_id", "id"], ["advertiser_name", "name"]);
       setAccount({
         connected: !!data,
@@ -100,7 +106,8 @@ function DraftEditor() {
         pixels: [],
       });
       return mergeIntegrationDefaults(p, {
-        adAccountId: data?.tiktok_advertiser_id ?? accts[0]?.id,
+        tiktokConnectionId: data?.id,
+        adAccountId: data?.selected_advertiser_id ?? data?.tiktok_advertiser_id ?? accts[0]?.id,
       });
     } else if (p.channel.provider === "linkedin") {
       const { data } = await supabase.from("linkedin_connections").select("linkedin_user_name,ad_accounts,organizations").eq("user_id", u.user.id).maybeSingle();
@@ -128,6 +135,7 @@ function DraftEditor() {
     const sync = (draft.sync_state ?? {}) as Record<string, string | undefined>;
     if (!p.channel.metaConnectionId && sync.meta_connection_id) p.channel.metaConnectionId = sync.meta_connection_id;
     if (!p.channel.linkedinConnectionId && sync.linkedin_connection_id) p.channel.linkedinConnectionId = sync.linkedin_connection_id;
+    if (!p.channel.tiktokConnectionId && sync.tiktok_connection_id) p.channel.tiktokConnectionId = sync.tiktok_connection_id;
     const merged = await loadAccount(p);
     if (merged && merged !== p) {
       p = merged;
@@ -141,6 +149,7 @@ function DraftEditor() {
           syncPatch: {
             meta_connection_id: p.channel.metaConnectionId,
             linkedin_connection_id: p.channel.linkedinConnectionId,
+            tiktok_connection_id: p.channel.tiktokConnectionId,
           },
         },
       });
@@ -167,6 +176,7 @@ function DraftEditor() {
             syncPatch: {
               meta_connection_id: next.channel.metaConnectionId,
               linkedin_connection_id: next.channel.linkedinConnectionId,
+              tiktok_connection_id: next.channel.tiktokConnectionId,
             },
           },
         });
@@ -269,14 +279,21 @@ function DraftEditor() {
       if (r.dryRun) {
         toast.error("Publikacja zablokowana (tryb testowy)", {
           description:
-            "Serwer ma CAMPAIGN_COMPOSER_DRY_RUN=true. Ustaw false w zmiennych środowiskowych Lovable, aby wysłać kampanię na Facebook.",
+            "Serwer ma CAMPAIGN_COMPOSER_DRY_RUN=true. Ustaw false w zmiennych środowiskowych Lovable, aby wysłać kampanię na konto reklamowe.",
         });
         return;
       }
 
+      const providerLabel =
+        payload.channel.provider === "tiktok"
+          ? "TikTok Ads"
+          : payload.channel.provider === "linkedin"
+            ? "LinkedIn Ads"
+            : "Meta Ads";
+
       if (status === "success" || status === "partial_success") {
         toast.success("Kampania utworzona na koncie reklamowym", {
-          description: "Sprawdź panel reklam Meta — reklamy mogą wymagać akceptacji przez platformę.",
+          description: `Sprawdź panel ${providerLabel} — reklamy mogą wymagać akceptacji przez platformę.`,
         });
         return;
       }
@@ -290,7 +307,7 @@ function DraftEditor() {
       }
       toast.message(`Status publikacji: ${status}`, { description: msg });
     },
-    [draftId, fnEnqueue, refreshJobs, loadItems],
+    [draftId, fnEnqueue, refreshJobs, loadItems, payload?.channel.provider],
   );
 
   const cancelJob = useCallback(

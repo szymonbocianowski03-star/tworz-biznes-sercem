@@ -450,6 +450,17 @@ export function defaultDraftPayload(partial: {
           adText: "",
           cta: "LEARN_MORE",
         },
+        targeting: {
+          locations: ["2616977"],
+          ageGroups: [],
+          genders: [],
+          languages: [],
+          interests: [],
+          behaviors: [],
+          devices: [],
+          customAudienceIds: [],
+          lookalikeAudienceIds: [],
+        },
       },
     });
   }

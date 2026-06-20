@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Download, Heart, MessageSquareText, Sparkles, ThumbsDown, Trash2 } from "lucide-react";
+import { Download, Heart, MessageSquareText, ThumbsDown, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { AssetsTabs } from "@/components/AssetsTabs";
 import { AssetsToolbar } from "@/components/AssetsToolbar";
@@ -196,12 +196,6 @@ function GalleryPage() {
                   >
                     <MessageSquareText className="h-4 w-4" />
                   </button>
-                  <Link
-                    to="/agent"
-                    className="h-9 w-9 rounded-full bg-white/95 text-black flex items-center justify-center hover:bg-white pointer-events-auto"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                  </Link>
                   <button
                     onClick={() => void remove(it)}
                     className="h-9 w-9 rounded-full bg-white/95 text-red-600 flex items-center justify-center hover:bg-white pointer-events-auto"

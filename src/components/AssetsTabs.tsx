@@ -1,10 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Image, Video, Wand2 } from "lucide-react";
+import { Image, Video } from "lucide-react";
 
 const tabs = [
   { to: "/assets/gallery", label: "Obrazy", icon: Image },
   { to: "/assets/video", label: "Wideo", icon: Video },
-  { to: "/assets/ad-studio", label: "Studio reklam", icon: Wand2 },
 ];
 
 export function AssetsTabs() {

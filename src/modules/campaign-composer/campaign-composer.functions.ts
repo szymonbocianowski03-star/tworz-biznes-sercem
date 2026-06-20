@@ -154,11 +154,25 @@ export const ccEnqueueLaunch = createServerFn({ method: "POST" })
     if (!drow) throw new Error("Nie znaleziono draftu");
     const raw = campaignComposerDraftPayloadSchema.parse(drow.draft_payload);
     const defaults = await loadIntegrationDefaults(supabase, userId, raw);
-    const payload = mergeIntegrationDefaults(raw, defaults);
-    if (payload !== raw) {
+    let payload = mergeIntegrationDefaults(raw, defaults);
+    const syncPatch: Record<string, string | null> = {};
+    if (payload.channel.provider === "tiktok" && defaults.tiktokConnectionId) {
+      syncPatch.tiktok_connection_id = defaults.tiktokConnectionId;
+    }
+    if (payload.channel.provider === "meta" && payload.channel.metaConnectionId) {
+      syncPatch.meta_connection_id = payload.channel.metaConnectionId;
+    }
+    if (payload.channel.provider === "linkedin" && payload.channel.linkedinConnectionId) {
+      syncPatch.linkedin_connection_id = payload.channel.linkedinConnectionId;
+    }
+    if (payload !== raw || Object.keys(syncPatch).length > 0) {
+      const prevSync = (drow.sync_state as Record<string, string | null> | null) ?? {};
       await supabase
         .from("cc_campaign_draft")
-        .update({ draft_payload: payload as unknown as Json })
+        .update({
+          draft_payload: payload as unknown as Json,
+          sync_state: { ...prevSync, ...syncPatch } as unknown as Json,
+        })
         .eq("id", data.draftId)
         .eq("user_id", userId);
     }

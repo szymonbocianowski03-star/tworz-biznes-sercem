@@ -6,6 +6,7 @@ type IntegrationDefaults = {
   adAccountId?: string;
   metaPixelId?: string;
   linkedinOrganizationUrn?: string;
+  tiktokConnectionId?: string;
 };
 
 /** Uzupełnia szkic wartościami wybranymi w Integracjach (Page, konto reklamowe). */
@@ -39,14 +40,15 @@ export async function loadIntegrationDefaults(
     const orgs = Array.isArray(data.organizations) ? (data.organizations as { urn?: string }[]) : [];
     out.linkedinOrganizationUrn = orgs.find((o) => o.urn)?.urn;
   } else if (payload.channel.provider === "tiktok") {
-    const { data } = await supabase
+    const q = supabase
       .from("tiktok_connections")
-      .select("selected_advertiser_id,tiktok_advertiser_id,advertiser_accounts")
+      .select("id,selected_advertiser_id,tiktok_advertiser_id,advertiser_accounts")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    const { data } = await (payload.channel.tiktokConnectionId ? q.eq("id", payload.channel.tiktokConnectionId) : q).maybeSingle();
     if (!data) return out;
+    out.tiktokConnectionId = data.id;
     const accounts = Array.isArray(data.advertiser_accounts) ? (data.advertiser_accounts as { advertiser_id?: string; id?: string }[]) : [];
     out.adAccountId =
       data.selected_advertiser_id ??
@@ -77,6 +79,10 @@ export function mergeIntegrationDefaults(
   }
   if (!channel.linkedinOrganizationUrn && defaults.linkedinOrganizationUrn) {
     channel.linkedinOrganizationUrn = defaults.linkedinOrganizationUrn;
+    changed = true;
+  }
+  if (!channel.tiktokConnectionId && defaults.tiktokConnectionId) {
+    channel.tiktokConnectionId = defaults.tiktokConnectionId;
     changed = true;
   }
   return changed ? { ...payload, channel } : payload;

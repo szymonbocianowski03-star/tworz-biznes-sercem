@@ -20,12 +20,8 @@ export function buildAssetAgentPrompt(kind: AssetAgentSeedKind, prompt: string, 
     kind === "image"
       ? "Chcę dopracować tę kreację graficzną. Oceń kompozycję, czytelność i spójność z briefem. Zaproponuj konkretne poprawki i — jeśli ma sens — ulepszony prompt do ponownej generacji."
       : "Chcę dopracować ten klip. Oceń tempo, kadr i przekaz. Zaproponuj poprawki montażowe / scenariuszowe i — jeśli ma sens — ulepszony opis sceny do ponownej generacji.";
-  return [
-    intro,
-    "",
-    "Brief / prompt:",
-    prompt,
-    "",
-    kind === "video" ? `Adres pliku wideo: ${mediaUrl}` : `Adres pliku (podgląd poniżej w czacie): ${mediaUrl}`,
-  ].join("\n");
+  // Nie doklejaj długich URL-i do treści czatu — obraz/wideo i tak jest dołączane osobno jako mediaUrl.
+  // Treść ma być krótka i skupiona na zadaniu.
+  void mediaUrl;
+  return [intro, "", "Brief / prompt:", prompt].join("\n");
 }

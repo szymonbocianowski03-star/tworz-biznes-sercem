@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Clapperboard, Download, FolderOpen, Heart, Loader2, MessageSquareText, ThumbsDown, Trash2, Video } from "lucide-react";
+import { Clapperboard, Download, FolderOpen, Heart, Loader2, MessageSquareText, ThumbsDown, Trash2, Type, Video } from "lucide-react";
 import { GeneratedVideoToolbar } from "@/components/GeneratedVideoToolbar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AssetsTabs } from "@/components/AssetsTabs";
@@ -55,35 +55,35 @@ const VIDEO_PROMPT_IDEAS: { label: string; prompt: string; style: (typeof STYLES
     style: "ugc",
     ratio: "720:1280",
     prompt:
-      "Kobieta 28 lat w kuchni, trzyma produkt do twarzy, mówi do kamery szczerze — hook: «przestałam ukrywać czerwone plamy». Naturalne światło, napisy po polsku, styl UGC.",
+      "Kobieta 28 lat w kuchni, trzyma produkt do twarzy, mówi do kamery szczerze — hook: «przestałam ukrywać czerwone plamy». Naturalne światło, styl UGC. Bez napisów i bez czytelnego tekstu w samym wideo (tekst dodamy jako warstwę w aplikacji).",
   },
   {
     label: "Reklama produktu — close-up",
     style: "product",
     ratio: "720:1280",
     prompt:
-      "Zbliżenie na produkt na jasnym blacie, ręce pokazują konsystencję i aplikację. Czyste tło, premium look, krótki napis CTA po polsku na końcu.",
+      "Zbliżenie na produkt na jasnym blacie, ręce pokazują konsystencję i aplikację. Czyste tło, premium look. Bez napisów i bez CTA w samym wideo (tekst dodamy jako warstwę w aplikacji).",
   },
   {
     label: "Opinia klienta",
     style: "testimonial",
     ratio: "720:1280",
     prompt:
-      "Osoba 35+ przed lustrem w łazience, pokazuje efekt po 7 dniach, mówi jednym zdaniem o zmianie. Autentyczny ton, selfie-style, napisy PL.",
+      "Osoba 35+ przed lustrem w łazience, pokazuje efekt po 7 dniach, mówi jednym zdaniem o zmianie. Autentyczny ton, selfie-style. Bez napisów w samym wideo (tekst dodamy jako warstwę w aplikacji).",
   },
   {
     label: "Viral hook — problem → rozwiązanie",
     style: "viral",
     ratio: "720:1280",
     prompt:
-      "Pierwsze 2 sekundy: zaskoczony wyraz twarzy i napis «To działa?». Potem szybkie ujęcia przed/po. Energetyczny montaż short-form, język polski.",
+      "Pierwsze 2 sekundy: zaskoczony wyraz twarzy (bez napisów na ekranie). Potem szybkie ujęcia przed/po. Energetyczny montaż short-form. Bez czytelnego tekstu w samym wideo (tekst dodamy jako warstwę w aplikacji).",
   },
   {
     label: "Poziomy baner 16:9",
     style: "product",
     ratio: "1280:720",
     prompt:
-      "Produkt na środku kadru, delikatny ruch kamery, minimalistyczne tło. Nagłówek po polsku i wyraźne CTA. Styl reklamy e-commerce.",
+      "Produkt na środku kadru, delikatny ruch kamery, minimalistyczne tło. Styl reklamy e-commerce. Bez nagłówków i CTA w samym wideo (tekst dodamy jako warstwę w aplikacji).",
   },
 ];
 
@@ -102,6 +102,11 @@ function VideoAssetsPage() {
   const [duration, setDuration] = useState(5);
   const [starting, setStarting] = useState(false);
   const [pollingId, setPollingId] = useState<string | null>(null);
+  const [overlayEnabled, setOverlayEnabled] = useState(true);
+  const [overlayHeadline, setOverlayHeadline] = useState("");
+  const [overlaySubheadline, setOverlaySubheadline] = useState("");
+  const [overlayCta, setOverlayCta] = useState("");
+  const [overlayPrice, setOverlayPrice] = useState("");
   const pollRef = useRef<number | null>(null);
 
   const usageEstimate = useMemo(
@@ -397,7 +402,63 @@ function VideoAssetsPage() {
       >
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Clapperboard className="h-4 w-4" />
-          Generator wideo (tekst → wideo)
+          Generator wideo (wideo bez napisów → tekst jako warstwa)
+        </div>
+        <div className="rounded-xl border border-border bg-muted/30 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+              <Type className="h-4 w-4" /> Tekst jako warstwa (czytelny, ostry)
+            </div>
+            <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+              <input type="checkbox" checked={overlayEnabled} onChange={(e) => setOverlayEnabled(e.target.checked)} />
+              Włącz
+            </label>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-[11px] font-medium text-muted-foreground">Nagłówek</span>
+              <input
+                value={overlayHeadline}
+                onChange={(e) => setOverlayHeadline(e.target.value)}
+                disabled={!overlayEnabled}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                placeholder="Np. Zobacz efekty po 7 dniach"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-medium text-muted-foreground">Podtytuł</span>
+              <input
+                value={overlaySubheadline}
+                onChange={(e) => setOverlaySubheadline(e.target.value)}
+                disabled={!overlayEnabled}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                placeholder="Np. Naturalnie. Bez filtrów."
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-medium text-muted-foreground">CTA</span>
+              <input
+                value={overlayCta}
+                onChange={(e) => setOverlayCta(e.target.value)}
+                disabled={!overlayEnabled}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                placeholder="Np. Sprawdź teraz"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-medium text-muted-foreground">Cena (opcjonalnie)</span>
+              <input
+                value={overlayPrice}
+                onChange={(e) => setOverlayPrice(e.target.value)}
+                disabled={!overlayEnabled}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                placeholder="Np. 49 zł"
+              />
+            </label>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Wideo generujemy bez napisów, a tekst nakładamy w aplikacji jako warstwy (podgląd i eksport ekranu).
+          </p>
         </div>
         <label className="block space-y-1.5">
           <span className="text-xs font-medium">Prompt</span>
@@ -570,12 +631,31 @@ function VideoAssetsPage() {
               >
                 <div className="aspect-video bg-neutral-950 flex items-center justify-center relative">
                   {it.status === "succeeded" && it.video_url ? (
-                    <video
-                      src={it.video_url}
-                      controls
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-contain"
-                    />
+                    <>
+                      <video
+                        src={it.video_url}
+                        controls
+                        playsInline
+                        className="absolute inset-0 w-full h-full object-contain"
+                      />
+                      {overlayEnabled && (overlayHeadline || overlaySubheadline || overlayCta || overlayPrice) && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/65" />
+                          <div className="absolute left-3 right-3 top-3 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
+                            {overlayHeadline ? <div className="text-lg font-extrabold leading-tight">{overlayHeadline}</div> : null}
+                            {overlaySubheadline ? <div className="mt-1 text-sm opacity-90">{overlaySubheadline}</div> : null}
+                          </div>
+                          <div className="absolute left-3 right-3 bottom-3 flex items-center justify-between gap-3 text-white">
+                            <div className="text-base font-extrabold">{overlayPrice}</div>
+                            {overlayCta ? (
+                              <div className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-extrabold text-black">
+                                {overlayCta}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-center px-4 py-8 text-muted-foreground text-sm">
                       {it.status === "failed" ? (

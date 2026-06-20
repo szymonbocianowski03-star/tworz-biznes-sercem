@@ -962,7 +962,7 @@ export function AgentChat() {
     imgAbortRef.current = ac;
     try {
       const results = await Promise.all(
-        prompts.map(async (p) => {
+        prompts.map(async (p): Promise<{ src: string } | { error: string } | null> => {
           if (ac.signal.aborted) return null;
           try {
             const { data: authData } = await supabase.auth.getSession();
@@ -979,18 +979,31 @@ export function AgentChat() {
               body: JSON.stringify({ prompt: finalPrompt, size, quality: "high", n: 1 }),
               signal: ac.signal,
             });
-            if (!r.ok) return null;
             const data = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              const msg =
+                (typeof data?.error === "string" && data.error) ||
+                (typeof data?.message === "string" && data.message) ||
+                `HTTP ${r.status}`;
+              const detail = typeof data?.details === "string" ? data.details.slice(0, 200) : "";
+              return { error: detail ? `${msg}: ${detail}` : msg };
+            }
             const arr = Array.isArray(data?.images) ? data.images : [];
-            return arr[0] ?? null;
-          } catch {
-            return null;
+            return arr[0] ? { src: arr[0] } : { error: "Brak obrazu w odpowiedzi API" };
+          } catch (e) {
+            return { error: e instanceof Error ? e.message : "Błąd sieci" };
           }
         }),
       );
       if (ac.signal.aborted) return;
+      const errors = results
+        .map((r, i) => (r && "error" in r ? `${prompts[i]?.slice(0, 40) ?? "grafika"}: ${r.error}` : null))
+        .filter((x): x is string => Boolean(x));
+      if (errors.length) {
+        toast.error(errors[0] ?? "Nie udało się wygenerować obrazów");
+      }
       const pairs = results
-        .map((src, i) => (src ? { src, prompt: prompts[i] ?? "kreacja" } : null))
+        .map((r, i) => (r && "src" in r ? { src: r.src, prompt: prompts[i] ?? "kreacja" } : null))
         .filter((x): x is { src: string; prompt: string } => Boolean(x));
       const uploaded = await Promise.all(
         pairs.map((p) => uploadToGallery(p.src, p.prompt, chooseImageSizeFromPrompt(p.prompt))),
@@ -1010,7 +1023,7 @@ export function AgentChat() {
           cleaned +
           (newEntries.length
             ? `\n\n_✓ Wygenerowano ${newEntries.length}/${prompts.length}_`
-            : `\n\n_⚠️ Nie udało się wygenerować obrazów_`),
+            : `\n\n_⚠️ Nie udało się wygenerować obrazów${errors[0] ? ` — ${errors[0]}` : ""}_`),
         imageSet: merged,
         images: merged.map((x) => x.url),
       };

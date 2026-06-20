@@ -138,7 +138,7 @@ export function TikTokCampaignBuilder(props: BuilderProps) {
           <div className="space-y-4">
             <SectionTitle>Targetowanie i budżet grupy reklam</SectionTitle>
             <Field label="Lokalizacje (ID lokalizacji TikTok, po przecinku)" hint="Wymagane. Np. identyfikatory krajów/regionów z TikTok Ads.">
-              <Chips values={target.locations} onChange={(v) => setTarget({ locations: v })} placeholder="np. 6252001" />
+              <Chips values={target.locations} onChange={(v) => setTarget({ locations: v })} placeholder="np. 2616977 (Polska)" />
             </Field>
             <Field label="Grupy wiekowe">
               <MultiCheck selected={target.ageGroups} onChange={(v) => setTarget({ ageGroups: v })} options={TIKTOK_AGE_OPTIONS} />

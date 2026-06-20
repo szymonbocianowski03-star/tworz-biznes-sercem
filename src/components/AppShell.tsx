@@ -39,7 +39,6 @@ type NavItem = { to: string; label: string; icon: typeof Sparkles; badge?: strin
 const navBrowse: NavItem[] = [
   { to: "/assets/gallery", label: "Obrazy", icon: Layers },
   { to: "/assets/video", label: "Wideo", icon: Video },
-  { to: "/assets/ad-studio", label: "Studio reklam", icon: Wand2 },
   { to: "/launch", label: "Uruchomienie", icon: MessageSquareText },
   { to: "/campaign-composer", label: "Panel kampanii", icon: Rocket },
   { to: "/integrations", label: "Integracje", icon: Plug },

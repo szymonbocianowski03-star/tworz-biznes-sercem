@@ -200,7 +200,8 @@ export async function higgsfieldStartVideo(
   const body: Record<string, unknown> = {
     prompt,
     aspect_ratio: opts.aspectRatio,
-    duration: textToVideo ? String(duration) : duration,
+    // Higgsfield waliduje duration jako liczbę (5 lub 10) — nie wysyłaj jako string.
+    duration,
   };
 
   if (textToVideo) {

@@ -7,6 +7,7 @@ import { linkedInAdsAdapter } from "../adapters/linkedin.adapter";
 import { tiktokAdsAdapter } from "../adapters/tiktok.adapter";
 import type { AdsPlatformAdapter, ProviderStepKind, ResolvedCampaignAsset } from "../adapters/types";
 import type { CampaignComposerDraftPayload } from "../domain/draft-schema";
+import { ensureTikTokAccessToken } from "../server/tiktok-token";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -132,13 +133,25 @@ export async function processLaunchJob(admin: AdminClient, jobId: string): Promi
     const { data: conn } = await admin.from("meta_connections").select("access_token").eq("id", mid).maybeSingle();
     accessToken = conn?.access_token ?? "";
   } else if (payload.channel.provider === "tiktok") {
-    const tid = (draft.sync_state as Record<string, Json> | null)?.tiktok_connection_id ?? payload.channel.tiktokConnectionId;
+    let tid = (draft.sync_state as Record<string, Json> | null)?.tiktok_connection_id ?? payload.channel.tiktokConnectionId;
+    if (!tid || typeof tid !== "string") {
+      const { data: fallbackConn } = await admin
+        .from("tiktok_connections")
+        .select("id")
+        .eq("user_id", job.user_id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      tid = fallbackConn?.id;
+    }
     if (!tid || typeof tid !== "string") {
       await admin.from("cc_launch_job").update({ status: "failed", last_error: { code: "NO_TIKTOK_CONNECTION" } as unknown as Json }).eq("id", jobId);
-      return { jobId, finalStatus: "failed", message: "Brak powiązania tiktok_connection_id" };
+      return { jobId, finalStatus: "failed", message: "Brak połączenia TikTok — połącz konto w Integracjach." };
     }
-    const { data: conn } = await admin.from("tiktok_connections").select("access_token").eq("id", tid).maybeSingle();
-    accessToken = conn?.access_token ?? "";
+    accessToken = await ensureTikTokAccessToken(admin, tid);
+    if (!payload.channel.tiktokConnectionId) {
+      payload.channel.tiktokConnectionId = tid;
+    }
   } else {
     const lid = (draft.sync_state as Record<string, Json> | null)?.linkedin_connection_id ?? payload.channel.linkedinConnectionId;
     if (!lid || typeof lid !== "string") {
@@ -162,6 +175,9 @@ export async function processLaunchJob(admin: AdminClient, jobId: string): Promi
         : linkedInAdsAdapter;
   const plan = adapter.buildLaunchPlan(payload);
   const priorIds: Record<string, string> = { ...(draft.sync_state as Record<string, string> | undefined) };
+  if (payload.channel.provider === "tiktok" && payload.channel.tiktokConnectionId) {
+    priorIds.tiktok_connection_id = payload.channel.tiktokConnectionId;
+  }
 
   await admin.from("cc_launch_job").update({ status: "running", updated_at: new Date().toISOString() }).eq("id", jobId);
 

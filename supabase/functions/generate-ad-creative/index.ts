@@ -16,14 +16,23 @@ const CREATIVE_TYPES = [
 
 const FORMATS = ["9:16", "1:1", "4:5", "16:9"] as const;
 
+const LAYOUTS = [
+  "headline-top-cta-bottom",
+  "text-left-visual-right",
+  "visual-left-text-right",
+  "center-mockup-bubbles",
+  "price-cta-focus",
+  "poster-headline",
+] as const;
+
 /**
  * NIGDY nie pozwól modelowi obrazu generować finalnych napisów.
  * Ten suffix jest doklejany do każdego visual_prompt (również po stronie klienta).
  */
 const NO_TEXT_RULE =
-  "Generate only the visual background, phone mockup, product mockup, lighting, gradients, scene and composition. " +
-  "Do not generate readable text, fake text, lorem ipsum, random letters, fake UI labels or distorted words. " +
-  "The final text will be generated separately and rendered programmatically as editable typography.";
+  "Create only the visual part of the advertisement: background, mockup, product, person, lighting, composition and empty space for text. " +
+  "Do not generate final readable text, lorem ipsum, random letters, fake words or broken typography. " +
+  "The final copy will be generated separately and placed on top as editable text layers.";
 
 function typeBrief(t: string): string {
   switch (t) {
@@ -59,6 +68,7 @@ Deno.serve(async (req) => {
       ? body.creativeType
       : "phone-chat";
     const format = FORMATS.includes(body?.format) ? body.format : "9:16";
+    const layout = LAYOUTS.includes(body?.layout) ? body.layout : "headline-top-cta-bottom";
     const brandName = String(body?.brandName ?? "").trim();
     const brandRules = String(body?.brandRules ?? "").trim().slice(0, 2500);
 
@@ -83,8 +93,10 @@ Deno.serve(async (req) => {
       "Tworzysz copy reklamy ORAZ visual_prompt do generatora obrazu.",
       "KLUCZOWE ZASADY:",
       "1. Cały tekst (copy) musi być po polsku, poprawny, czytelny, bez Lorem Ipsum i bez losowych słów.",
-      "2. visual_prompt opisuje TYLKO warstwę wizualną (tło, mockup, światło, kompozycję) po angielsku — NIGDY nie zawiera finalnych napisów reklamy.",
-      "3. Dobierz krótkie, mocne teksty marketingowe pasujące do typu kreacji.",
+      "2. visual_prompt opisuje TYLKO warstwę wizualną (tło, mockup, światło, kompozycję, puste miejsca na tekst) po angielsku — NIGDY nie zawiera finalnych napisów reklamy.",
+      "3. Dobierz krótkie, mocne teksty marketingowe pasujące do typu kreacji i wybranego layoutu.",
+      "4. Proces dwuetapowy: copy generujesz Ty, obraz generuje model BEZ napisów, aplikacja nakłada tekst jako warstwy.",
+      `Wybrany layout: ${layout}.`,
       `Typ kreacji: ${typeBrief(creativeType)}`,
       brandName ? `Promowana marka: ${brandName}.` : "",
       brandRules ? `Tożsamość wizualna marki: ${brandRules}` : "",
@@ -127,8 +139,13 @@ Deno.serve(async (req) => {
                     description: "EN prompt for the image model describing ONLY background/mockup/lighting/scene. No text.",
                   },
                   accent_color: { type: "string", description: "Kolor akcentu w HEX (np. #8b5cf6)" },
+                  layout: {
+                    type: "string",
+                    enum: [...LAYOUTS],
+                    description: "Układ warstw tekstowych na grafice",
+                  },
                 },
-                required: ["headline", "ai_response", "brand_name", "cta", "visual_prompt", "accent_color"],
+                required: ["headline", "ai_response", "brand_name", "cta", "visual_prompt", "accent_color", "layout"],
                 additionalProperties: false,
               },
             },
@@ -160,9 +177,14 @@ Deno.serve(async (req) => {
     const visualPrompt = String(parsed.visual_prompt ?? "").trim();
     const finalVisual = `${visualPrompt}\n\n${NO_TEXT_RULE}`.trim();
 
+    const chosenLayout = LAYOUTS.includes(parsed.layout as (typeof LAYOUTS)[number])
+      ? parsed.layout
+      : layout;
+
     const creative = {
       creative_type: creativeType,
       format,
+      layout: chosenLayout,
       visual_prompt: finalVisual,
       copy: {
         headline: parsed.headline ?? "",
