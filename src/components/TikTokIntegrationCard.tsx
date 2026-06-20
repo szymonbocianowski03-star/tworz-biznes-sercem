@@ -149,6 +149,17 @@ export function TikTokIntegrationCard() {
                   Zalogujesz się na <strong>swoje</strong> konto TikTok for Business i wybierzesz konto
                   reklamowe (advertiser).
                 </p>
+                <details className="mt-3 text-xs text-muted-foreground">
+                  <summary className="cursor-pointer font-semibold text-foreground">Błąd logowania TikTok (api_auth_error_other)?</summary>
+                  <ul className="mt-2 list-disc space-y-1 pl-4">
+                    <li>W Lovable → Settings → Environment ustaw <code>TIKTOK_APP_ID</code> (numeryczny!) i <code>TIKTOK_APP_SECRET</code></li>
+                    <li>W TikTok for Developers → My Apps → Advertiser redirect URL dodaj dokładnie:<br />
+                      <code className="text-[10px]">https://tworz-biznes-sercem.lovable.app/api/public/tiktok/callback</code>
+                    </li>
+                    <li>Aplikacja musi mieć włączone <strong>Marketing API</strong> i uprawnienia Ads</li>
+                    <li><code>TIKTOK_APP_ID</code> to App ID (cyfry), NIE Client Key</li>
+                  </ul>
+                </details>
               </>
             )}
           </div>

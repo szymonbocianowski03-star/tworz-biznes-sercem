@@ -22,9 +22,8 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  *                      w przepływie OAuth Business API.
  */
 
-// TikTok Ads (TikTok for Business) OAuth scopes.
-// TODO: dostosuj listę uprawnień do faktycznej konfiguracji aplikacji w TikTok Business Developer.
-const SCOPES = ["user.info.basic", "ads.management", "ads.read"].join(",");
+// TikTok Ads (TikTok for Business) — uprawnienia wybierasz w TikTok Developer Portal
+// przy tworzeniu aplikacji Marketing API, NIE przez parametr scope w URL portal/auth.
 
 export const Route = createFileRoute("/api/public/tiktok/start")({
   server: {
@@ -81,23 +80,21 @@ export const Route = createFileRoute("/api/public/tiktok/start")({
         const configuredRedirectUri = process.env.TIKTOK_REDIRECT_URI?.trim();
         const redirectUri = configuredRedirectUri || computedRedirectUri;
         if (configuredRedirectUri && configuredRedirectUri !== computedRedirectUri) {
-          // Ostrzeżenie diagnostyczne — niezgodność może powodować błędy callbacku.
           console.warn(
-            `[tiktok start] TIKTOK_REDIRECT_URI (${configuredRedirectUri}) różni się od adresu callbacku aplikacji (${computedRedirectUri}). Upewnij się, że oba są zarejestrowane w TikTok Developer Console.`,
+            `[tiktok start] TIKTOK_REDIRECT_URI (${configuredRedirectUri}) różni się od adresu callbacku aplikacji (${computedRedirectUri}).`,
           );
         }
 
         const state = `${userId}.${crypto.randomUUID()}`;
 
-        // TikTok for Business portal auth endpoint. Parametr `app_id` to NUMERYCZNY
-        // App ID (NIE Client Key).
+        // TikTok for Business portal auth — tylko app_id, redirect_uri, state.
+        // Uprawnienia (Ads Management) ustaw w TikTok for Developers → My Apps → Marketing API.
         const authUrl = new URL("https://business-api.tiktok.com/portal/auth");
         authUrl.searchParams.set("app_id", appId);
         authUrl.searchParams.set("redirect_uri", redirectUri);
         authUrl.searchParams.set("state", state);
-        authUrl.searchParams.set("scope", SCOPES);
 
-        console.log("[tiktok start] redirectUri:", redirectUri, "scope:", SCOPES);
+        console.log("[tiktok start] redirectUri:", redirectUri);
 
         const isSecure =
           url.protocol === "https:" && url.hostname !== "localhost" && url.hostname !== "127.0.0.1";
