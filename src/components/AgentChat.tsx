@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowUp, TrendingUp, Megaphone, MousePointerClick, Mail, BarChart3, Rocket, Eye, Play, FileText, ArrowRight, Compass, Pencil, X, ImagePlus, Square, Clock, RotateCw } from "lucide-react";
@@ -19,6 +20,13 @@ import { callGenerateImageApi, chooseImageSizeFromPrompt } from "@/lib/adImageGe
 import { checkImageGenerationAffordability } from "@/lib/imageCreditsGate";
 import { GeneratedImageToolbar } from "@/components/GeneratedImageToolbar";
 import { supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
+import { getUserCalendarStatus, scheduleUserCalendarEvent } from "@/lib/userCalendar.functions";
+import {
+  addMinutesIso,
+  extractCalMarkers,
+  normalizeCalDateTime,
+  stripCalMarkers,
+} from "@/lib/agentCalendar";
 
 type ImageEntry = { url: string; dbId: string | null; prompt: string };
 type Msg = { role: "user" | "assistant"; content: string; images?: string[]; imageSet?: ImageEntry[] };
@@ -346,6 +354,32 @@ export function AgentChat() {
   const abortRef = useRef<AbortController | null>(null);
   const imgAbortRef = useRef<AbortController | null>(null);
   const sendingRef = useRef(false);
+  const calScheduledRef = useRef<Set<number>>(new Set());
+
+  const fnCalStatus = useServerFn(getUserCalendarStatus);
+  const fnScheduleCal = useServerFn(scheduleUserCalendarEvent);
+  const [calendarStatus, setCalendarStatus] = useState<{
+    google: { email: string } | null;
+    outlook: { email: string } | null;
+  } | null>(null);
+
+  const loadCalendarStatus = useCallback(async () => {
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
+        setCalendarStatus(null);
+        return;
+      }
+      const c = await fnCalStatus();
+      setCalendarStatus(c);
+    } catch {
+      setCalendarStatus(null);
+    }
+  }, [fnCalStatus]);
+
+  useEffect(() => {
+    void loadCalendarStatus();
+  }, [loadCalendarStatus]);
 
   /** Wiadomość z Zasobów (obraz / wideo) — jednorazowo po wejściu na czat. */
   useEffect(() => {
@@ -620,6 +654,18 @@ export function AgentChat() {
     })();
 
     const parts = [builtinBlock, userBlock, brandVisualBlock].filter(Boolean);
+    if (calendarStatus?.google || calendarStatus?.outlook) {
+      const providers = [
+        calendarStatus.google ? "Google Calendar" : null,
+        calendarStatus.outlook ? "Outlook Calendar" : null,
+      ]
+        .filter(Boolean)
+        .join(" / ");
+      parts.push(
+        `## Kalendarz użytkownika (POŁĄCZONY: ${providers})\n\n` +
+          "Gdy proponujesz posty lub plan publikacji — automatycznie dodawaj markery `[CAL: data | tytuł | opis]` (szczegóły w instrukcji systemowej).",
+      );
+    }
     if (!parts.length) return null;
     return "KONTEKST UMIEJĘTNOŚCI NOW:\n\n" + parts.join("\n\n---\n\n");
   }
@@ -772,6 +818,9 @@ export function AgentChat() {
         body: JSON.stringify({
           messages: chatMessagesPayload(next),
           skillsContext: skillCtx ?? undefined,
+          calendarConnected: calendarStatus
+            ? { google: !!calendarStatus.google, outlook: !!calendarStatus.outlook }
+            : undefined,
           imageAttachment: attachment
             ? { media_type: attachment.mediaType, data: attachment.dataUrl }
             : undefined,
@@ -838,6 +887,7 @@ export function AgentChat() {
       sendingRef.current = false;
       abortRef.current = null;
       setLoading(false);
+      if (!paused) void detectAndScheduleCalendarEvents();
       if (!paused) void detectAndGenerateImages();
       // Nie pokazuj "Sugerowanych kroków" jeśli asystent sam zadał pytanie (Q&A) —
       // inaczej ekran dubluje opcje wyboru.
@@ -846,6 +896,63 @@ export function AgentChat() {
       if (!paused && !hasQA) void fetchSuggestions();
       else setSuggestions([]);
       scheduleCreditsRefresh();
+    }
+  }
+
+  /** Po odpowiedzi agenta: zapisuje markery [CAL:] w połączonym kalendarzu użytkownika. */
+  async function detectAndScheduleCalendarEvents() {
+    if (!active) return;
+    const prev = messagesRef.current;
+    const lastIdx = prev.length - 1;
+    const last = prev[lastIdx];
+    if (!last || last.role !== "assistant") return;
+    if (calScheduledRef.current.has(lastIdx)) return;
+
+    const markers = extractCalMarkers(last.content);
+    if (!markers.length) return;
+
+    const providers: Array<"google" | "outlook"> = [];
+    if (calendarStatus?.google) providers.push("google");
+    if (calendarStatus?.outlook) providers.push("outlook");
+    if (!providers.length) return;
+
+    calScheduledRef.current.add(lastIdx);
+    const cleaned = stripCalMarkers(last.content);
+    let scheduled = 0;
+
+    for (const m of markers) {
+      try {
+        const start = normalizeCalDateTime(m.start);
+        const end = addMinutesIso(start, 30);
+        const r = await fnScheduleCal({
+          data: {
+            title: m.title.slice(0, 255),
+            description: m.description,
+            start,
+            end,
+            providers,
+          },
+        });
+        if (r.results.some((x) => x.ok)) scheduled++;
+      } catch (e) {
+        console.error("calendar schedule", e);
+      }
+    }
+
+    const statusLine =
+      scheduled > 0
+        ? `\n\n_📅 Dodano ${scheduled} ${scheduled === 1 ? "wpis" : scheduled < 5 ? "wpisy" : "wpisów"} do kalendarza._`
+        : `\n\n_⚠️ Nie udało się zapisać w kalendarzu — sprawdź połączenie w Integracjach._`;
+
+    update(active.id, {
+      messages: prev.map((m, i) => (i === lastIdx ? { ...m, content: cleaned + statusLine } : m)),
+    });
+    if (scheduled > 0) {
+      toast.success(
+        scheduled === 1
+          ? "Dodano wpis do kalendarza"
+          : `Dodano ${scheduled} wpisów do kalendarza`,
+      );
     }
   }
 

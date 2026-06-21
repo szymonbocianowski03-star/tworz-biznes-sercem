@@ -120,6 +120,21 @@ Inne reguły:
 # OSTATNIA ZASADA
 Każda Twoja wiadomość kończy się blokiem Q&A (chyba że użytkownik prosił o czysty artefakt typu "napisz tylko maila"). Jeśli złamiesz tę zasadę — użytkownik utknie. Nie łam.`;
 
+const CALENDAR_PROMPT = `
+# KALENDARZ (AUTO-ZAPIS — użytkownik ma połączony kalendarz)
+Gdy tworzysz plan postów, harmonogram publikacji, kalendarz treści lub konkretne posty z datą — **automatycznie** dodaj markery w osobnych liniach:
+\`[CAL: RRRR-MM-DDTHH:mm | Tytuł wydarzenia | Treść / opis posta]\`
+
+Zasady:
+- Czas w strefie Polski (lokalny, bez Z na końcu).
+- Tytuł: emoji kanału + temat (np. "📣 Post LinkedIn: 5 błędów w reklamach").
+- Opis: hook + CTA lub skrócona treść posta (1–3 zdania).
+- Gdy użytkownik prosi o plan tygodnia/miesiąca — wstaw 3–7 markerów z realistycznymi datami (od jutra, jeśli nie podano inaczej).
+- Gdy użytkownik podaje posty bez dat — zaproponuj sensowne terminy i zapisz markery.
+- Max **10** markerów na odpowiedź.
+- Frontend zapisze wydarzenia w kalendarzu użytkownika — potwierdź po polsku co zaplanowałeś (bez technicznych szczegółów OAuth).
+- Markery [CAL:] są przetwarzane w tle — nie proś o osobne potwierdzenie zapisu do kalendarza.`;
+
 type RawMsg = { role: string; content: string };
 type AnthropicMsg =
   | { role: "user" | "assistant"; content: string }
@@ -171,6 +186,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const messages = body.messages as RawMsg[];
     const skillsContext = body.skillsContext as string | undefined;
+    const calendarConnected = body.calendarConnected as { google?: boolean; outlook?: boolean } | undefined;
+    const hasCalendar = !!(calendarConnected?.google || calendarConnected?.outlook);
     const imageAttachment = body.imageAttachment as { media_type?: string; data?: string } | undefined;
     /** Widok LLM visibility / inne narzędzia: bez persony agenta Q&A i bez obcinania strumienia przy „Q:” w JSON. */
     const skipAgentPersona = body.skipAgentPersona === true;
@@ -206,9 +223,14 @@ Deno.serve(async (req) => {
 
     const fullSystem = skipAgentPersona
       ? "Jesteś analitykiem danych. Wykonujesz wyłącznie instrukcje z ostatniej wiadomości użytkownika. Nie używaj formatu Q&A (linii „Q:” / „A:”). Nie owijaj odpowiedzi w ``` — tylko treść wymaganą w tej wiadomości."
-      : skillsContext && typeof skillsContext === "string" && skillsContext.trim().length
-        ? `${SYSTEM_PROMPT}\n\n# AKTYWNE SKILLE (TWARDE INSTRUKCJE — STOSUJ DOSŁOWNIE)\n\n${skillsContext.slice(0, 60000)}`
-        : SYSTEM_PROMPT;
+      : (() => {
+        const calendarBlock = hasCalendar ? `\n\n${CALENDAR_PROMPT}` : "";
+        const skillsBlock =
+          skillsContext && typeof skillsContext === "string" && skillsContext.trim().length
+            ? `\n\n# AKTYWNE SKILLE (TWARDE INSTRUKCJE — STOSUJ DOSŁOWNIE)\n\n${skillsContext.slice(0, 60000)}`
+            : "";
+        return `${SYSTEM_PROMPT}${calendarBlock}${skillsBlock}`;
+      })();
 
     // Koszt liczymy sprawiedliwie:
     //  - bieżąca tura (ostatnia wiadomość użytkownika) liczona w pełni,
