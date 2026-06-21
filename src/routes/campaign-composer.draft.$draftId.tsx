@@ -263,6 +263,7 @@ function DraftEditor() {
 
   const enqueue = useCallback(
     async (intent: "draft_only" | "go_live") => {
+      if (!payload) return;
       const key = `${draftId}-${intent}-${Date.now()}`;
       const r = await fnEnqueue({ data: { draftId, intent, idempotencyKey: key } });
       if (!r.ok) {
