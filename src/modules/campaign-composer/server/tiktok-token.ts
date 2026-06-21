@@ -46,10 +46,14 @@ export async function ensureTikTokAccessToken(admin: AdminClient, connectionId: 
   }
 
   const d = json.data;
+  const newAccessToken = d.access_token;
+  if (!newAccessToken) {
+    return conn.access_token;
+  }
   await admin
     .from("tiktok_connections")
     .update({
-      access_token: d.access_token,
+      access_token: newAccessToken,
       refresh_token: d.refresh_token ?? conn.refresh_token,
       token_expires_at: d.expires_in ? new Date(Date.now() + d.expires_in * 1000).toISOString() : conn.token_expires_at,
       refresh_token_expires_at: d.refresh_token_expires_in
@@ -59,5 +63,5 @@ export async function ensureTikTokAccessToken(admin: AdminClient, connectionId: 
     })
     .eq("id", connectionId);
 
-  return d.access_token;
+  return newAccessToken;
 }
