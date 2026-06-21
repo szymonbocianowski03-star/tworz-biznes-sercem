@@ -169,25 +169,6 @@ export function UserIntegrationsCard() {
           </div>
         </header>
 
-        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-3 text-xs text-amber-900 dark:text-amber-200">
-          <p className="font-semibold">Łączenie Gmaila przez Google?</p>
-          <p className="mt-1">
-            Jeśli Google pokazuje błąd <code className="bg-black/10 px-1 rounded">redirect_uri_mismatch</code>,
-            w Google Cloud Console → Credentials → OAuth 2.0 Client → „Authorized redirect URIs" dodaj dokładnie
-            ten adres:
-          </p>
-          <code className="mt-1 block break-all bg-black/10 px-2 py-1 rounded">
-            {typeof window !== "undefined"
-              ? `${window.location.origin}/api/public/auth/google/callback`
-              : "/api/public/auth/google/callback"}
-          </code>
-          <p className="mt-1 opacity-80">
-            Wysyłka maili wymaga uprawnienia <code className="bg-black/10 px-1 rounded">gmail.send</code> (restricted scope).
-            Dopóki aplikacja nie przejdzie weryfikacji Google, dodaj adresy klientów jako „Test users" w OAuth consent screen
-            albo użyj klucza Resend poniżej.
-          </p>
-        </div>
-
         <div className="grid gap-3 md:grid-cols-3">
           <ProviderTile
             title="Gmail"

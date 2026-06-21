@@ -8,7 +8,7 @@ export const AD_PLATFORM_LABELS: Record<AdPlatform, string> = {
 };
 
 /** Platformy widoczne w UI, ale jeszcze niedostępne do nowego łączenia / tworzenia szkiców. */
-export const AD_PLATFORM_COMING_SOON = new Set<AdPlatform>(["linkedin"]);
+export const AD_PLATFORM_COMING_SOON = new Set<AdPlatform>(["linkedin", "tiktok"]);
 
 export function isAdPlatformComingSoon(platform: AdPlatform): boolean {
   return AD_PLATFORM_COMING_SOON.has(platform);

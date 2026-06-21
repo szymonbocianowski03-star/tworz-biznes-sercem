@@ -32,16 +32,7 @@ function IntegrationsPage() {
     else if (linkedin === "error") toast.error(`LinkedIn: ${err ?? "błąd połączenia"}`);
     if (tiktok === "connected") toast.success(`Połączono z TikTok Ads${name ? ` jako ${name}` : ""}`);
     else if (tiktok === "error") {
-      const detail =
-        err === "state_mismatch"
-          ? "Sesja OAuth wygasła — spróbuj ponownie."
-          : err?.startsWith("config_error")
-            ? err.replace("config_error: ", "")
-            : err?.includes("redirect")
-              ? "Niezgodny redirect URI — sprawdź TIKTOK_REDIRECT_URI w Lovable i TikTok Developer Portal."
-              : err ??
-                "TikTok odrzucił logowanie (api_auth_error_other). Sprawdź TIKTOK_APP_ID (numeryczny), TIKTOK_APP_SECRET i redirect URI w TikTok for Developers.";
-      toast.error(`TikTok Ads: ${detail}`, { duration: 12000 });
+      toast.error(`TikTok Ads: ${err ?? "nie udało się połączyć"}`, { duration: 8000 });
     }
     if (gmail === "connected") toast.success(`Połączono Gmail${name ? ` (${name})` : ""}`);
     else if (gmail === "error") toast.error(`Gmail: ${friendlyGoogleOAuthError(err)}`, { duration: 8000 });

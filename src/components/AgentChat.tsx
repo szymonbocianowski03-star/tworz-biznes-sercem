@@ -172,28 +172,38 @@ const BUILTIN_SKILL_FILES = import.meta.glob("../skills/**/SKILL.md", {
   eager: true,
 }) as Record<string, string>;
 
-function condenseSkill(raw: string, maxChars = 280): { name: string; summary: string } {
-  // Strip frontmatter (--- ... ---)
+function parseSkillBody(raw: string): { name: string; body: string } {
   let body = raw.replace(/^---[\s\S]*?---\s*/, "");
-  // First H1 as name
   const h1 = body.match(/^#\s+(.+)$/m);
   const name = h1 ? h1[1].trim() : "Skill";
-  // Drop the H1 line itself
   body = body.replace(/^#\s+.+$/m, "").trim();
-  // Collapse whitespace, take first chunk
-  const summary = body.replace(/\s+/g, " ").slice(0, maxChars).trim();
-  return { name, summary };
+  return { name, body };
 }
 
+/** Pełna treść skilli (budżet ~50k znaków) — agent musi trzymać się tych frameworków. */
 const BUILTIN_SKILLS_DIGEST: string = (() => {
+  const MAX_TOTAL = 50_000;
   const entries = Object.entries(BUILTIN_SKILL_FILES)
     .map(([path, raw]) => {
       const id = path.replace(/^.*\/skills\//, "").replace(/\/SKILL\.md$/, "");
-      const { name, summary } = condenseSkill(raw);
-      return `### ${id} — ${name}\n${summary}`;
+      const { name, body } = parseSkillBody(raw);
+      return { id, name, body };
     })
-    .sort();
-  return entries.join("\n\n");
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  const perSkill = Math.min(2_500, Math.floor(MAX_TOTAL / Math.max(entries.length, 1)));
+  let used = 0;
+  const parts: string[] = [];
+
+  for (const { id, name, body } of entries) {
+    if (used >= MAX_TOTAL) break;
+    const budget = Math.min(perSkill, MAX_TOTAL - used);
+    const chunk = body.slice(0, budget).trim();
+    parts.push(`### ${id} — ${name}\n${chunk}`);
+    used += chunk.length;
+  }
+
+  return parts.join("\n\n");
 })();
 
 const GREETINGS = [
@@ -588,8 +598,13 @@ export function AgentChat() {
     })();
 
     const builtinBlock =
-      "## Wbudowane skille MarketingNow (rejestr)\n\n" +
-      "Każdy skill to konkretny framework działania. Gdy intencja użytkownika pasuje do skillu — otwórz odpowiedź linią `🧠 Skill: <id>` i pracuj wg tej ramy. Jeśli pasuje kilka, łącz max 2.\n\n" +
+      "## Wbudowane skille MarketingNow (OBOWIĄZKOWE — NIE ODBIEGAJ)\n\n" +
+      "To jedyne dozwolone metodyki. ZAWSZE:\n" +
+      "1. Wybierz 1 skill (max 2) pasujący do intencji użytkownika.\n" +
+      "2. Otwórz odpowiedź linią `🧠 Skill: <id>` (np. `🧠 Skill: marketing/copywriting`).\n" +
+      "3. Trzymaj się checklisty, kroków i zasad z treści skillu poniżej — nie improwizuj własnych metod.\n" +
+      "4. Gdy brakuje danych — zadaj pytanie Q&A zamiast zgadywać poza ramą skillu.\n" +
+      "5. Nie udzielaj porad spoza skilli marketingowych (prawo, medycyna itd.).\n\n" +
       BUILTIN_SKILLS_DIGEST;
 
     const brandVisualBlock = (() => {

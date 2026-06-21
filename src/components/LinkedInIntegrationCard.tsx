@@ -118,30 +118,6 @@ export function LinkedInIntegrationCard() {
               Połącz konto LinkedIn, aby agent NOW mógł czytać kampanie i zarządzać reklamami
               Sponsored Content.
             </p>
-            <details className="mt-3 text-xs text-muted-foreground group/details">
-              <summary className="cursor-pointer font-medium text-foreground/80 list-none flex items-center gap-1 [&::-webkit-details-marker]:hidden">
-                <span className="opacity-70 group-open/details:rotate-90 transition-transform inline-block">
-                  ▸
-                </span>
-                Dlaczego muszę podać Client ID / Secret, skoro w Lovable „wszystko było w kliencie”?
-              </summary>
-              <div className="mt-2 space-y-2 pl-4 border-l border-border text-muted-foreground">
-                <p>
-                  To są <strong>dwie różne rzeczy</strong>: zwykłe{" "}
-                  <strong>logowanie do aplikacji</strong> (np. przez Supabase) a{" "}
-                  <strong>dostęp do LinkedIn Ads API</strong>. Użytkownik końcowy nigdy nie wkleja
-                  Client Secret — secret zna tylko <strong>serwer</strong>, który wymienia kod OAuth
-                  na token (inaczej każdy mógłby przejąć Twoje konto reklamowe).
-                </p>
-                <p>
-                  Na Lovable klucze też są po stronie <strong>hostowanego backendu</strong>; po
-                  prostu nie widzisz pliku{" "}
-                  <code className="text-[11px] bg-muted px-1 rounded">.env</code> w edytorze.
-                  Lokalnie lub na własnym hostingu ustawiasz te same zmienne u siebie — jednorazowo
-                  dla całej aplikacji, nie dla każdego użytkownika.
-                </p>
-              </div>
-            </details>
           </div>
           <span
             className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${

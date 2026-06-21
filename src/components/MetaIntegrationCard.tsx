@@ -389,14 +389,6 @@ export function MetaIntegrationCard() {
               />
             </div>
 
-            {oauthStatus && !oauthStatus.canStart && (
-              <p className="text-xs text-muted-foreground rounded-md border border-foreground/10 bg-muted/30 px-3 py-2">
-                Odświeżenie przez Facebook na <strong>tym</strong> adresie (localhost) wymaga skopiowania{" "}
-                <code className="rounded bg-background/80 px-1">META_APP_ID</code> /{" "}
-                <code className="rounded bg-background/80 px-1">META_APP_SECRET</code> z Lovable Environment do lokalnego{" "}
-                <code className="rounded bg-background/80 px-1">.env</code>. Na preview Lovable zwykle już działa.
-              </p>
-            )}
             <div className="flex gap-2 pt-2">
               <button
                 onClick={connect}
