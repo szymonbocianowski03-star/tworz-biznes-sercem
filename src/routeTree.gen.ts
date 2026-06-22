@@ -25,6 +25,7 @@ import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CampaignComposerRouteImport } from './routes/campaign-composer'
 import { Route as BillingRouteImport } from './routes/billing'
+import { Route as BezpieczenstwoRouteImport } from './routes/bezpieczenstwo'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as AgentRouteImport } from './routes/agent'
@@ -147,6 +148,11 @@ const CampaignComposerRoute = CampaignComposerRouteImport.update({
 const BillingRoute = BillingRouteImport.update({
   id: '/billing',
   path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BezpieczenstwoRoute = BezpieczenstwoRouteImport.update({
+  id: '/bezpieczenstwo',
+  path: '/bezpieczenstwo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -381,6 +387,7 @@ export interface FileRoutesByFullPath {
   '/agent': typeof AgentRouteWithChildren
   '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bezpieczenstwo': typeof BezpieczenstwoRoute
   '/billing': typeof BillingRoute
   '/campaign-composer': typeof CampaignComposerRouteWithChildren
   '/checkout': typeof CheckoutRouteWithChildren
@@ -441,6 +448,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bezpieczenstwo': typeof BezpieczenstwoRoute
   '/billing': typeof BillingRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/kolo-wzrostu': typeof KoloWzrostuRoute
@@ -500,6 +508,7 @@ export interface FileRoutesById {
   '/agent': typeof AgentRouteWithChildren
   '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bezpieczenstwo': typeof BezpieczenstwoRoute
   '/billing': typeof BillingRoute
   '/campaign-composer': typeof CampaignComposerRouteWithChildren
   '/checkout': typeof CheckoutRouteWithChildren
@@ -563,6 +572,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/assets'
     | '/auth'
+    | '/bezpieczenstwo'
     | '/billing'
     | '/campaign-composer'
     | '/checkout'
@@ -623,6 +633,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assets'
     | '/auth'
+    | '/bezpieczenstwo'
     | '/billing'
     | '/checkout'
     | '/kolo-wzrostu'
@@ -681,6 +692,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/assets'
     | '/auth'
+    | '/bezpieczenstwo'
     | '/billing'
     | '/campaign-composer'
     | '/checkout'
@@ -743,6 +755,7 @@ export interface RootRouteChildren {
   AgentRoute: typeof AgentRouteWithChildren
   AssetsRoute: typeof AssetsRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BezpieczenstwoRoute: typeof BezpieczenstwoRoute
   BillingRoute: typeof BillingRoute
   CampaignComposerRoute: typeof CampaignComposerRouteWithChildren
   CheckoutRoute: typeof CheckoutRouteWithChildren
@@ -892,6 +905,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/billing'
       preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bezpieczenstwo': {
+      id: '/bezpieczenstwo'
+      path: '/bezpieczenstwo'
+      fullPath: '/bezpieczenstwo'
+      preLoaderRoute: typeof BezpieczenstwoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -1308,6 +1328,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentRoute: AgentRouteWithChildren,
   AssetsRoute: AssetsRouteWithChildren,
   AuthRoute: AuthRoute,
+  BezpieczenstwoRoute: BezpieczenstwoRoute,
   BillingRoute: BillingRoute,
   CampaignComposerRoute: CampaignComposerRouteWithChildren,
   CheckoutRoute: CheckoutRouteWithChildren,
@@ -1348,13 +1369,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
