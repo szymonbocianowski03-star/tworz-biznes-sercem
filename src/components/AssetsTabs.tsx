@@ -1,9 +1,10 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Image, Video } from "lucide-react";
+import { Image, Music, Video } from "lucide-react";
 
 const tabs = [
   { to: "/assets/gallery", label: "Obrazy", icon: Image },
   { to: "/assets/video", label: "Wideo", icon: Video },
+  { to: "/assets/audio", label: "Dźwięk", icon: Music },
 ];
 
 export function AssetsTabs() {
