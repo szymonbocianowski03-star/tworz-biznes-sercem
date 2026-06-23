@@ -5,6 +5,9 @@ export const CREDITS_PER_USD_CENT = 4;
 export const COST_PER_VIDEO_USD = 1;
 export const COST_PER_VIDEO_USD_CENTS = 100;
 export const VIDEO_CREDITS = 400;
+export const COST_PER_AUDIO_USD = 0.1;
+export const COST_PER_AUDIO_USD_CENTS = 10;
+export const AUDIO_CREDITS = 40;
 
 export type AiPriceRow = {
   id: string;
@@ -24,6 +27,7 @@ export const AI_PRICE_LIST: AiPriceRow[] = [
   { id: "seo-audit", label: "Audyt SEO", credits: 80, note: "do 200 kred." },
   { id: "generate-image", label: "Generowanie obrazu", credits: CREDITS_PER_IMAGE },
   { id: "generate-video", label: "Generowanie wideo", credits: VIDEO_CREDITS },
+  { id: "generate-audio", label: "Generowanie dźwięku", credits: AUDIO_CREDITS },
 ];
 
 export function creditsFromUsd(usd: number): number {

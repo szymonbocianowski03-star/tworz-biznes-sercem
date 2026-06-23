@@ -4,7 +4,13 @@ import {
   type TokenUsage,
   usdCentsFromTokenUsage,
 } from "./aiCost.ts";
-import { COST_PER_VIDEO_USD_CENTS, CREDITS_PER_IMAGE, VIDEO_CREDITS } from "./creditEconomy.ts";
+import {
+  AUDIO_CREDITS,
+  COST_PER_AUDIO_USD_CENTS,
+  COST_PER_VIDEO_USD_CENTS,
+  CREDITS_PER_IMAGE,
+  VIDEO_CREDITS,
+} from "./creditEconomy.ts";
 
 /** Domyślny koszt API (¢) gdy brak tokenów z odpowiedzi — nie liczymy od znaków. */
 export const FEATURE_USD_CENTS_DEFAULT: Record<string, number> = {
@@ -16,6 +22,7 @@ export const FEATURE_USD_CENTS_DEFAULT: Record<string, number> = {
   "competitor-scan": 6,
   "generate-image": IMAGE_USD_CENTS,
   "generate-video": COST_PER_VIDEO_USD_CENTS,
+  "generate-audio": COST_PER_AUDIO_USD_CENTS,
 };
 
 /** Górny limit kosztu API (¢) na jedno wywołanie — ochrona przed skrajnymi raportami. */
@@ -28,6 +35,7 @@ export const FEATURE_USD_CENTS_CAP: Record<string, number> = {
   "competitor-scan": 25,
   "generate-image": IMAGE_USD_CENTS,
   "generate-video": COST_PER_VIDEO_USD_CENTS,
+  "generate-audio": COST_PER_AUDIO_USD_CENTS,
 };
 
 export type BillingSource =
@@ -39,6 +47,7 @@ export type BillingSource =
   | "competitor-scan"
   | "generate-image"
   | "generate-video"
+  | "generate-audio"
   | string;
 
 export function creditsFromUsdCents(usdCents: number): number {
@@ -50,6 +59,7 @@ export function fixedCreditsForSource(source: string, billingMultiplier = 1): nu
   const mult = Math.max(1, Math.min(4, billingMultiplier));
   if (source === "generate-image") return CREDITS_PER_IMAGE * mult;
   if (source === "generate-video") return VIDEO_CREDITS;
+  if (source === "generate-audio") return AUDIO_CREDITS;
   return null;
 }
 
@@ -67,6 +77,9 @@ export function resolveBillingUsdCents(opts: {
   }
   if (source === "generate-video") {
     return COST_PER_VIDEO_USD_CENTS;
+  }
+  if (source === "generate-audio") {
+    return COST_PER_AUDIO_USD_CENTS;
   }
 
   let usd: number;

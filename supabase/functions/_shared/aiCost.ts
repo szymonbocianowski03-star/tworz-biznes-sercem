@@ -4,6 +4,7 @@
  */
 export const CREDITS_PER_USD_CENT = 4;
 export const IMAGE_USD_CENTS = 25;
+export const AUDIO_USD_CENTS = 10;
 export const FREE_TIER_USD_CAP_CENTS = 100;
 
 export type TokenUsage = {

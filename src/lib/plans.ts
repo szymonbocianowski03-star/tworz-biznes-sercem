@@ -3,6 +3,9 @@ export const FREE_TIER_AI_USD_CAP = 1;
 export const FREE_TIER_AI_USD_CAP_CENTS = 100;
 export const COST_PER_IMAGE_USD = 0.25;
 export const COST_PER_IMAGE_USD_CENTS = 25;
+// Dźwięk (ElevenLabs TTS): $0,10 kosztu API = 40 kredytów.
+export const COST_PER_AUDIO_USD = 0.1;
+export const COST_PER_AUDIO_USD_CENTS = 10;
 
 // Model kredytów (zgodny z supabase/functions/_shared/creditEconomy.ts):
 // 1 obraz = $0,25 kosztu API = 100 kredytów (×4 za cent USD).
