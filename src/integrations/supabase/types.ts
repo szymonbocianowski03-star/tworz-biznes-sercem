@@ -769,6 +769,57 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_audios: {
+        Row: {
+          audio_url: string | null
+          campaign_name: string | null
+          created_at: string
+          error_detail: string | null
+          id: string
+          product_name: string | null
+          prompt: string
+          status: string
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+          user_reaction: string | null
+          voice: string | null
+          voice_name: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          campaign_name?: string | null
+          created_at?: string
+          error_detail?: string | null
+          id?: string
+          product_name?: string | null
+          prompt: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+          user_reaction?: string | null
+          voice?: string | null
+          voice_name?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          campaign_name?: string | null
+          created_at?: string
+          error_detail?: string | null
+          id?: string
+          product_name?: string | null
+          prompt?: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+          user_reaction?: string | null
+          voice?: string | null
+          voice_name?: string | null
+        }
+        Relationships: []
+      }
       generated_images: {
         Row: {
           campaign_name: string | null
