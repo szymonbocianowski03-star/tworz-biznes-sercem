@@ -18,6 +18,10 @@ function extensionFromMime(mime: string, fallback: string): string {
     "video/mp4": "mp4",
     "video/webm": "webm",
     "video/quicktime": "mov",
+    "audio/mpeg": "mp3",
+    "audio/mp3": "mp3",
+    "audio/wav": "wav",
+    "audio/ogg": "ogg",
   };
   return map[mime.split(";")[0]?.trim().toLowerCase() ?? ""] ?? fallback;
 }
@@ -47,7 +51,7 @@ function triggerBlobDownload(blob: Blob, filename: string) {
 
 export type DownloadMediaOptions = {
   filenameBase?: string;
-  kind?: "image" | "video";
+  kind?: "image" | "video" | "audio";
 };
 
 /** Pobiera grafikę lub wideo na dysk (fetch → blob, z fallbackiem na link). */
@@ -56,9 +60,15 @@ export async function downloadMediaToDisk(url: string, options?: DownloadMediaOp
 
   const kind =
     options?.kind ??
-    (url.includes(".mp4") || url.includes("video/") ? "video" : "image");
-  const defaultExt = kind === "video" ? "mp4" : "png";
-  const base = sanitizeFilename(options?.filenameBase ?? (kind === "video" ? "wideo" : "kreacja"));
+    (url.includes(".mp3") || url.includes("audio/")
+      ? "audio"
+      : url.includes(".mp4") || url.includes("video/")
+        ? "video"
+        : "image");
+  const defaultExt = kind === "video" ? "mp4" : kind === "audio" ? "mp3" : "png";
+  const base = sanitizeFilename(
+    options?.filenameBase ?? (kind === "video" ? "wideo" : kind === "audio" ? "dzwiek" : "kreacja"),
+  );
 
   if (url.startsWith("data:")) {
     const m = url.match(/^data:([^;]+);base64,(.+)$/);
