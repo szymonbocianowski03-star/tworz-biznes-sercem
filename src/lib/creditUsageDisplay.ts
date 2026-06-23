@@ -10,6 +10,7 @@ const SOURCE_LABELS: Record<string, string> = {
   "competitor-scan": "Skan konkurencji",
   "generate-image": "Generowanie obrazu",
   "generate-video": "Generowanie wideo",
+  "generate-audio": "Generowanie dźwięku",
   chat: "Czat z agentem",
   suggest: "Sugestie",
   ai: "AI",
