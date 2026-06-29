@@ -13,14 +13,13 @@ export const Route = createFileRoute("/api/public/meta/callback")({
         const errorDescription = url.searchParams.get("error_description");
         const redirectUri = `${url.origin}/api/public/meta/callback`;
 
-        // Diagnostyka: pełny callback URL i obecność kluczowych parametrów.
+        // Diagnostyka: tylko niewrażliwe atrybuty. NIE logujemy pełnego URL ani
+        // errorDescription — mogą zawierać kod autoryzacji OAuth lub dane wrażliwe.
         console.log("[meta callback]", {
-          fullUrl: url.toString(),
           hasCode: Boolean(code),
           hasError: Boolean(error),
           error,
           errorReason,
-          errorDescription,
           redirectUri,
         });
 
