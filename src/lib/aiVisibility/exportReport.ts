@@ -16,7 +16,7 @@ export function copyReportSummary(report: AiVisibilityReport): string {
 /** Eksport PDF przez okno druku — profesjonalny układ HTML bez zewnętrznej biblioteki. */
 export function exportReportPdf(report: AiVisibilityReport): void {
   const tr = t();
-  const html = `<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"/><title>${tr.aiVisibilityTitle} — ${report.brandName}</title>
+  const html = `<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"/><title>${escapeHtml(tr.aiVisibilityTitle)} — ${escapeHtml(report.brandName)}</title>
 <style>
   body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111;max-width:800px;margin:40px auto;padding:0 24px;line-height:1.5}
   h1{font-size:28px;margin-bottom:8px} h2{font-size:18px;margin-top:32px;border-bottom:1px solid #e5e5e5;padding-bottom:6px}
@@ -30,18 +30,18 @@ export function exportReportPdf(report: AiVisibilityReport): void {
   th{background:#f5f5f5}
   @media print{body{margin:20px}}
 </style></head><body>
-  <h1>${tr.aiVisibilityTitle}</h1>
-  <p class="meta">${report.brandName} · ${report.domain} · ${new Date(report.createdAt).toLocaleString("pl-PL")}</p>
-  <div class="score">${report.score}<span style="font-size:18px;font-weight:600;color:#666"> / 100</span></div>
-  <p><strong>${report.statusLabel}</strong></p>
+  <h1>${escapeHtml(tr.aiVisibilityTitle)}</h1>
+  <p class="meta">${escapeHtml(report.brandName)} · ${escapeHtml(report.domain)} · ${escapeHtml(new Date(report.createdAt).toLocaleString("pl-PL"))}</p>
+  <div class="score">${escapeHtml(String(report.score))}<span style="font-size:18px;font-weight:600;color:#666"> / 100</span></div>
+  <p><strong>${escapeHtml(report.statusLabel)}</strong></p>
   <h2>${tr.executiveSummary}</h2>
   <p>${escapeHtml(report.executiveSummary)}</p>
   <h2>${tr.metrics}</h2>
   <div class="grid">
-    <div class="card"><strong>${tr.visibilityInQueries}</strong>${report.metrics.visibilityInQueries}%</div>
-    <div class="card"><strong>${tr.mentionsWithSources}</strong>${report.metrics.mentionsWithSources}</div>
-    <div class="card"><strong>${tr.aiShareOfVoice}</strong>${report.metrics.aiShareOfVoice}%</div>
-    <div class="card"><strong>${tr.analyzedQueries}</strong>${report.metrics.totalQueries}</div>
+    <div class="card"><strong>${escapeHtml(tr.visibilityInQueries)}</strong>${escapeHtml(String(report.metrics.visibilityInQueries))}%</div>
+    <div class="card"><strong>${escapeHtml(tr.mentionsWithSources)}</strong>${escapeHtml(String(report.metrics.mentionsWithSources))}</div>
+    <div class="card"><strong>${escapeHtml(tr.aiShareOfVoice)}</strong>${escapeHtml(String(report.metrics.aiShareOfVoice))}%</div>
+    <div class="card"><strong>${escapeHtml(tr.analyzedQueries)}</strong>${escapeHtml(String(report.metrics.totalQueries))}</div>
   </div>
   <h2>${tr.queriesTable}</h2>
   <table><thead><tr><th>${tr.query}</th><th>${tr.model}</th><th>${tr.brandAppeared}</th><th>${tr.comment}</th></tr></thead><tbody>
