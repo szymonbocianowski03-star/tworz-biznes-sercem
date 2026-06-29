@@ -1,0 +1,40 @@
+project_id = "marketingnow"
+
+[functions.chat]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.extract-skill]
+verify_jwt = false
+
+[functions.suggest]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false
+
+[functions.generate-video]
+verify_jwt = false
+
+[functions.generate-audio]
+verify_jwt = false
+
+[functions.competitor-scan]
+verify_jwt = false
+
+[functions.seo-audit]
+verify_jwt = false
+
+[functions.llm-visibility]
+verify_jwt = false
+
+[functions.payments-webhook]
+verify_jwt = false
+
+[functions.dispatch-notification]
+verify_jwt = false
+
+[functions.generate-ad-creative]
+verify_jwt = false
