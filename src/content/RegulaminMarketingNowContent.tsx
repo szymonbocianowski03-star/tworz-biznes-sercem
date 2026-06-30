@@ -2,17 +2,6 @@
 export function RegulaminMarketingNowContent() {
   return (
     <>
-      <div className="not-prose mb-10 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-foreground/90">
-        <p className="font-semibold mb-1">Informacja dla Użytkowników</p>
-        <p className="leading-relaxed">
-          Serwis prowadzi <strong>osoba fizyczna</strong> — Szymon Bocianowski — bez zarejestrowanej działalności
-          gospodarczej (brak NIP, REGON i wpisu do CEIDG). Część funkcji opisanych w Serwisie jest obecnie{" "}
-          <strong>niedostępna</strong> albo oznaczona jako <strong>„wkrótce”</strong>; aktualny stan opisuje § 3
-          Regulaminu. Żadne postanowienie Regulaminu nie ogranicza praw Konsumentów wynikających z bezwzględnie
-          obowiązujących przepisów.
-        </p>
-      </div>
-
       <p className="text-sm text-muted-foreground">Ostatnia aktualizacja: 30 czerwca 2026 r.</p>
       <h1>Regulamin serwisu MarketingNow</h1>
       <p className="text-muted-foreground text-sm">Serwis marketingnow.site</p>
@@ -33,9 +22,7 @@ export function RegulaminMarketingNowContent() {
           <a href="mailto:support@marketingnow.tech" className="text-accent underline-offset-2 hover:underline">
             support@marketingnow.tech
           </a>{" "}
-          („Usługodawca”). Usługodawca świadczy usługi w ramach Serwisu jako osoba fizyczna i{" "}
-          <strong>nie prowadzi zarejestrowanej działalności gospodarczej</strong> — w związku z tym nie posiada NIP,
-          REGON ani wpisu do CEIDG.
+          („Usługodawca”) — osoba fizyczna.
         </li>
         <li>
           Serwis służy do wspierania działań marketingowych z wykorzystaniem narzędzi AI, w szczególności do analizy
@@ -147,7 +134,9 @@ export function RegulaminMarketingNowContent() {
           W chwili publikacji niniejszego Regulaminu w szczególności jako Funkcje wkrótce / w przygotowaniu albo
           niedostępne mogą występować m.in.: pełne Integracje i automatyczne łączenie kont <strong>Meta Ads</strong>,{" "}
           <strong>LinkedIn Ads</strong> i <strong>TikTok Ads</strong>; <strong>automatyczna publikacja kampanii</strong>{" "}
-          na platformach zewnętrznych; wybrane Integracje poczty/kalendarza; część funkcji zespołowych, API, raportów
+          na platformach zewnętrznych; Integracje <strong>Gmail</strong>, <strong>Outlook</strong>,{" "}
+          <strong>Google Calendar</strong> i <strong>Outlook Calendar</strong> (Microsoft); część funkcji zespołowych,
+          API, raportów
           analitycznych oraz innych modułów widocznych w Serwisie bez aktywnego dostępu. Szkice kampanii, Treści AI
           oraz podstawowe narzędzia Agenta NOW mogą być dostępne niezależnie od statusu Integracji reklamowych.
         </li>

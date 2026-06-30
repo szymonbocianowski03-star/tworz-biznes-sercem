@@ -2,17 +2,6 @@
 export function PolitykaPrywatnosciMarketingNowContent() {
   return (
     <>
-      <div className="not-prose mb-10 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-foreground/90">
-        <p className="font-semibold mb-1">Informacja dla Użytkowników</p>
-        <p className="leading-relaxed">
-          Administratorem danych jest <strong>osoba fizyczna</strong> — Szymon Bocianowski — bez zarejestrowanej
-          działalności gospodarczej (brak NIP, REGON i wpisu do CEIDG). Serwis MarketingNow jest rozwijany etapami:
-          część integracji i funkcji (m.in. Meta Ads, LinkedIn Ads, TikTok Ads, automatyczna publikacja kampanii) może
-          być <strong>niedostępna</strong> albo oznaczona jako <strong>„wkrótce”</strong> — przetwarzanie danych z
-          takich usług następuje dopiero po ich uruchomieniu i połączeniu przez Użytkownika.
-        </p>
-      </div>
-
       <p className="text-sm text-muted-foreground">Data obowiązywania: 30 czerwca 2026 r.</p>
       <h1>Polityka prywatności i plików cookies</h1>
       <p className="text-muted-foreground text-sm">
@@ -147,10 +136,8 @@ export function PolitykaPrywatnosciMarketingNowContent() {
 
       <h2>3. Kto jest administratorem danych?</h2>
       <p>
-        Administratorem danych osobowych użytkowników jest <strong>Szymon Bocianowski</strong>, osoba fizyczna,
-        adres: Aleja Jerzego Waszyngtona 57/18, Warszawa, Polska. Administrator{" "}
-        <strong>nie prowadzi zarejestrowanej działalności gospodarczej</strong> — nie posiada NIP, REGON ani wpisu do
-        CEIDG/KRS.
+        Administratorem danych osobowych użytkowników jest <strong>Szymon Bocianowski</strong> (osoba fizyczna),
+        adres: Aleja Jerzego Waszyngtona 57/18, Warszawa, Polska.
       </p>
       <p>
         Kontakt w sprawach prywatności:{" "}
@@ -387,6 +374,11 @@ export function PolitykaPrywatnosciMarketingNowContent() {
 
       <h2>7. Integracje Google, Gmail i Google Workspace</h2>
       <p>
+        Integracje <strong>Gmail</strong> i <strong>Google Calendar</strong> mogą być oznaczone w Serwisie jako „Wkrótce”
+        — do czasu uruchomienia dane z tych usług nie są przetwarzane. Poniższe zasady dotyczą także tych funkcji po
+        ich udostępnieniu.
+      </p>
+      <p>
         Jeżeli MarketingNow umożliwia logowanie przez Google lub połączenie kont Google, Gmail, Google Workspace,
         Google Ads, Google Analytics, Google Search Console, Google Sheets, Google Drive lub innych usług Google,
         zakres dostępu zależy od ekranów zgody OAuth oraz funkcji uruchamianych przez użytkownika.
@@ -423,8 +415,10 @@ export function PolitykaPrywatnosciMarketingNowContent() {
       <ul>
         <li>
           W chwili publikacji niniejszej Polityki pełne Integracje z <strong>Meta Ads</strong>,{" "}
-          <strong>LinkedIn Ads</strong> i <strong>TikTok Ads</strong> mogą być oznaczone jako „Wkrótce” i niedostępne
-          do połączenia kont. Opisy w Polityce obejmują także te usługi na wypadek ich uruchomienia.
+          <strong>LinkedIn Ads</strong>, <strong>TikTok Ads</strong>, <strong>Gmail</strong>,{" "}
+          <strong>Google Calendar</strong>, <strong>Outlook</strong> i <strong>Outlook Calendar</strong> (Microsoft) mogą
+          być oznaczone jako „Wkrótce” i niedostępne do połączenia kont. Opisy w Polityce obejmują także te usługi na
+          wypadek ich uruchomienia.
         </li>
         <li>
           Nie publikujemy kampanii ani zmian na zewnętrznych kontach reklamowych bez działania użytkownika lub bez
@@ -883,17 +877,13 @@ export function PolitykaPrywatnosciMarketingNowContent() {
         <p className="font-semibold mb-2">Stan wdrożenia (30 czerwca 2026 r.)</p>
         <ul className="list-disc pl-5 space-y-1.5">
           <li>
-            Administrator to osoba fizyczna — bez NIP, REGON i wpisu do CEIDG; dokumenty rozliczeniowe to rachunki, nie
-            faktury VAT.
+            Integracje Gmail, Google Calendar, Outlook, Outlook Calendar (Microsoft), Meta Ads, LinkedIn Ads, TikTok Ads
+            oraz automatyczna publikacja kampanii mogą być oznaczone jako „Wkrótce” — dane z tych usług nie są
+            przetwarzane, dopóki integracja nie zostanie uruchomiona i połączona.
           </li>
           <li>
-            Aktywne integracje mogą obejmować m.in. logowanie Google, Gmail/Google Calendar (OAuth), Supabase, Resend —
-            w zależności od konfiguracji Konta.
-          </li>
-          <li>
-            Integracje Meta Ads, LinkedIn Ads, TikTok Ads oraz automatyczna publikacja kampanii mogą być oznaczone jako
-            „Wkrótce” — dane z tych platform nie są przetwarzane, dopóki integracja nie zostanie uruchomiona i
-            połączona.
+            Aktywne integracje mogą obejmować m.in. logowanie Google (OAuth), Supabase, Resend — w zależności od
+            konfiguracji Konta.
           </li>
           <li>
             W Google Cloud Console należy wskazać link do niniejszej Polityki i dopasować zakresy OAuth do faktycznie

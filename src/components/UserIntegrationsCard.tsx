@@ -14,6 +14,7 @@ import {
   disconnectUserCalendar,
   scheduleUserCalendarEvent,
 } from "@/lib/userCalendar.functions";
+import { isMailCalendarComingSoon } from "@/lib/userIntegrationsComingSoon";
 
 export function UserIntegrationsCard() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -173,12 +174,14 @@ export function UserIntegrationsCard() {
           <ProviderTile
             title="Gmail"
             status={email?.gmail?.email}
+            comingSoon={isMailCalendarComingSoon("gmail")}
             onConnect={() => connectGoogle("gmail")}
             onDisconnect={() => disconnectEmail("gmail")}
           />
           <ProviderTile
             title="Outlook"
             status={email?.outlook?.email}
+            comingSoon={isMailCalendarComingSoon("outlook")}
             onConnect={() => connectMicrosoft("mail")}
             onDisconnect={() => disconnectEmail("outlook")}
           />
@@ -244,12 +247,14 @@ export function UserIntegrationsCard() {
           <ProviderTile
             title="Google Calendar"
             status={cal?.google?.email}
+            comingSoon={isMailCalendarComingSoon("google_calendar")}
             onConnect={() => connectGoogle("calendar")}
             onDisconnect={() => disconnectCal("google")}
           />
           <ProviderTile
             title="Outlook Calendar"
             status={cal?.outlook?.email}
+            comingSoon={isMailCalendarComingSoon("outlook_calendar")}
             onConnect={() => connectMicrosoft("calendar")}
             onDisconnect={() => disconnectCal("outlook")}
           />
@@ -283,20 +288,26 @@ export function UserIntegrationsCard() {
 function ProviderTile({
   title,
   status,
+  comingSoon = false,
   onConnect,
   onDisconnect,
 }: {
   title: string;
   status: string | null | undefined;
+  comingSoon?: boolean;
   onConnect: (() => void) | null;
   onDisconnect: (() => void) | null;
 }) {
-  const connected = Boolean(status);
+  const connected = Boolean(status) && !comingSoon;
   return (
     <div className="rounded-lg border border-foreground/10 bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="font-semibold text-sm">{title}</span>
-        {connected ? (
+        {comingSoon && !connected ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-800 border border-amber-600/20 px-2 py-0.5 text-[11px] font-semibold">
+            Wkrótce
+          </span>
+        ) : connected ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-600/20 px-2 py-0.5 text-[11px] font-semibold">
             <Check className="h-3 w-3" /> połączone
           </span>
@@ -306,9 +317,14 @@ function ProviderTile({
           </span>
         )}
       </div>
+      {comingSoon && !connected ? (
+        <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+          Integracja będzie dostępna <span className="font-semibold text-foreground">wkrótce</span>.
+        </p>
+      ) : null}
       {connected && <p className="mt-1 text-xs text-muted-foreground truncate">{status}</p>}
       <div className="mt-2 flex gap-1.5">
-        {onConnect && (
+        {onConnect && !comingSoon && (
           <button
             onClick={onConnect}
             className="rounded-md bg-foreground text-background px-2.5 py-1 text-[11px] font-semibold"
