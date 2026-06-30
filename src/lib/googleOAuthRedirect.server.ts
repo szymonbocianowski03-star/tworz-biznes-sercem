@@ -31,7 +31,11 @@ export function isGoogleIntegrationOAuthState(state: string | null): boolean {
 
 function integrationRedirectFromEnv(): string | null {
   const configured = process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim();
-  return configured || null;
+  // Only honor it if it actually looks like a redirect URL. Guards against
+  // a misconfigured secret (e.g. a client secret pasted into this field),
+  // which would otherwise be sent to Google as redirect_uri and break OAuth.
+  if (configured && /^https?:\/\//i.test(configured)) return configured;
+  return null;
 }
 
 /** Redirect URI logowania konta Google. */
