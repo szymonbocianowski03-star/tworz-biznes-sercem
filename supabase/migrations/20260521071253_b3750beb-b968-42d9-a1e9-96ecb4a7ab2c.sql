@@ -1,0 +1,1 @@
+ALTER TABLE public.generated_images ADD COLUMN IF NOT EXISTS user_reaction text;
