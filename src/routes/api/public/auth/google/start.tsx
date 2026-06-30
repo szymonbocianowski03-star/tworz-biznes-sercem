@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { isLocalGoogleAuthConfigured } from "@/lib/googleAuthEnv.server";
 import { oauthStartErrorResponse } from "@/lib/oauthHtml";
-import { getGoogleAuthOAuthRedirectUri } from "@/lib/googleOAuthRedirect.server";
+import {
+  getGoogleAuthOAuthRedirectUri,
+  maskGoogleClientId,
+  validateGoogleClientId,
+} from "@/lib/googleOAuthRedirect.server";
 
 const AUTH_SCOPES = ["openid", "email", "profile"];
 
@@ -24,6 +28,15 @@ export const Route = createFileRoute("/api/public/auth/google/start")({
 
         const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID!.trim();
 
+        const clientIdError = validateGoogleClientId(clientId);
+        if (clientIdError) {
+          console.error("[google auth start] nieprawidłowy client_id:", clientIdError);
+          return oauthStartErrorResponse(500, {
+            title: "Nieprawidłowy Google Client ID",
+            detail: clientIdError,
+          });
+        }
+
         const redirectUri = getGoogleAuthOAuthRedirectUri(request);
         const state = `auth.${crypto.randomUUID()}`;
 
@@ -35,6 +48,11 @@ export const Route = createFileRoute("/api/public/auth/google/start")({
         authUrl.searchParams.set("prompt", "select_account");
         authUrl.searchParams.set("state", state);
         authUrl.searchParams.set("scope", AUTH_SCOPES.join(" "));
+
+        console.log("[google auth start]", {
+          redirectUri,
+          clientId: maskGoogleClientId(clientId),
+        });
 
         const isSecure =
           url.protocol === "https:" &&
