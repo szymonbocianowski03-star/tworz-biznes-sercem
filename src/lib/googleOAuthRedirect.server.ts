@@ -64,6 +64,31 @@ export function googleIntegrationRedirectHint(redirectUri: string): string {
   return `W Google Cloud Console → Credentials → OAuth 2.0 Client → Authorized redirect URIs dodaj dokładnie: ${redirectUri}`;
 }
 
+/** Maskuje client_id do logów: pierwsze 10 znaków + końcówka. */
+export function maskGoogleClientId(clientId: string | undefined | null): string {
+  if (!clientId) return "(brak)";
+  if (clientId.length <= 20) return `${clientId.slice(0, 6)}…`;
+  return `${clientId.slice(0, 10)}…${clientId.slice(-25)}`;
+}
+
+/**
+ * Sprawdza, czy wartość to prawidłowy OAuth Client ID.
+ * Wyłapuje pomyłki: client secret (GOCSPX), API key (AIza), pusty, redirect URI.
+ */
+export function validateGoogleClientId(clientId: string | undefined | null): string | null {
+  const id = clientId?.trim();
+  if (!id) return "client_id jest pusty — ustaw GOOGLE_OAUTH_CLIENT_ID.";
+  if (id.startsWith("GOCSPX"))
+    return "W GOOGLE_OAUTH_CLIENT_ID jest Client Secret (GOCSPX…) zamiast Client ID.";
+  if (id.startsWith("AIza"))
+    return "W GOOGLE_OAUTH_CLIENT_ID jest klucz API (AIza…) zamiast Client ID.";
+  if (/^https?:\/\//i.test(id))
+    return "W GOOGLE_OAUTH_CLIENT_ID jest adres URL zamiast Client ID.";
+  if (!id.endsWith(".apps.googleusercontent.com"))
+    return "GOOGLE_OAUTH_CLIENT_ID musi kończyć się na .apps.googleusercontent.com.";
+  return null;
+}
+
 export function listGoogleOAuthRedirectUris(request: Request): string[] {
   const origin = getRequestOrigin(request);
   return [
