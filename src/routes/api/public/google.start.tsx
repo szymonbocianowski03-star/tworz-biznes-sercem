@@ -3,6 +3,8 @@ import { oauthStartErrorResponse } from "@/lib/oauthHtml";
 import {
   getGoogleIntegrationOAuthRedirectUri,
   googleIntegrationRedirectHint,
+  maskGoogleClientId,
+  validateGoogleClientId,
 } from "@/lib/googleOAuthRedirect.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
@@ -68,6 +70,16 @@ export const Route = createFileRoute("/api/public/google/start")({
           });
         }
 
+        const clientIdError = validateGoogleClientId(clientId);
+        if (clientIdError) {
+          console.error("[google start] nieprawidłowy client_id:", clientIdError);
+          return oauthStartErrorResponse(500, {
+            title: "Nieprawidłowy Google Client ID",
+            detail: clientIdError,
+            hint: "GOOGLE_OAUTH_CLIENT_ID = OAuth Client ID (…apps.googleusercontent.com). GOOGLE_OAUTH_CLIENT_SECRET = Client Secret (GOCSPX…).",
+          });
+        }
+
         const redirectUri = getGoogleIntegrationOAuthRedirectUri(request);
         const state = `${userId}.${service}.${crypto.randomUUID()}`;
 
@@ -81,7 +93,12 @@ export const Route = createFileRoute("/api/public/google/start")({
         authUrl.searchParams.set("state", state);
         authUrl.searchParams.set("scope", SCOPES_BY_SERVICE[service].join(" "));
 
-        console.log("[google start]", { service, redirectUri, scopes: SCOPES_BY_SERVICE[service] });
+        console.log("[google start]", {
+          service,
+          redirectUri,
+          clientId: maskGoogleClientId(clientId),
+          scopes: SCOPES_BY_SERVICE[service],
+        });
 
         const isSecure =
           url.protocol === "https:" &&
