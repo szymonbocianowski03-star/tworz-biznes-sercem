@@ -219,7 +219,7 @@ export function UserIntegrationsCard() {
           </div>
         )}
 
-        {(email?.gmail || email?.outlook || email?.smtp) && (
+        {email?.smtp && (
           <button
             onClick={() => void sendTest()}
             className="mt-4 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
