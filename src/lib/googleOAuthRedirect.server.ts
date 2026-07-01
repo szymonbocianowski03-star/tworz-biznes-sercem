@@ -15,6 +15,7 @@ export function getRequestOrigin(request: Request): string {
 export function parseGoogleIntegrationOAuthState(state: string | null): {
   userId: string;
   service: "gmail" | "calendar";
+  returnTo?: string;
 } | null {
   if (!state) return null;
   const parts = state.split(".");
@@ -22,7 +23,8 @@ export function parseGoogleIntegrationOAuthState(state: string | null): {
   const userId = parts[0];
   const service = parts[1];
   if (!userId || (service !== "gmail" && service !== "calendar")) return null;
-  return { userId, service };
+  const returnTo = decodeStateReturnTo(parts[3]);
+  return { userId, service, ...(returnTo ? { returnTo } : {}) };
 }
 
 export function isGoogleIntegrationOAuthState(state: string | null): boolean {
@@ -67,6 +69,57 @@ export function getGoogleLegacyIntegrationOAuthRedirectUri(request: Request): st
 
 export function googleIntegrationRedirectHint(redirectUri: string): string {
   return `W Google Cloud Console → Credentials → OAuth 2.0 Client → Authorized redirect URIs dodaj dokładnie: ${redirectUri}`;
+}
+
+export function buildGoogleIntegrationOAuthState(
+  userId: string,
+  service: "gmail" | "calendar",
+  returnTo: string,
+): string {
+  return `${userId}.${service}.${crypto.randomUUID()}.${encodeStateReturnTo(returnTo)}`;
+}
+
+export function safeGoogleIntegrationReturnTo(raw: string | null, request: Request): string {
+  const fallback = `${getRequestOrigin(request)}/integrations`;
+  if (!raw) return fallback;
+  try {
+    const target = new URL(raw, fallback);
+    if (!isAllowedIntegrationReturnHost(target.hostname)) return fallback;
+    if (target.protocol !== "https:" && target.hostname !== "localhost" && target.hostname !== "127.0.0.1") {
+      return fallback;
+    }
+    if (target.pathname !== "/integrations" && !target.pathname.startsWith("/integrations/")) {
+      return fallback;
+    }
+    return `${target.origin}${target.pathname}${target.search}`;
+  } catch {
+    return fallback;
+  }
+}
+
+function isAllowedIntegrationReturnHost(hostname: string): boolean {
+  return (
+    hostname === "marketingnow.site" ||
+    hostname === "www.marketingnow.site" ||
+    hostname === "tworz-biznes-sercem.lovable.app" ||
+    hostname === "10fa611d-9c78-46b3-b583-d064df8ed9eb.lovableproject.com" ||
+    hostname === "id-preview--10fa611d-9c78-46b3-b583-d064df8ed9eb.lovable.app" ||
+    hostname === "localhost" ||
+    hostname === "127.0.0.1"
+  );
+}
+
+function encodeStateReturnTo(returnTo: string): string {
+  return Buffer.from(returnTo, "utf8").toString("base64url");
+}
+
+function decodeStateReturnTo(encoded: string | undefined): string | null {
+  if (!encoded) return null;
+  try {
+    return Buffer.from(encoded, "base64url").toString("utf8");
+  } catch {
+    return null;
+  }
 }
 
 /** Maskuje client_id do logów: pierwsze 10 znaków + końcówka. */

@@ -59,7 +59,12 @@ export function UserIntegrationsCard() {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) return toast.error("Zaloguj się ponownie.");
-    window.location.href = `/api/public/google/start?token=${encodeURIComponent(token)}&service=${service}&force_login=1`;
+    const startUrl = new URL("/api/public/google/start", googleIntegrationOrigin());
+    startUrl.searchParams.set("token", token);
+    startUrl.searchParams.set("service", service);
+    startUrl.searchParams.set("force_login", "1");
+    startUrl.searchParams.set("return_to", `${window.location.origin}/integrations`);
+    window.location.href = startUrl.toString();
   };
   const connectMicrosoft = async (service: "mail" | "calendar") => {
     if (!userId) return toast.error("Zaloguj się.");
@@ -283,6 +288,16 @@ export function UserIntegrationsCard() {
       </section>
     </div>
   );
+}
+
+function googleIntegrationOrigin(): string {
+  if (typeof window === "undefined") return "https://marketingnow.site";
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") {
+    return window.location.origin;
+  }
+  if (host === "marketingnow.site" || host === "www.marketingnow.site") return "https://marketingnow.site";
+  return "https://marketingnow.site";
 }
 
 function ProviderTile({

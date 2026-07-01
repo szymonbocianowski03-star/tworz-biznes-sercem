@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { oauthStartErrorResponse } from "@/lib/oauthHtml";
 import {
+  buildGoogleIntegrationOAuthState,
   getGoogleIntegrationOAuthRedirectUri,
   googleIntegrationRedirectHint,
   maskGoogleClientId,
+  safeGoogleIntegrationReturnTo,
   validateGoogleClientId,
 } from "@/lib/googleOAuthRedirect.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -40,6 +42,7 @@ export const Route = createFileRoute("/api/public/google/start")({
         const service = url.searchParams.get("service") ?? "gmail";
         const token = url.searchParams.get("token");
         const forceLogin = url.searchParams.get("force_login") === "1";
+        const returnTo = safeGoogleIntegrationReturnTo(url.searchParams.get("return_to"), request);
 
         if (!token) {
           return oauthStartErrorResponse(400, {
@@ -83,7 +86,7 @@ export const Route = createFileRoute("/api/public/google/start")({
           });
         }
 
-        const state = `${userId}.${service}.${crypto.randomUUID()}`;
+        const state = buildGoogleIntegrationOAuthState(userId, service as "gmail" | "calendar", returnTo);
 
         const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
         authUrl.searchParams.set("client_id", creds.clientId);
