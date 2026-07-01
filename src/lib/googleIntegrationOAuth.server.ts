@@ -32,7 +32,7 @@ export async function handleGoogleIntegrationOAuthCallback(
     const detail = friendlyGoogleOAuthError(
       errorDescription ?? error ?? "missing_code: Google nie zwróciło parametru code.",
     );
-    return redirectIntegrationBack(origin, service, { ok: false, error: detail.slice(0, 240) });
+    return redirectIntegrationBack(parsedState?.returnTo ?? origin, service, { ok: false, error: detail.slice(0, 240) });
   }
 
   const cookieHeader = request.headers.get("cookie") ?? "";

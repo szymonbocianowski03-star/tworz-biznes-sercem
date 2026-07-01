@@ -293,9 +293,10 @@ export function UserIntegrationsCard() {
 function googleIntegrationOrigin(): string {
   if (typeof window === "undefined") return "https://marketingnow.site";
   const host = window.location.hostname;
-  if (host === "marketingnow.site" || host === "www.marketingnow.site" || host === "localhost" || host === "127.0.0.1") {
+  if (host === "localhost" || host === "127.0.0.1") {
     return window.location.origin;
   }
+  if (host === "marketingnow.site" || host === "www.marketingnow.site") return "https://marketingnow.site";
   return "https://marketingnow.site";
 }
 
