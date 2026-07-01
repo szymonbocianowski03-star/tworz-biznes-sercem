@@ -63,6 +63,7 @@ export function UserIntegrationsCard() {
     startUrl.searchParams.set("token", token);
     startUrl.searchParams.set("service", service);
     startUrl.searchParams.set("force_login", "1");
+    startUrl.searchParams.set("return_to", `${window.location.origin}/integrations`);
     window.location.href = startUrl.toString();
   };
   const connectMicrosoft = async (service: "mail" | "calendar") => {
