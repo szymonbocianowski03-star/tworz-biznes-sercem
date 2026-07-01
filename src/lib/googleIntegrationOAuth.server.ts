@@ -56,7 +56,7 @@ export async function handleGoogleIntegrationOAuthCallback(
     });
   }
 
-  const { userId, service: svc } = parsedState;
+  const { userId, service: svc, returnTo } = parsedState;
 
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim();
@@ -113,11 +113,11 @@ export async function handleGoogleIntegrationOAuthCallback(
         : await supabaseAdmin.from("google_calendar_connections").upsert(baseRow, { onConflict: "user_id" });
     if (upsertErr) throw upsertErr;
 
-    return redirectIntegrationBack(origin, svc, { ok: true, name: email });
+    return redirectIntegrationBack(returnTo ?? origin, svc, { ok: true, name: email });
   } catch (e: unknown) {
     console.error("[google integration callback]", e);
     const msg = e instanceof Error ? e.message : String(e);
-    return redirectIntegrationBack(origin, svc, {
+    return redirectIntegrationBack(returnTo ?? origin, svc, {
       ok: false,
       error: friendlyGoogleOAuthError(msg).slice(0, 240),
     });
@@ -136,11 +136,14 @@ function redirectIntegrationBack(
   if (params.error) qs.set("error", params.error);
 
   const isSecure = origin.startsWith("https://");
+  const target = origin.includes("/integrations")
+    ? `${origin}${origin.includes("?") ? "&" : "?"}${qs.toString()}`
+    : `${origin}/integrations?${qs.toString()}`;
 
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `${origin}/integrations?${qs.toString()}`,
+      Location: target,
       "Set-Cookie": `google_oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}`,
     },
   });
