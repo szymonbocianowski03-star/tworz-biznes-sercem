@@ -24,6 +24,7 @@ import { Route as KoloWzrostuRouteImport } from './routes/kolo-wzrostu'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CampaignComposerRouteImport } from './routes/campaign-composer'
+import { Route as BillingsuccessfulRouteImport } from './routes/billingsuccessful'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as BezpieczenstwoRouteImport } from './routes/bezpieczenstwo'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -146,6 +147,11 @@ const CheckoutRoute = CheckoutRouteImport.update({
 const CampaignComposerRoute = CampaignComposerRouteImport.update({
   id: '/campaign-composer',
   path: '/campaign-composer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingsuccessfulRoute = BillingsuccessfulRouteImport.update({
+  id: '/billingsuccessful',
+  path: '/billingsuccessful',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BillingRoute = BillingRouteImport.update({
@@ -407,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/bezpieczenstwo': typeof BezpieczenstwoRoute
   '/billing': typeof BillingRoute
+  '/billingsuccessful': typeof BillingsuccessfulRoute
   '/campaign-composer': typeof CampaignComposerRouteWithChildren
   '/checkout': typeof CheckoutRouteWithChildren
   '/integrations': typeof IntegrationsRouteWithChildren
@@ -471,6 +478,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/bezpieczenstwo': typeof BezpieczenstwoRoute
   '/billing': typeof BillingRoute
+  '/billingsuccessful': typeof BillingsuccessfulRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/kolo-wzrostu': typeof KoloWzrostuRoute
   '/konkurencja': typeof KonkurencjaRoute
@@ -534,6 +542,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/bezpieczenstwo': typeof BezpieczenstwoRoute
   '/billing': typeof BillingRoute
+  '/billingsuccessful': typeof BillingsuccessfulRoute
   '/campaign-composer': typeof CampaignComposerRouteWithChildren
   '/checkout': typeof CheckoutRouteWithChildren
   '/integrations': typeof IntegrationsRouteWithChildren
@@ -601,6 +610,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/bezpieczenstwo'
     | '/billing'
+    | '/billingsuccessful'
     | '/campaign-composer'
     | '/checkout'
     | '/integrations'
@@ -665,6 +675,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/bezpieczenstwo'
     | '/billing'
+    | '/billingsuccessful'
     | '/checkout'
     | '/kolo-wzrostu'
     | '/konkurencja'
@@ -727,6 +738,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/bezpieczenstwo'
     | '/billing'
+    | '/billingsuccessful'
     | '/campaign-composer'
     | '/checkout'
     | '/integrations'
@@ -793,6 +805,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BezpieczenstwoRoute: typeof BezpieczenstwoRoute
   BillingRoute: typeof BillingRoute
+  BillingsuccessfulRoute: typeof BillingsuccessfulRoute
   CampaignComposerRoute: typeof CampaignComposerRouteWithChildren
   CheckoutRoute: typeof CheckoutRouteWithChildren
   IntegrationsRoute: typeof IntegrationsRouteWithChildren
@@ -935,6 +948,13 @@ declare module '@tanstack/react-router' {
       path: '/campaign-composer'
       fullPath: '/campaign-composer'
       preLoaderRoute: typeof CampaignComposerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billingsuccessful': {
+      id: '/billingsuccessful'
+      path: '/billingsuccessful'
+      fullPath: '/billingsuccessful'
+      preLoaderRoute: typeof BillingsuccessfulRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/billing': {
@@ -1392,6 +1412,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BezpieczenstwoRoute: BezpieczenstwoRoute,
   BillingRoute: BillingRoute,
+  BillingsuccessfulRoute: BillingsuccessfulRoute,
   CampaignComposerRoute: CampaignComposerRouteWithChildren,
   CheckoutRoute: CheckoutRouteWithChildren,
   IntegrationsRoute: IntegrationsRouteWithChildren,

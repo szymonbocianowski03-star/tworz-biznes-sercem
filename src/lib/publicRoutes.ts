@@ -7,6 +7,7 @@ export function isPublicPath(pathname: string): boolean {
   if (pathname === "/regulamin") return true;
   if (pathname === "/polityka-prywatnosci") return true;
   if (pathname === "/checkout" || pathname === "/checkout/return") return true;
+  if (pathname === "/billingsuccessful") return true;
   if (pathname === "/usuwanie-danych") return true;
   if (pathname === "/program-partnerski") return true;
   if (pathname.startsWith("/api/public/")) return true;
