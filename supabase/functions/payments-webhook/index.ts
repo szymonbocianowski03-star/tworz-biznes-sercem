@@ -31,7 +31,7 @@ function getSupabase() {
 
 function extractPriceId(subscription: any): string | null {
   const item = subscription.items?.data?.[0];
-  return item?.price?.metadata?.lovable_external_id || item?.price?.id || null;
+  return item?.price?.lookup_key || item?.price?.metadata?.lovable_external_id || item?.price?.id || null;
 }
 
 async function upsertSubscription(subscription: any, env: StripeEnv) {

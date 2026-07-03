@@ -5,7 +5,6 @@ import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useCredits } from "@/hooks/useCredits";
 import { AppBackLink } from "@/components/AppBackLink";
-import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { BillingPeriodToggle } from "@/components/SegmentedControl";
 import {
@@ -112,7 +111,6 @@ function BillingPage() {
           {" — "}
           <span className="opacity-90">Konto Free bez karty — płatność przy upgrade.</span>
         </div>
-        <PaymentTestModeBanner />
         <div className="mx-auto max-w-3xl px-6 py-10 flex-1 w-full">
           <AppBackLink to="/billing" label="Wróć do planów" className="mb-6" />
           {checkoutElement}
@@ -133,7 +131,6 @@ function BillingPage() {
         {" — "}
         <span className="opacity-90">Zacznij od konta Free — bez karty kredytowej; płatność dopiero przy wyborze płatnego planu.</span>
       </div>
-      <PaymentTestModeBanner />
       <div className="mx-auto max-w-6xl px-6 py-12 flex-1 w-full">
         <AppBackLink className="mb-6" />
         <header className="text-center">
