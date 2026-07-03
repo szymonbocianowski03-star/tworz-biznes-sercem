@@ -53,7 +53,6 @@ function CheckoutPage() {
             priceId={priceId}
             customerEmail={user.email}
             userId={user.id}
-            returnUrl={`${window.location.origin}/billingsuccessful?session_id={CHECKOUT_SESSION_ID}`}
           />
         )}
       </main>

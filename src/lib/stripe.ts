@@ -17,7 +17,7 @@ let stripePromise: Promise<Stripe | null> | null = null;
 export function getStripe(): Promise<Stripe | null> {
   if (!stripePromise) {
     paymentsEnvironment();
-    stripePromise = loadStripe(clientToken);
+    stripePromise = loadStripe(clientToken as string);
   }
   return stripePromise;
 }
