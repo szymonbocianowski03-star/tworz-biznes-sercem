@@ -2,6 +2,7 @@ import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { AppBackLink } from "@/components/AppBackLink";
 import { MarketingNowLogo } from "@/components/MarketingNowLogo";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 type Search = { priceId?: string };
 
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const { priceId } = useSearch({ from: "/checkout" });
+  const { user, loading } = useAuthSession();
 
   return (
     <div className="collins-root min-h-screen bg-background flex flex-col">
@@ -37,8 +39,21 @@ function CheckoutPage() {
               Otwórz cennik w aplikacji
             </Link>
           </div>
+        ) : loading ? (
+          <div className="text-center py-20 text-muted-foreground">Sprawdzam sesję…</div>
+        ) : !user ? (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground">Zaloguj się, aby dokończyć płatność.</p>
+            <Link to="/auth" className="mt-4 inline-block text-sm underline">
+              Przejdź do logowania
+            </Link>
+          </div>
         ) : (
-          <StripeEmbeddedCheckout priceId={priceId} />
+          <StripeEmbeddedCheckout
+            priceId={priceId}
+            customerEmail={user.email}
+            userId={user.id}
+          />
         )}
       </main>
 

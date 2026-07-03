@@ -52,13 +52,12 @@ export type Plan = {
   highlight?: boolean;
 };
 
-// Ta sama lista benefitów na każdej karcie; zmienia się tylko cena i liczba kredytów.
+// Nie pokazujemy limitów typu „konta reklamowe” ani „liczba produktów” — checkout ma mówić tylko o planie i kredytach.
 const PLAN_FEATURES_SHARED: string[] = [
-  "Limit kredytów w panelu (zużycie na żywo)",
-  "Nielimitowane produkty",
-  "Wszystkie szablony",
-  "Integracje Meta + LinkedIn",
-  "Priorytetowe wsparcie",
+  "Kredyty AI zgodnie z wybranym planem",
+  "Generowanie treści i materiałów AI",
+  "Panel zużycia kredytów",
+  "Dostęp do narzędzi MarketingNow",
 ];
 
 // Płatność za rok z góry = ta sama zniżka tu i na landingzie (10%).

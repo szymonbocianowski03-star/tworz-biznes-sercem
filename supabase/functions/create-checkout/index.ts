@@ -7,6 +7,40 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+async function resolveOrCreateCustomer(
+  stripe: ReturnType<typeof createStripeClient>,
+  options: { email?: string; userId: string },
+): Promise<string> {
+  if (!/^[a-zA-Z0-9_-]+$/.test(options.userId)) {
+    throw new Error("Invalid userId");
+  }
+
+  const foundByUser = await stripe.customers.search({
+    query: `metadata['userId']:'${options.userId}'`,
+    limit: 1,
+  });
+  if (foundByUser.data.length) return foundByUser.data[0].id;
+
+  if (options.email) {
+    const foundByEmail = await stripe.customers.list({ email: options.email, limit: 1 });
+    if (foundByEmail.data.length) {
+      const customer = foundByEmail.data[0];
+      if (customer.metadata?.userId !== options.userId) {
+        await stripe.customers.update(customer.id, {
+          metadata: { ...customer.metadata, userId: options.userId },
+        });
+      }
+      return customer.id;
+    }
+  }
+
+  const created = await stripe.customers.create({
+    ...(options.email && { email: options.email }),
+    metadata: { userId: options.userId },
+  });
+  return created.id;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -46,22 +80,35 @@ Deno.serve(async (req) => {
 
     const stripe = createStripeClient(environment);
 
-    const prices = await stripe.prices.list({ lookup_keys: [priceId] });
+    const prices = await stripe.prices.list({ lookup_keys: [priceId], active: true, limit: 1 });
     if (!prices.data.length) throw new Error(`Price not found: ${priceId}`);
     const stripePrice = prices.data[0];
     const isRecurring = stripePrice.type === "recurring";
+    const customerId = await resolveOrCreateCustomer(stripe, {
+      email: customerEmail,
+      userId: authedUserId,
+    });
+
+    let productDescription: string | undefined;
+    if (!isRecurring) {
+      const productId = typeof stripePrice.product === "string" ? stripePrice.product : stripePrice.product.id;
+      const product = await stripe.products.retrieve(productId);
+      productDescription = product.name;
+    }
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
-      ...(customerEmail && { customer_email: customerEmail }),
-      metadata: { userId: authedUserId, lovable_price_id: priceId },
+      customer: customerId,
+      metadata: { userId: authedUserId, lovable_price_id: priceId, managed_payments: "true" },
+      managed_payments: { enabled: true },
+      ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
       ...(isRecurring && {
-        subscription_data: { metadata: { userId: authedUserId } },
+        subscription_data: { metadata: { userId: authedUserId, lovable_price_id: priceId } },
       }),
-    });
+    } as any);
 
     return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
       status: 200,

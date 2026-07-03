@@ -3,20 +3,25 @@ import { loadStripe, type Stripe } from "@stripe/stripe-js";
 type StripeEnv = "sandbox" | "live";
 
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
-const environment: StripeEnv = clientToken?.startsWith("pk_test_") ? "sandbox" : "live";
+
+function paymentsEnvironment(): StripeEnv {
+  if (clientToken?.startsWith("pk_test_")) return "sandbox";
+  if (clientToken?.startsWith("pk_live_")) return "live";
+  throw new Error(
+    "Stripe payments are not configured for this build. Complete Stripe setup before accepting payments.",
+  );
+}
 
 let stripePromise: Promise<Stripe | null> | null = null;
 
 export function getStripe(): Promise<Stripe | null> {
   if (!stripePromise) {
-    if (!clientToken) {
-      throw new Error("VITE_PAYMENTS_CLIENT_TOKEN is not set");
-    }
-    stripePromise = loadStripe(clientToken);
+    paymentsEnvironment();
+    stripePromise = loadStripe(clientToken as string);
   }
   return stripePromise;
 }
 
 export function getStripeEnvironment(): StripeEnv {
-  return environment;
+  return paymentsEnvironment();
 }

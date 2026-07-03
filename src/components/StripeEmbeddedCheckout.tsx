@@ -1,4 +1,5 @@
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
+import { useCallback, useMemo } from "react";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,10 +18,10 @@ export function StripeEmbeddedCheckout({
   userId,
   returnUrl,
 }: Props) {
-  const fetchClientSecret = async (): Promise<string> => {
+  const fetchClientSecret = useCallback(async (): Promise<string> => {
     const finalReturnUrl =
       returnUrl ||
-      `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
+      `${window.location.origin}/billingsuccessful?session_id={CHECKOUT_SESSION_ID}`;
     const { data, error } = await supabase.functions.invoke("create-checkout", {
       body: {
         priceId,
@@ -35,11 +36,13 @@ export function StripeEmbeddedCheckout({
       throw new Error(error?.message || "Nie udało się utworzyć sesji płatności");
     }
     return data.clientSecret as string;
-  };
+  }, [customerEmail, priceId, quantity, returnUrl, userId]);
+
+  const checkoutOptions = useMemo(() => ({ fetchClientSecret }), [fetchClientSecret]);
 
   return (
-    <div id="checkout">
-      <EmbeddedCheckoutProvider stripe={getStripe()} options={{ fetchClientSecret }}>
+    <div id="checkout" key={priceId}>
+      <EmbeddedCheckoutProvider stripe={getStripe()} options={checkoutOptions}>
         <EmbeddedCheckout />
       </EmbeddedCheckoutProvider>
     </div>

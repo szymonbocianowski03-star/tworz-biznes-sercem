@@ -16,25 +16,25 @@ export function UpgradeAccountDialog({ open, onClose, variant = "signup" }: Prop
 
   const title = isSignup
     ? "Rozszerz plan Free — załóż darmowe konto"
-    : "Wykorzystałeś darmowe produkty";
+    : "Potrzebujesz więcej kredytów AI";
   const subtitle = isSignup
-    ? "Anonimowo masz 1 produkt. Po rejestracji odblokowujesz pełny plan Free — bez karty, bez zobowiązań."
-    : "Plan Free obejmuje 3 produkty. Aby dodać więcej, przejdź na Pro.";
+    ? "Po rejestracji zapisujesz pracę na koncie i możesz korzystać z limitu Free — bez karty, bez zobowiązań."
+    : "Przejdź do cennika, aby zwiększyć miesięczną pulę kredytów albo dokupić jednorazowy pakiet.";
 
   const benefits = isSignup
     ? [
-        { icon: Package, label: "Do 3 produktów zamiast 1" },
+        { icon: Sparkles, label: "Limit Free na start pracy z AI" },
         { icon: Cloud, label: "Synchronizacja w chmurze między urządzeniami" },
         { icon: History, label: "Historia czatów i kampanii zapisana na koncie" },
       ]
     : [
-        { icon: Package, label: "Nielimitowana liczba produktów" },
-        { icon: Sparkles, label: "Więcej generacji AI miesięcznie" },
-        { icon: Cloud, label: "Priorytetowe wsparcie" },
+        { icon: Sparkles, label: "Większa pula kredytów AI" },
+        { icon: Cloud, label: "Kredyty doliczane do konta" },
+        { icon: History, label: "Kontynuacja pracy bez utraty historii" },
       ];
 
-  const ctaTo = isSignup ? "/auth" : "/";
-  const ctaLabel = isSignup ? "Załóż darmowe konto" : "Zobacz plan Pro";
+  const ctaTo = isSignup ? "/auth" : "/billing";
+  const ctaLabel = isSignup ? "Załóż darmowe konto" : "Przejdź do cennika";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
