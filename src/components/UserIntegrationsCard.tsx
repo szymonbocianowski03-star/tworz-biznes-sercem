@@ -16,11 +16,14 @@ import {
 } from "@/lib/userCalendar.functions";
 import { isMailCalendarComingSoon } from "@/lib/userIntegrationsComingSoon";
 
+type GoogleOAuthAvailability = { canStart: boolean; canComplete: boolean };
+
 export function UserIntegrationsCard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState<Awaited<ReturnType<typeof getUserEmailStatus>> | null>(null);
   const [cal, setCal] = useState<Awaited<ReturnType<typeof getUserCalendarStatus>> | null>(null);
+  const [googleOAuth, setGoogleOAuth] = useState<GoogleOAuthAvailability | null>(null);
   const [resendKey, setResendKey] = useState("");
   const [fromEmail, setFromEmail] = useState("");
 
@@ -54,17 +57,33 @@ export function UserIntegrationsCard() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    fetch("/api/public/oauth/config")
+      .then((r) => r.json())
+      .then((data: { google?: GoogleOAuthAvailability }) => setGoogleOAuth(data.google ?? null))
+      .catch(() => setGoogleOAuth(null));
+  }, []);
+
   const connectGoogle = async (service: "gmail" | "calendar") => {
     if (!userId) return toast.error("Zaloguj się.");
+    if (googleOAuth && !googleOAuth.canStart) {
+      toast.error(
+        "Integracja Google nie jest skonfigurowana. Dodaj GOOGLE_OAUTH_CLIENT_ID i GOOGLE_OAUTH_CLIENT_SECRET do pliku .env i zrestartuj aplikację.",
+        { duration: 8000 },
+      );
+      return;
+    }
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) return toast.error("Zaloguj się ponownie.");
-    const startUrl = new URL("/api/public/google/start", googleIntegrationOrigin());
-    startUrl.searchParams.set("token", token);
-    startUrl.searchParams.set("service", service);
-    startUrl.searchParams.set("force_login", "1");
-    startUrl.searchParams.set("return_to", `${window.location.origin}/integrations`);
-    window.location.href = startUrl.toString();
+    const params = new URLSearchParams({
+      token,
+      service,
+      force_login: "1",
+      return_to: `${window.location.origin}/integrations`,
+    });
+    toast.message(`Przekierowuję do autoryzacji Google (${service === "gmail" ? "Gmail" : "Kalendarz"})…`);
+    window.location.href = `/api/public/google/start?${params.toString()}`;
   };
   const connectMicrosoft = async (service: "mail" | "calendar") => {
     if (!userId) return toast.error("Zaloguj się.");
@@ -175,6 +194,16 @@ export function UserIntegrationsCard() {
           </div>
         </header>
 
+        {googleOAuth && !googleOAuth.canComplete && (
+          <p className="mb-4 rounded-lg border border-amber-600/20 bg-amber-50 px-3 py-2 text-xs text-amber-900 leading-relaxed">
+            Aby połączyć Gmail lub Kalendarz Google, dodaj do pliku <code className="font-mono">.env</code>{" "}
+            zmienne <code className="font-mono">GOOGLE_OAUTH_CLIENT_ID</code>,{" "}
+            <code className="font-mono">GOOGLE_OAUTH_CLIENT_SECRET</code> oraz{" "}
+            <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code>, a w Google Cloud Console ustaw redirect URI:{" "}
+            <code className="font-mono">{typeof window !== "undefined" ? window.location.origin : ""}/api/public/auth/google/callback</code>
+          </p>
+        )}
+
         <div className="grid gap-3 md:grid-cols-3">
           <ProviderTile
             title="Gmail"
@@ -224,7 +253,7 @@ export function UserIntegrationsCard() {
           </div>
         )}
 
-        {email?.smtp && (
+        {(email?.gmail || email?.smtp) && (
           <button
             onClick={() => void sendTest()}
             className="mt-4 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
@@ -288,16 +317,6 @@ export function UserIntegrationsCard() {
       </section>
     </div>
   );
-}
-
-function googleIntegrationOrigin(): string {
-  if (typeof window === "undefined") return "https://marketingnow.site";
-  const host = window.location.hostname;
-  if (host === "localhost" || host === "127.0.0.1") {
-    return window.location.origin;
-  }
-  if (host === "marketingnow.site" || host === "www.marketingnow.site") return "https://marketingnow.site";
-  return "https://marketingnow.site";
 }
 
 function ProviderTile({
