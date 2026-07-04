@@ -89,13 +89,6 @@ Deno.serve(async (req) => {
       userId: authedUserId,
     });
 
-    let productDescription: string | undefined;
-    if (!isRecurring) {
-      const productId = typeof stripePrice.product === "string" ? stripePrice.product : stripePrice.product.id;
-      const product = await stripe.products.retrieve(productId);
-      productDescription = product.name;
-    }
-
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
@@ -113,7 +106,6 @@ Deno.serve(async (req) => {
       // subskrypcji). Dla pakietów kredytów wymuszamy je jawnie; subskrypcje zostają
       // przy dynamicznych metodach (karta, Link).
       ...(!isRecurring && { payment_method_types: ["card", "blik", "p24"] }),
-      ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
       ...(isRecurring && {
         subscription_data: { metadata: { userId: authedUserId, lovable_price_id: priceId } },
       }),
