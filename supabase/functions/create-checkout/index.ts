@@ -102,8 +102,11 @@ Deno.serve(async (req) => {
       ui_mode: "embedded_page",
       return_url: returnUrl,
       customer: customerId,
-      metadata: { userId: authedUserId, lovable_price_id: priceId, managed_payments: "true" },
-      managed_payments: { enabled: true },
+      metadata: { userId: authedUserId, lovable_price_id: priceId, managed_payments: "false" },
+      // Wyłączamy managed payments (rail „Link"), żeby Stripe pokazał wszystkie
+      // metody włączone na koncie (karta, BLIK, Przelewy24 dla PLN itd.).
+      // Stripe sam kalkuluje i pobiera podatek; rozliczenie/remittance po stronie sprzedawcy.
+      automatic_tax: { enabled: true },
       ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
       ...(isRecurring && {
         subscription_data: { metadata: { userId: authedUserId, lovable_price_id: priceId } },
