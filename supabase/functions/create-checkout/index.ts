@@ -107,6 +107,8 @@ Deno.serve(async (req) => {
       // metody włączone na koncie (karta, BLIK, Przelewy24 dla PLN itd.).
       // Stripe sam kalkuluje i pobiera podatek; rozliczenie/remittance po stronie sprzedawcy.
       automatic_tax: { enabled: true },
+      // Automatyczny podatek wymaga adresu na kliencie — zapisz adres z checkoutu.
+      customer_update: { address: "auto" },
       ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
       ...(isRecurring && {
         subscription_data: { metadata: { userId: authedUserId, lovable_price_id: priceId } },
