@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Check, Sparkles, Coins, Zap } from "lucide-react";
+import { Check, Sparkles, Coins, Zap, ArrowLeft } from "lucide-react";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useCredits } from "@/hooks/useCredits";
@@ -44,7 +44,7 @@ type UsageRow = {
 function BillingPage() {
   const { user } = useAuthSession();
   const credits = useCredits();
-  const { openCheckout, checkoutElement, isOpen } = useStripeCheckout();
+  const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const yFromUrl = Route.useSearch().yearly;
   const [yearly, setYearly] = useState(yFromUrl);
   const prevYUrl = useRef(yFromUrl);
@@ -112,7 +112,14 @@ function BillingPage() {
           <span className="opacity-90">Konto Free bez karty — płatność przy upgrade.</span>
         </div>
         <div className="mx-auto max-w-3xl px-6 py-10 flex-1 w-full">
-          <AppBackLink to="/billing" label="Wróć do planów" className="mb-6" />
+          <button
+            type="button"
+            onClick={closeCheckout}
+            className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 shrink-0" />
+            Wróć do planów
+          </button>
           {checkoutElement}
         </div>
       </div>
