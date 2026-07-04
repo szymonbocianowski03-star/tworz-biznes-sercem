@@ -102,10 +102,9 @@ Deno.serve(async (req) => {
       automatic_tax: { enabled: true },
       // Automatyczny podatek wymaga adresu na kliencie — zapisz adres z checkoutu.
       customer_update: { address: "auto" },
-      // BLIK i Przelewy24 działają TYLKO dla płatności jednorazowych (nie obsługują
-      // subskrypcji). Dla pakietów kredytów wymuszamy je jawnie; subskrypcje zostają
-      // przy dynamicznych metodach (karta, Link).
-      ...(!isRecurring && { payment_method_types: ["card", "blik", "p24"] }),
+      // Nie wymuszamy ręcznie metod płatności, bo Stripe odrzuca checkout,
+      // jeśli dana metoda (np. Przelewy24) nie jest aktywna/dostępna dla konta.
+      // Checkout ma się zawsze otworzyć, a Stripe pokaże dostępne metody automatycznie.
       ...(isRecurring && {
         subscription_data: { metadata: { userId: authedUserId, lovable_price_id: priceId } },
       }),
