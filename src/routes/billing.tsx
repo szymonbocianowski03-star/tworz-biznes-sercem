@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Check, Sparkles, Coins, Zap } from "lucide-react";
+import { Check, Sparkles, Coins, Zap, ArrowLeft } from "lucide-react";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useCredits } from "@/hooks/useCredits";
