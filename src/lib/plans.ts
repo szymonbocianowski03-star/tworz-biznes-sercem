@@ -31,11 +31,15 @@ export function imagesForPln(pln: number): number {
 
 /** Miesięczna pula subskrypcji: X zł → floor(X·0,5) obrazów → ×100 kredytów. */
 export function creditsForSubscriptionMonthly(pln: number): number {
+  const fixed = Object.values(PLAN_CREDITS_BY_PRICE).find((row) => row.price === pln);
+  if (fixed) return fixed.credits;
   return imagesForPln(pln) * CREDITS_PER_IMAGE;
 }
 
 /** Jednorazowa paczka kredytów — drożej za kredyt niż subskrypcja (25% ceny → generacje). */
 export function creditsForPaidRetailPln(pln: number): number {
+  const fixed = Object.values(CREDIT_PACK_CREDITS_BY_PRICE).find((row) => row.price === pln);
+  if (fixed) return fixed.credits;
   if (pln <= 0) return 0;
   const images = Math.floor((pln * RETAIL_POOL_FRAC) / COST_PER_IMAGE_PLN);
   return images * CREDITS_PER_IMAGE;
@@ -63,18 +67,18 @@ const PLAN_FEATURES_SHARED: string[] = [
 // Płatność za rok z góry = ta sama zniżka tu i na landingzie (10%).
 export const PLAN_YEARLY_DISCOUNT_FRAC = 0.1;
 
-const PLAN_CREDITS = {
-  starter: 2400,
-  pro: 7400,
-  growth: 19900,
-  business: 24900,
-  enterprise: 74900,
+const PLAN_CREDITS_BY_PRICE = {
+  starter: { price: 49, credits: 2400 },
+  pro: { price: 149, credits: 7400 },
+  growth: { price: 399, credits: 19900 },
+  business: { price: 499, credits: 24900 },
+  enterprise: { price: 1499, credits: 74900 },
 } as const;
 
-const CREDIT_PACK_CREDITS = {
-  credits_200: 400,
-  credits_1000: 1900,
-  credits_5000: 7400,
+const CREDIT_PACK_CREDITS_BY_PRICE = {
+  credits_200: { price: 19, credits: 400 },
+  credits_1000: { price: 79, credits: 1900 },
+  credits_5000: { price: 299, credits: 7400 },
 } as const;
 
 // Ile zapłacisz za cały rok brutto (12 miesięcy z rabatem).
@@ -121,7 +125,7 @@ export const PLANS: Plan[] = [
     id: "starter",
     name: "Starter",
     monthly: 49,
-    credits: PLAN_CREDITS.starter,
+    credits: PLAN_CREDITS_BY_PRICE.starter.credits,
     monthlyPriceId: "starter_monthly",
     yearlyPriceId: "starter_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -130,7 +134,7 @@ export const PLANS: Plan[] = [
     id: "pro",
     name: "Pro",
     monthly: 149,
-    credits: PLAN_CREDITS.pro,
+    credits: PLAN_CREDITS_BY_PRICE.pro.credits,
     monthlyPriceId: "pro_monthly",
     yearlyPriceId: "pro_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -139,7 +143,7 @@ export const PLANS: Plan[] = [
     id: "growth",
     name: "Growth",
     monthly: 399,
-    credits: PLAN_CREDITS.growth,
+    credits: PLAN_CREDITS_BY_PRICE.growth.credits,
     monthlyPriceId: "growth_monthly",
     yearlyPriceId: "growth_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -149,7 +153,7 @@ export const PLANS: Plan[] = [
     id: "business",
     name: "Business",
     monthly: 499,
-    credits: PLAN_CREDITS.business,
+    credits: PLAN_CREDITS_BY_PRICE.business.credits,
     monthlyPriceId: "business_monthly",
     yearlyPriceId: "business_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -158,7 +162,7 @@ export const PLANS: Plan[] = [
     id: "enterprise",
     name: "Enterprise",
     monthly: 1499,
-    credits: PLAN_CREDITS.enterprise,
+    credits: PLAN_CREDITS_BY_PRICE.enterprise.credits,
     monthlyPriceId: "enterprise_monthly",
     yearlyPriceId: "enterprise_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -171,7 +175,7 @@ function packLabel(credits: number): string {
 }
 
 export const CREDIT_PACKS = [
-  { id: "credits_200", credits: CREDIT_PACK_CREDITS.credits_200, price: 19, label: packLabel(CREDIT_PACK_CREDITS.credits_200) },
-  { id: "credits_1000", credits: CREDIT_PACK_CREDITS.credits_1000, price: 79, label: packLabel(CREDIT_PACK_CREDITS.credits_1000), highlight: true },
-  { id: "credits_5000", credits: CREDIT_PACK_CREDITS.credits_5000, price: 299, label: packLabel(CREDIT_PACK_CREDITS.credits_5000) },
+  { id: "credits_200", credits: CREDIT_PACK_CREDITS_BY_PRICE.credits_200.credits, price: 19, label: packLabel(CREDIT_PACK_CREDITS_BY_PRICE.credits_200.credits) },
+  { id: "credits_1000", credits: CREDIT_PACK_CREDITS_BY_PRICE.credits_1000.credits, price: 79, label: packLabel(CREDIT_PACK_CREDITS_BY_PRICE.credits_1000.credits), highlight: true },
+  { id: "credits_5000", credits: CREDIT_PACK_CREDITS_BY_PRICE.credits_5000.credits, price: 299, label: packLabel(CREDIT_PACK_CREDITS_BY_PRICE.credits_5000.credits) },
 ] as const;
