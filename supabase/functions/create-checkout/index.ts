@@ -214,7 +214,6 @@ Deno.serve(async (req) => {
               tax_code: catalogItem.taxCode,
               metadata: { lovable_price_id: priceId },
             },
-            metadata: { lovable_price_id: priceId },
           },
         },
       ],
