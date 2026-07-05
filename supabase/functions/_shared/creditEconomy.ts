@@ -16,6 +16,20 @@ export const CREDIT_MARGIN_FRAC = 0.5;
 /** Ułamek ceny paczki jednorazowej na generacje (subskrypcja = 50%, paczka = 25%). */
 export const RETAIL_POOL_FRAC = 0.25;
 
+const SUBSCRIPTION_CREDITS_BY_PLN: Record<number, number> = {
+  49: 2400,
+  149: 7400,
+  399: 19900,
+  499: 24900,
+  1499: 74900,
+};
+
+const RETAIL_CREDITS_BY_PLN: Record<number, number> = {
+  19: 400,
+  79: 1900,
+  299: 7400,
+};
+
 /** Ile obrazów finansuje kwota w zł przy 50% marży (reszta to koszt 1 zł/obraz). */
 function imagesForPln(pln: number): number {
   if (pln <= 0) return 0;
@@ -24,6 +38,7 @@ function imagesForPln(pln: number): number {
 
 /** Jednorazowa paczka kredytów — drożej za kredyt niż subskrypcja (25% ceny → generacje). */
 export function creditsForRetailPln(pln: number): number {
+  if (RETAIL_CREDITS_BY_PLN[pln] != null) return RETAIL_CREDITS_BY_PLN[pln];
   if (pln <= 0) return 0;
   const images = Math.floor((pln * RETAIL_POOL_FRAC) / COST_PER_IMAGE_PLN);
   return images * CREDITS_PER_IMAGE;
@@ -39,5 +54,6 @@ export const CREDITS_PER_USD_CENT = 4;
 
 /** Subskrypcja miesięczna: X zł → floor(X·0,5) obrazów → ×100 kredytów. */
 export function creditsForSubscriptionMonthlyPln(pln: number): number {
+  if (SUBSCRIPTION_CREDITS_BY_PLN[pln] != null) return SUBSCRIPTION_CREDITS_BY_PLN[pln];
   return imagesForPln(pln) * CREDITS_PER_IMAGE;
 }

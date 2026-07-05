@@ -1,24 +1,23 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { creditsForRetailPln, creditsForSubscriptionMonthlyPln } from "../_shared/creditEconomy.ts";
 import { type StripeEnv, verifyWebhook } from "../_shared/stripe.ts";
 
 const PLAN_BY_PRICE: Record<string, { plan: string; credits: number }> = {
-  starter_monthly: { plan: "starter", credits: creditsForSubscriptionMonthlyPln(49) },
-  starter_yearly: { plan: "starter", credits: creditsForSubscriptionMonthlyPln(49) },
-  pro_monthly: { plan: "pro", credits: creditsForSubscriptionMonthlyPln(149) },
-  pro_yearly: { plan: "pro", credits: creditsForSubscriptionMonthlyPln(149) },
-  growth_monthly: { plan: "growth", credits: creditsForSubscriptionMonthlyPln(399) },
-  growth_yearly: { plan: "growth", credits: creditsForSubscriptionMonthlyPln(399) },
-  business_monthly: { plan: "business", credits: creditsForSubscriptionMonthlyPln(499) },
-  business_yearly: { plan: "business", credits: creditsForSubscriptionMonthlyPln(499) },
-  enterprise_monthly: { plan: "enterprise", credits: creditsForSubscriptionMonthlyPln(1499) },
-  enterprise_yearly: { plan: "enterprise", credits: creditsForSubscriptionMonthlyPln(1499) },
+  starter_monthly: { plan: "starter", credits: 2400 },
+  starter_yearly: { plan: "starter", credits: 2400 },
+  pro_monthly: { plan: "pro", credits: 7400 },
+  pro_yearly: { plan: "pro", credits: 7400 },
+  growth_monthly: { plan: "growth", credits: 19900 },
+  growth_yearly: { plan: "growth", credits: 19900 },
+  business_monthly: { plan: "business", credits: 24900 },
+  business_yearly: { plan: "business", credits: 24900 },
+  enterprise_monthly: { plan: "enterprise", credits: 74900 },
+  enterprise_yearly: { plan: "enterprise", credits: 74900 },
 };
 
 const CREDIT_PACK_BY_PRICE: Record<string, number> = {
-  credits_200: creditsForRetailPln(19),
-  credits_1000: creditsForRetailPln(79),
-  credits_5000: creditsForRetailPln(299),
+  credits_200: 400,
+  credits_1000: 1900,
+  credits_5000: 7400,
 };
 
 let _supabase: ReturnType<typeof createClient> | null = null;

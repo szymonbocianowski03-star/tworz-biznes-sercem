@@ -95,6 +95,7 @@ Deno.serve(async (req) => {
       ui_mode: "embedded_page",
       return_url: returnUrl,
       customer: customerId,
+      allow_promotion_codes: true,
       metadata: { userId: authedUserId, lovable_price_id: priceId, managed_payments: "false" },
       // Wyłączamy managed payments (rail „Link"), żeby Stripe pokazał wszystkie
       // metody włączone na koncie (karta, BLIK, Przelewy24 dla PLN itd.).
