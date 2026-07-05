@@ -63,6 +63,20 @@ const PLAN_FEATURES_SHARED: string[] = [
 // Płatność za rok z góry = ta sama zniżka tu i na landingzie (10%).
 export const PLAN_YEARLY_DISCOUNT_FRAC = 0.1;
 
+const PLAN_CREDITS = {
+  starter: 2400,
+  pro: 7400,
+  growth: 19900,
+  business: 24900,
+  enterprise: 74900,
+} as const;
+
+const CREDIT_PACK_CREDITS = {
+  credits_200: 400,
+  credits_1000: 1900,
+  credits_5000: 7400,
+} as const;
+
 // Ile zapłacisz za cały rok brutto (12 miesięcy z rabatem).
 export function planYearlyTotalGrossPln(monthlyGrossPln: number): number {
   return Math.round(monthlyGrossPln * 12 * (1 - PLAN_YEARLY_DISCOUNT_FRAC));
@@ -107,7 +121,7 @@ export const PLANS: Plan[] = [
     id: "starter",
     name: "Starter",
     monthly: 49,
-    credits: creditsForSubscriptionMonthly(49),
+    credits: PLAN_CREDITS.starter,
     monthlyPriceId: "starter_monthly",
     yearlyPriceId: "starter_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -116,7 +130,7 @@ export const PLANS: Plan[] = [
     id: "pro",
     name: "Pro",
     monthly: 149,
-    credits: creditsForSubscriptionMonthly(149),
+    credits: PLAN_CREDITS.pro,
     monthlyPriceId: "pro_monthly",
     yearlyPriceId: "pro_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -125,7 +139,7 @@ export const PLANS: Plan[] = [
     id: "growth",
     name: "Growth",
     monthly: 399,
-    credits: creditsForSubscriptionMonthly(399),
+    credits: PLAN_CREDITS.growth,
     monthlyPriceId: "growth_monthly",
     yearlyPriceId: "growth_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -135,7 +149,7 @@ export const PLANS: Plan[] = [
     id: "business",
     name: "Business",
     monthly: 499,
-    credits: creditsForSubscriptionMonthly(499),
+    credits: PLAN_CREDITS.business,
     monthlyPriceId: "business_monthly",
     yearlyPriceId: "business_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -144,7 +158,7 @@ export const PLANS: Plan[] = [
     id: "enterprise",
     name: "Enterprise",
     monthly: 1499,
-    credits: creditsForSubscriptionMonthly(1499),
+    credits: PLAN_CREDITS.enterprise,
     monthlyPriceId: "enterprise_monthly",
     yearlyPriceId: "enterprise_yearly",
     features: [...PLAN_FEATURES_SHARED],
@@ -156,11 +170,8 @@ function packLabel(credits: number): string {
   return `${n} kredytów`;
 }
 
-const PACK_19_CREDITS = creditsForPaidRetailPln(19);
-const PACK_79_CREDITS = creditsForPaidRetailPln(79);
-const PACK_299_CREDITS = creditsForPaidRetailPln(299);
 export const CREDIT_PACKS = [
-  { id: "credits_200", credits: PACK_19_CREDITS, price: 19, label: packLabel(PACK_19_CREDITS) },
-  { id: "credits_1000", credits: PACK_79_CREDITS, price: 79, label: packLabel(PACK_79_CREDITS), highlight: true },
-  { id: "credits_5000", credits: PACK_299_CREDITS, price: 299, label: packLabel(PACK_299_CREDITS) },
+  { id: "credits_200", credits: CREDIT_PACK_CREDITS.credits_200, price: 19, label: packLabel(CREDIT_PACK_CREDITS.credits_200) },
+  { id: "credits_1000", credits: CREDIT_PACK_CREDITS.credits_1000, price: 79, label: packLabel(CREDIT_PACK_CREDITS.credits_1000), highlight: true },
+  { id: "credits_5000", credits: CREDIT_PACK_CREDITS.credits_5000, price: 299, label: packLabel(CREDIT_PACK_CREDITS.credits_5000) },
 ] as const;
