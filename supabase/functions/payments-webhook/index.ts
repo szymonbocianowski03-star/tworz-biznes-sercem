@@ -29,6 +29,8 @@ function getSupabase() {
 }
 
 function extractPriceId(subscription: any): string | null {
+  const metadataPriceId = subscription.metadata?.lovable_price_id;
+  if (metadataPriceId) return metadataPriceId;
   const item = subscription.items?.data?.[0];
   return item?.price?.lookup_key || item?.price?.metadata?.lovable_external_id || item?.price?.id || null;
 }
