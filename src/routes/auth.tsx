@@ -33,8 +33,9 @@ function AuthPage() {
     let mounted = true;
     let sub: { subscription: { unsubscribe: () => void } } | null = null;
     try {
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session) navigate({ to: "/agent" });
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        console.info("[auth] onAuthStateChange", event, !!session);
+        if (session) navigate({ to: "/agent", replace: true });
       });
       sub = data;
     } catch {
@@ -43,7 +44,8 @@ function AuthPage() {
       };
     }
     void supabase.auth.getSession().then(({ data }) => {
-      if (mounted && data.session) navigate({ to: "/agent" });
+      console.info("[auth] getSession on mount", !!data.session);
+      if (mounted && data.session) navigate({ to: "/agent", replace: true });
     });
     return () => {
       mounted = false;
@@ -124,11 +126,19 @@ function AuthPage() {
     setOauthLoading(true);
     try {
       const result = await signInWithGoogle("/auth");
+      console.info("[auth] signInWithGoogle result", result);
       if (result.error) {
         toast.error(translateAuthError(result.error.message));
         setOauthLoading(false);
       } else if (!result.redirected) {
-        setOauthLoading(false);
+        // Popup / in-place flow: session is already set — navigate explicitly
+        // instead of relying only on the onAuthStateChange listener.
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          navigate({ to: "/agent", replace: true });
+        } else {
+          setOauthLoading(false);
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Logowanie Google nie powiodło się.";
