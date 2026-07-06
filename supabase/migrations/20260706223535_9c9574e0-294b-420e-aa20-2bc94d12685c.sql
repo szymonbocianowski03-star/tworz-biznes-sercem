@@ -1,0 +1,1 @@
+DELETE FROM public.email_smtp_connections WHERE provider = 'resend' AND (resend_api_key IS NULL OR length(resend_api_key) < 16);
