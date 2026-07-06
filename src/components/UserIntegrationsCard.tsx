@@ -205,40 +205,64 @@ export function UserIntegrationsCard() {
           />
         </div>
 
-        {!email?.smtp && (
-          <div className="mt-4 rounded-lg border border-foreground/10 bg-muted/20 p-4 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Klucz Resend (alternatywa)</p>
-            <input
-              type="email"
-              placeholder="From: hello@twojadomena.pl"
-              value={fromEmail}
-              onChange={(e) => setFromEmail(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
-            <input
-              type="password"
-              placeholder="re_xxx — klucz API z resend.com"
-              value={resendKey}
-              onChange={(e) => setResendKey(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
+        <div className="mt-4 rounded-lg border border-foreground/10 bg-muted/20 p-4 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {email?.smtp ? "Zaktualizuj klucz Resend" : "Klucz Resend (alternatywa)"}
+          </p>
+          {email?.smtp && (
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Aktualnie połączone:{" "}
+              <span className="font-semibold text-foreground">
+                {email.smtp.provider} · {email.smtp.from_email}
+              </span>
+              . Możesz wkleić nowy klucz, aby go nadpisać.
+            </p>
+          )}
+          <input
+            type="email"
+            placeholder="From: hello@twojadomena.pl"
+            value={fromEmail}
+            onChange={(e) => setFromEmail(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          />
+          <input
+            type="password"
+            autoComplete="off"
+            placeholder="re_xxx — klucz API z resend.com"
+            value={resendKey}
+            onChange={(e) => setResendKey(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          />
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Klucz utworzysz na{" "}
+            <span className="font-semibold text-foreground">resend.com → API Keys</span>. Adres „From” musi
+            należeć do domeny zweryfikowanej w Resend (inaczej Resend odrzuci wysyłkę).
+          </p>
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => void saveResend()}
               className="rounded-lg bg-foreground text-background px-3 py-1.5 text-xs font-semibold"
             >
-              Zapisz klucz Resend
+              {email?.smtp ? "Zapisz nowy klucz" : "Zapisz klucz Resend"}
             </button>
+            {email?.smtp && (
+              <>
+                <button
+                  onClick={() => void sendTest()}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                >
+                  Wyślij test do siebie
+                </button>
+                <button
+                  onClick={() => void disconnectEmail("smtp")}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                >
+                  Rozłącz Resend
+                </button>
+              </>
+            )}
           </div>
-        )}
-
-        {email?.smtp && (
-          <button
-            onClick={() => void sendTest()}
-            className="mt-4 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
-          >
-            Wyślij test do siebie
-          </button>
-        )}
+        </div>
       </section>
 
       {/* CALENDAR */}
