@@ -29,6 +29,42 @@ function AuthPage() {
   const missingSupabase = !hasSupabasePublicEnv();
 
   useEffect(() => {
+    if (missingSupabase || typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+
+    if (!accessToken || !refreshToken) return;
+
+    window.history.replaceState(null, "", window.location.pathname);
+    setOauthLoading(true);
+
+    let cancelled = false;
+    void supabase.auth
+      .setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(async ({ error }) => {
+        if (cancelled) return;
+        if (error) throw error;
+
+        const { data, error: userError } = await supabase.auth.getUser();
+        if (userError || !data.user) throw userError ?? new Error("Nie udało się potwierdzić sesji Google.");
+
+        toast.success("Zalogowano przez Google.");
+        navigate({ to: "/agent", replace: true });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        toast.error(translateAuthError(err instanceof Error ? err.message : "Logowanie Google nie powiodło się."));
+        setOauthLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [missingSupabase, navigate]);
+
+  useEffect(() => {
     if (missingSupabase) return;
     let mounted = true;
     let sub: { subscription: { unsubscribe: () => void } } | null = null;
