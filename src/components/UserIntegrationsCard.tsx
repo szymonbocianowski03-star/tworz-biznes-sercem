@@ -79,9 +79,16 @@ export function UserIntegrationsCard() {
       toast.error("Podaj adres From i klucz API Resend.");
       return;
     }
+    const key = resendKey.trim();
+    if (!key.startsWith("re_") || key.length < 16) {
+      toast.error(
+        "To nie wygląda na poprawny klucz Resend. Skopiuj cały klucz z resend.com/api-keys — zaczyna się od „re_” i ma ok. 30 znaków.",
+      );
+      return;
+    }
     try {
       await fnSaveSmtp({
-        data: { provider: "resend", from_email: fromEmail, resend_api_key: resendKey },
+        data: { provider: "resend", from_email: fromEmail.trim(), resend_api_key: key },
       });
       toast.success("Zapisano klucz Resend.");
       setResendKey("");
