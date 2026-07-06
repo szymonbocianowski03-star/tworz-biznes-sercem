@@ -169,14 +169,14 @@ function Nav() {
             <Link
               to="/auth"
               onClick={() => sfx.chime()}
-              className="text-[12px] uppercase tracking-[0.14em] border border-neutral-300 px-4 py-2 hover:bg-neutral-100 transition-colors whitespace-nowrap"
+              className="hidden sm:inline-flex text-[12px] uppercase tracking-[0.14em] border border-neutral-300 px-4 py-2 hover:bg-neutral-100 transition-colors whitespace-nowrap"
             >
               Zaloguj się
             </Link>
             <Link
               to="/auth"
               onClick={() => sfx.success()}
-              className="text-[12px] uppercase tracking-[0.14em] border border-neutral-950 px-4 py-2 hover:bg-neutral-950 hover:text-white transition-colors whitespace-nowrap"
+              className="hidden sm:inline-flex text-[12px] uppercase tracking-[0.14em] border border-neutral-950 px-4 py-2 hover:bg-neutral-950 hover:text-white transition-colors whitespace-nowrap"
             >
               Rozpocznij za darmo
             </Link>
