@@ -323,6 +323,21 @@ function AuthPage() {
               </div>
             </label>
 
+            {mode === "signup" && (
+              <label className="flex items-start gap-2.5 cursor-pointer select-none text-left">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(e) => setMarketingConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-2 focus:ring-accent/40"
+                />
+                <span className="text-xs text-muted-foreground leading-relaxed">
+                  Chcę otrzymywać wiadomości e-mail i newsletter z poradami, nowościami
+                  i ofertami MarketingNow. Zgodę możesz wycofać w każdej chwili.
+                </span>
+              </label>
+            )}
+
             <button
               type="submit"
               disabled={loading || oauthLoading}
