@@ -520,3 +520,17 @@ function BillingPage() {
     </div>
   );
 }
+
+function translateBillingAuthError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("invalid login")) return "Niepoprawny email lub hasło.";
+  if (lower.includes("user already registered"))
+    return "Konto z tym emailem już istnieje. Zaloguj się, aby dokończyć zakup.";
+  if (lower.includes("password should be at least")) return "Hasło musi mieć co najmniej 8 znaków.";
+  if (lower.includes("email rate limit")) return "Za dużo prób. Spróbuj ponownie za chwilę.";
+  if (lower.includes("pwned") || lower.includes("compromised"))
+    return "To hasło wyciekło w internecie. Wybierz inne.";
+  if (lower.includes("email not confirmed") || lower.includes("not confirmed"))
+    return "Potwierdź e-mail, klikając link z wiadomości, a potem zaloguj się.";
+  return message;
+}
