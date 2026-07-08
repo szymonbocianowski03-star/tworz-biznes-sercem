@@ -24,6 +24,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const missingSupabase = !hasSupabasePublicEnv();
@@ -126,6 +127,7 @@ function AuthPage() {
               typeof window !== "undefined" ? `${window.location.origin}/auth` : undefined,
             data: {
               full_name: email.split("@")[0]?.trim() || email,
+              marketing_consent: marketingConsent,
             },
           },
         });
@@ -320,6 +322,21 @@ function AuthPage() {
                 />
               </div>
             </label>
+
+            {mode === "signup" && (
+              <label className="flex items-start gap-2.5 cursor-pointer select-none text-left">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(e) => setMarketingConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-2 focus:ring-accent/40"
+                />
+                <span className="text-xs text-muted-foreground leading-relaxed">
+                  Chcę otrzymywać wiadomości e-mail i newsletter z poradami, nowościami
+                  i ofertami MarketingNow. Zgodę możesz wycofać w każdej chwili.
+                </span>
+              </label>
+            )}
 
             <button
               type="submit"
