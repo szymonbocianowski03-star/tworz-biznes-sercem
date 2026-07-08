@@ -61,6 +61,7 @@ function BillingPage() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authConsent, setAuthConsent] = useState(false);
+  const [authTerms, setAuthTerms] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
   const loadUsageLog = useCallback(async () => {
@@ -121,6 +122,11 @@ function BillingPage() {
     setAuthLoading(true);
     try {
       if (authMode === "signup") {
+        if (!authTerms) {
+          toast.error("Aby założyć konto, zaakceptuj Regulamin i Politykę prywatności.");
+          setAuthLoading(false);
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email: authEmail,
           password: authPassword,
