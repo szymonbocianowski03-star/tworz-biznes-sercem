@@ -256,6 +256,23 @@ function BillingPage() {
                 <label className="flex items-start gap-2.5 cursor-pointer select-none text-left">
                   <input
                     type="checkbox"
+                    required
+                    checked={authTerms}
+                    onChange={(e) => setAuthTerms(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-2 focus:ring-accent/40"
+                  />
+                  <span className="text-xs text-muted-foreground leading-relaxed">
+                    Akceptuję{" "}
+                    <Link to="/regulamin" className="underline hover:text-foreground">Regulamin</Link>
+                    {" "}oraz{" "}
+                    <Link to="/polityka-prywatnosci" className="underline hover:text-foreground">Politykę prywatności</Link>.
+                  </span>
+                </label>
+              )}
+              {authMode === "signup" && (
+                <label className="flex items-start gap-2.5 cursor-pointer select-none text-left">
+                  <input
+                    type="checkbox"
                     checked={authConsent}
                     onChange={(e) => setAuthConsent(e.target.checked)}
                     className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-2 focus:ring-accent/40"
