@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, type FormEvent } from "react";
 import { Check, Sparkles, Coins, Zap, ArrowLeft, Loader2, Mail, Lock, X } from "lucide-react";
 import { toast } from "sonner";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
