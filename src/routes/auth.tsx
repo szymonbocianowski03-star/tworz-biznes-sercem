@@ -25,6 +25,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const missingSupabase = !hasSupabasePublicEnv();
@@ -119,6 +120,11 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
+        if (!acceptedTerms) {
+          toast.error("Aby założyć konto, zaakceptuj Regulamin i Politykę prywatności.");
+          setLoading(false);
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
