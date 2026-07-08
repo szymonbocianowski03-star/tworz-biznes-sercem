@@ -195,6 +195,113 @@ function BillingPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {pendingPriceId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-elevated">
+            <button
+              type="button"
+              onClick={() => setPendingPriceId(null)}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+              aria-label="Zamknij"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h2 className="font-display text-xl font-extrabold tracking-tight">
+              {authMode === "signup" ? "Załóż konto i zapłać" : "Zaloguj się i zapłać"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {authMode === "signup"
+                ? "Podaj e-mail i hasło — konto utworzymy automatycznie, a potem przejdziesz do płatności."
+                : "Masz już konto? Zaloguj się, aby dokończyć zakup."}
+            </p>
+            <form onSubmit={handleAuthAndBuy} className="mt-5 space-y-4">
+              <label className="block">
+                <span className="text-xs font-medium text-muted-foreground">Email</span>
+                <div className="mt-1.5 relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    required
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    placeholder="ty@firma.pl"
+                    autoComplete="email"
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
+                  />
+                </div>
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-muted-foreground">Hasło</span>
+                <div className="mt-1.5 relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder={authMode === "signup" ? "min. 8 znaków" : "Twoje hasło"}
+                    autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
+                  />
+                </div>
+              </label>
+              {authMode === "signup" && (
+                <label className="flex items-start gap-2.5 cursor-pointer select-none text-left">
+                  <input
+                    type="checkbox"
+                    checked={authConsent}
+                    onChange={(e) => setAuthConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-2 focus:ring-accent/40"
+                  />
+                  <span className="text-xs text-muted-foreground leading-relaxed">
+                    Chcę otrzymywać wiadomości e-mail i newsletter z poradami, nowościami i
+                    ofertami MarketingNow. Zgodę możesz wycofać w każdej chwili.
+                  </span>
+                </label>
+              )}
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background py-3 text-sm font-medium hover:opacity-90 transition disabled:opacity-60"
+              >
+                {authLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : authMode === "signup" ? (
+                  "Załóż konto i przejdź do płatności"
+                ) : (
+                  "Zaloguj się i przejdź do płatności"
+                )}
+              </button>
+            </form>
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              {authMode === "signup" ? (
+                <>
+                  Masz już konto?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode("signin")}
+                    className="font-medium text-foreground hover:text-accent"
+                  >
+                    Zaloguj się
+                  </button>
+                </>
+              ) : (
+                <>
+                  Nie masz konta?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode("signup")}
+                    className="font-medium text-foreground hover:text-accent"
+                  >
+                    Załóż konto
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="w-full bg-foreground text-background text-center py-2 px-4 text-[11px] sm:text-xs leading-snug">
         <span className="font-semibold">Zacznij za darmo</span>
         {" — "}
