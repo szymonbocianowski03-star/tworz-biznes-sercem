@@ -24,6 +24,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const missingSupabase = !hasSupabasePublicEnv();
@@ -126,6 +127,7 @@ function AuthPage() {
               typeof window !== "undefined" ? `${window.location.origin}/auth` : undefined,
             data: {
               full_name: email.split("@")[0]?.trim() || email,
+              marketing_consent: marketingConsent,
             },
           },
         });
