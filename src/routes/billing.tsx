@@ -56,6 +56,12 @@ function BillingPage() {
     }
   }, [yFromUrl]);
   const [usageLog, setUsageLog] = useState<UsageRow[]>([]);
+  const [pendingPriceId, setPendingPriceId] = useState<string | null>(null);
+  const [authMode, setAuthMode] = useState<"signup" | "signin">("signup");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authConsent, setAuthConsent] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
 
   const loadUsageLog = useCallback(async () => {
     if (!user) {
@@ -89,17 +95,72 @@ function BillingPage() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [loadUsageLog]);
 
+  const proceedCheckout = useCallback(
+    (priceId: string, account: { id: string; email?: string | null }) => {
+      openCheckout({
+        priceId,
+        customerEmail: account.email ?? undefined,
+        userId: account.id,
+        returnUrl: `${window.location.origin}/billingsuccessful?session_id={CHECKOUT_SESSION_ID}`,
+      });
+    },
+    [openCheckout],
+  );
+
   const buy = (priceId: string) => {
     if (!user) {
-      window.location.href = "/auth";
+      setPendingPriceId(priceId);
       return;
     }
-    openCheckout({
-      priceId,
-      customerEmail: user.email,
-      userId: user.id,
-      returnUrl: `${window.location.origin}/billingsuccessful?session_id={CHECKOUT_SESSION_ID}`,
-    });
+    proceedCheckout(priceId, user);
+  };
+
+  const handleAuthAndBuy = async (e: FormEvent) => {
+    e.preventDefault();
+    if (authLoading || !pendingPriceId) return;
+    setAuthLoading(true);
+    try {
+      if (authMode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth`,
+            data: {
+              full_name: authEmail.split("@")[0]?.trim() || authEmail,
+              marketing_consent: authConsent,
+            },
+          },
+        });
+        if (error) throw error;
+        if (data.session && data.user) {
+          const priceId = pendingPriceId;
+          setPendingPriceId(null);
+          toast.success("Konto utworzone. Przechodzę do płatności.");
+          proceedCheckout(priceId, data.user);
+        } else {
+          toast.success(
+            "Konto utworzone. Potwierdź e-mail, zaloguj się i wróć, aby dokończyć zakup.",
+            { duration: 8000 },
+          );
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: authPassword,
+        });
+        if (error) throw error;
+        if (data.user) {
+          const priceId = pendingPriceId;
+          setPendingPriceId(null);
+          proceedCheckout(priceId, data.user);
+        }
+      }
+    } catch (err) {
+      toast.error(translateBillingAuthError(err instanceof Error ? err.message : "Coś poszło nie tak."));
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   if (isOpen) {
