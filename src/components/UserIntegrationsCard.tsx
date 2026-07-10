@@ -349,6 +349,114 @@ export function UserIntegrationsCard() {
       </section>
 
       {/* CALENDAR */}
+      {/* KLAVIYO */}
+      <section className="rounded-xl border border-foreground/10 bg-card p-5">
+        <header className="flex items-start gap-3 mb-4">
+          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <Send className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-lg font-bold tracking-tight">Klaviyo</h2>
+              {klaviyo ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-600/20 px-2 py-0.5 text-[11px] font-semibold">
+                  <Check className="h-3 w-3" /> połączone
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground border border-foreground/10 px-2 py-0.5 text-[11px] font-semibold">
+                  <X className="h-3 w-3" /> nie
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Podłącz własne konto Klaviyo, aby synchronizować kontakty, zapisywać na newsletter i wyzwalać automatyczne przepływy (flows).
+            </p>
+          </div>
+        </header>
+
+        <div className="rounded-lg border border-foreground/10 bg-muted/20 p-4 space-y-3">
+          {klaviyo && (
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Aktualnie połączone
+              {klaviyo.from_email ? (
+                <>
+                  {" "}jako <span className="font-semibold text-foreground">{klaviyo.from_email}</span>
+                </>
+              ) : null}
+              {klaviyo.default_list_id ? (
+                <>
+                  {" "}· lista <span className="font-semibold text-foreground">{klaviyo.default_list_id}</span>
+                </>
+              ) : null}
+              . Możesz wkleić nowy klucz, aby go nadpisać.
+            </p>
+          )}
+          <input
+            type="password"
+            autoComplete="off"
+            placeholder="pk_xxx — Private API Key z Klaviyo"
+            value={klaviyoKey}
+            onChange={(e) => setKlaviyoKey(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          />
+          <div className="grid gap-3 md:grid-cols-2">
+            <input
+              type="email"
+              placeholder="Adres nadawcy (opcjonalnie)"
+              value={klaviyoFrom}
+              onChange={(e) => setKlaviyoFrom(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+            <input
+              type="text"
+              placeholder="ID domyślnej listy (opcjonalnie)"
+              value={klaviyoList}
+              onChange={(e) => setKlaviyoList(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Klucz utworzysz w{" "}
+            <span className="font-semibold text-foreground">Klaviyo → Settings → API Keys → Private API Keys</span>. ID listy
+            znajdziesz w <span className="font-semibold text-foreground">Lists &amp; Segments</span> (kolumna „List ID”).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              disabled={klaviyoBusy}
+              onClick={() => void saveKlaviyo()}
+              className="rounded-lg bg-foreground text-background px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+            >
+              {klaviyo ? "Zapisz nowy klucz" : "Połącz Klaviyo"}
+            </button>
+            {klaviyo && (
+              <>
+                <button
+                  disabled={klaviyoBusy}
+                  onClick={() => void testKlaviyoSubscribe()}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-60"
+                >
+                  Dodaj siebie jako kontakt
+                </button>
+                <button
+                  disabled={klaviyoBusy}
+                  onClick={() => void testKlaviyoEvent()}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-60"
+                >
+                  Wyślij testowy event
+                </button>
+                <button
+                  disabled={klaviyoBusy}
+                  onClick={() => void disconnectKlaviyo()}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-60"
+                >
+                  Rozłącz
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-xl border border-foreground/10 bg-card p-5">
         <header className="flex items-start gap-3 mb-4">
           <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
