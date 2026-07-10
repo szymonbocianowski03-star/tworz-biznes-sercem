@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Mail, CalendarDays, Check, X } from "lucide-react";
+import { Loader2, Mail, CalendarDays, Check, X, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -9,6 +9,13 @@ import {
   saveSmtpConnection,
   sendUserEmail,
 } from "@/lib/userEmail.functions";
+import {
+  getUserKlaviyoStatus,
+  saveKlaviyoConnection,
+  disconnectUserKlaviyo,
+  subscribeToKlaviyo,
+  trackKlaviyoEvent,
+} from "@/lib/userKlaviyo.functions";
 import {
   getUserCalendarStatus,
   disconnectUserCalendar,
@@ -23,6 +30,11 @@ export function UserIntegrationsCard() {
   const [cal, setCal] = useState<Awaited<ReturnType<typeof getUserCalendarStatus>> | null>(null);
   const [resendKey, setResendKey] = useState("");
   const [fromEmail, setFromEmail] = useState("");
+  const [klaviyo, setKlaviyo] = useState<Awaited<ReturnType<typeof getUserKlaviyoStatus>> | null>(null);
+  const [klaviyoKey, setKlaviyoKey] = useState("");
+  const [klaviyoFrom, setKlaviyoFrom] = useState("");
+  const [klaviyoList, setKlaviyoList] = useState("");
+  const [klaviyoBusy, setKlaviyoBusy] = useState(false);
 
   const fnEmailStatus = useServerFn(getUserEmailStatus);
   const fnCalStatus = useServerFn(getUserCalendarStatus);
@@ -31,6 +43,11 @@ export function UserIntegrationsCard() {
   const fnSaveSmtp = useServerFn(saveSmtpConnection);
   const fnSend = useServerFn(sendUserEmail);
   const fnSchedule = useServerFn(scheduleUserCalendarEvent);
+  const fnKlaviyoStatus = useServerFn(getUserKlaviyoStatus);
+  const fnKlaviyoSave = useServerFn(saveKlaviyoConnection);
+  const fnKlaviyoDisc = useServerFn(disconnectUserKlaviyo);
+  const fnKlaviyoSubscribe = useServerFn(subscribeToKlaviyo);
+  const fnKlaviyoEvent = useServerFn(trackKlaviyoEvent);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,14 +58,17 @@ export function UserIntegrationsCard() {
       return;
     }
     try {
-      const [e, c] = await Promise.all([fnEmailStatus(), fnCalStatus()]);
+      const [e, c, k] = await Promise.all([fnEmailStatus(), fnCalStatus(), fnKlaviyoStatus()]);
       setEmail(e);
       setCal(c);
+      setKlaviyo(k);
+      setKlaviyoFrom(k?.from_email ?? "");
+      setKlaviyoList(k?.default_list_id ?? "");
     } catch (err: any) {
       console.error(err);
     }
     setLoading(false);
-  }, [fnEmailStatus, fnCalStatus]);
+  }, [fnEmailStatus, fnCalStatus, fnKlaviyoStatus]);
 
   useEffect(() => {
     void load();
@@ -148,6 +168,69 @@ export function UserIntegrationsCard() {
     await fnDiscCal({ data: { provider } });
     toast.success("Rozłączono.");
     void load();
+  };
+
+  const saveKlaviyo = async () => {
+    if (!klaviyoKey.trim()) {
+      toast.error("Wklej Private API Key Klaviyo (zaczyna się od „pk_”).");
+      return;
+    }
+    setKlaviyoBusy(true);
+    try {
+      await fnKlaviyoSave({
+        data: {
+          private_api_key: klaviyoKey.trim(),
+          from_email: klaviyoFrom.trim(),
+          default_list_id: klaviyoList.trim(),
+        },
+      });
+      toast.success("Połączono z Klaviyo.");
+      setKlaviyoKey("");
+      void load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Błąd zapisu Klaviyo");
+    } finally {
+      setKlaviyoBusy(false);
+    }
+  };
+
+  const disconnectKlaviyo = async () => {
+    await fnKlaviyoDisc();
+    toast.success("Rozłączono Klaviyo.");
+    setKlaviyo(null);
+    void load();
+  };
+
+  const testKlaviyoSubscribe = async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    const to = auth.user?.email;
+    if (!to) return toast.error("Brak emaila konta.");
+    setKlaviyoBusy(true);
+    try {
+      const r = await fnKlaviyoSubscribe({ data: { email: to } });
+      toast.success(r.subscribed ? "Dodano kontakt i zapisano na listę." : "Dodano kontakt do Klaviyo.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Błąd Klaviyo");
+    } finally {
+      setKlaviyoBusy(false);
+    }
+  };
+
+  const testKlaviyoEvent = async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    const to = auth.user?.email;
+    if (!to) return toast.error("Brak emaila konta.");
+    setKlaviyoBusy(true);
+    try {
+      await fnKlaviyoEvent({
+        data: { email: to, metric: "MarketingNow Test Event", properties: { source: "integrations" } },
+      });
+      toast.success("Wysłano testowy event do Klaviyo (uruchomi pasujący flow).");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Błąd Klaviyo");
+    } finally {
+      setKlaviyoBusy(false);
+    }
   };
 
   if (loading) {
@@ -258,6 +341,114 @@ export function UserIntegrationsCard() {
                   className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
                 >
                   Rozłącz Resend
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* KLAVIYO */}
+      <section className="rounded-xl border border-foreground/10 bg-card p-5">
+        <header className="flex items-start gap-3 mb-4">
+          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <Send className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-lg font-bold tracking-tight">Klaviyo</h2>
+              {klaviyo ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-600/20 px-2 py-0.5 text-[11px] font-semibold">
+                  <Check className="h-3 w-3" /> połączone
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground border border-foreground/10 px-2 py-0.5 text-[11px] font-semibold">
+                  <X className="h-3 w-3" /> nie
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Podłącz własne konto Klaviyo, aby synchronizować kontakty, zapisywać na newsletter i wyzwalać automatyczne przepływy (flows).
+            </p>
+          </div>
+        </header>
+
+        <div className="rounded-lg border border-foreground/10 bg-muted/20 p-4 space-y-3">
+          {klaviyo && (
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Aktualnie połączone
+              {klaviyo.from_email ? (
+                <>
+                  {" "}jako <span className="font-semibold text-foreground">{klaviyo.from_email}</span>
+                </>
+              ) : null}
+              {klaviyo.default_list_id ? (
+                <>
+                  {" "}· lista <span className="font-semibold text-foreground">{klaviyo.default_list_id}</span>
+                </>
+              ) : null}
+              . Możesz wkleić nowy klucz, aby go nadpisać.
+            </p>
+          )}
+          <input
+            type="password"
+            autoComplete="off"
+            placeholder="pk_xxx — Private API Key z Klaviyo"
+            value={klaviyoKey}
+            onChange={(e) => setKlaviyoKey(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          />
+          <div className="grid gap-3 md:grid-cols-2">
+            <input
+              type="email"
+              placeholder="Adres nadawcy (opcjonalnie)"
+              value={klaviyoFrom}
+              onChange={(e) => setKlaviyoFrom(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+            <input
+              type="text"
+              placeholder="ID domyślnej listy (opcjonalnie)"
+              value={klaviyoList}
+              onChange={(e) => setKlaviyoList(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Klucz utworzysz w{" "}
+            <span className="font-semibold text-foreground">Klaviyo → Settings → API Keys → Private API Keys</span>. ID listy
+            znajdziesz w <span className="font-semibold text-foreground">Lists &amp; Segments</span> (kolumna „List ID”).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              disabled={klaviyoBusy}
+              onClick={() => void saveKlaviyo()}
+              className="rounded-lg bg-foreground text-background px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+            >
+              {klaviyo ? "Zapisz nowy klucz" : "Połącz Klaviyo"}
+            </button>
+            {klaviyo && (
+              <>
+                <button
+                  disabled={klaviyoBusy}
+                  onClick={() => void testKlaviyoSubscribe()}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-60"
+                >
+                  Dodaj siebie jako kontakt
+                </button>
+                <button
+                  disabled={klaviyoBusy}
+                  onClick={() => void testKlaviyoEvent()}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-60"
+                >
+                  Wyślij testowy event
+                </button>
+                <button
+                  disabled={klaviyoBusy}
+                  onClick={() => void disconnectKlaviyo()}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-60"
+                >
+                  Rozłącz
                 </button>
               </>
             )}

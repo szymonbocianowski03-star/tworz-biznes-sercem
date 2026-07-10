@@ -991,6 +991,36 @@ export type Database = {
         }
         Relationships: []
       }
+      klaviyo_connections: {
+        Row: {
+          created_at: string
+          default_list_id: string | null
+          from_email: string | null
+          id: string
+          private_api_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_list_id?: string | null
+          from_email?: string | null
+          id?: string
+          private_api_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_list_id?: string | null
+          from_email?: string | null
+          id?: string
+          private_api_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       linkedin_connections: {
         Row: {
           access_token: string
