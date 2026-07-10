@@ -348,7 +348,6 @@ export function UserIntegrationsCard() {
         </div>
       </section>
 
-      {/* CALENDAR */}
       {/* KLAVIYO */}
       <section className="rounded-xl border border-foreground/10 bg-card p-5">
         <header className="flex items-start gap-3 mb-4">
