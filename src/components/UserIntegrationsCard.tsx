@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Mail, CalendarDays, Check, X } from "lucide-react";
+import { Loader2, Mail, CalendarDays, Check, X, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -9,6 +9,13 @@ import {
   saveSmtpConnection,
   sendUserEmail,
 } from "@/lib/userEmail.functions";
+import {
+  getUserKlaviyoStatus,
+  saveKlaviyoConnection,
+  disconnectUserKlaviyo,
+  subscribeToKlaviyo,
+  trackKlaviyoEvent,
+} from "@/lib/userKlaviyo.functions";
 import {
   getUserCalendarStatus,
   disconnectUserCalendar,
@@ -23,6 +30,11 @@ export function UserIntegrationsCard() {
   const [cal, setCal] = useState<Awaited<ReturnType<typeof getUserCalendarStatus>> | null>(null);
   const [resendKey, setResendKey] = useState("");
   const [fromEmail, setFromEmail] = useState("");
+  const [klaviyo, setKlaviyo] = useState<Awaited<ReturnType<typeof getUserKlaviyoStatus>> | null>(null);
+  const [klaviyoKey, setKlaviyoKey] = useState("");
+  const [klaviyoFrom, setKlaviyoFrom] = useState("");
+  const [klaviyoList, setKlaviyoList] = useState("");
+  const [klaviyoBusy, setKlaviyoBusy] = useState(false);
 
   const fnEmailStatus = useServerFn(getUserEmailStatus);
   const fnCalStatus = useServerFn(getUserCalendarStatus);
@@ -31,6 +43,11 @@ export function UserIntegrationsCard() {
   const fnSaveSmtp = useServerFn(saveSmtpConnection);
   const fnSend = useServerFn(sendUserEmail);
   const fnSchedule = useServerFn(scheduleUserCalendarEvent);
+  const fnKlaviyoStatus = useServerFn(getUserKlaviyoStatus);
+  const fnKlaviyoSave = useServerFn(saveKlaviyoConnection);
+  const fnKlaviyoDisc = useServerFn(disconnectUserKlaviyo);
+  const fnKlaviyoSubscribe = useServerFn(subscribeToKlaviyo);
+  const fnKlaviyoEvent = useServerFn(trackKlaviyoEvent);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,14 +58,17 @@ export function UserIntegrationsCard() {
       return;
     }
     try {
-      const [e, c] = await Promise.all([fnEmailStatus(), fnCalStatus()]);
+      const [e, c, k] = await Promise.all([fnEmailStatus(), fnCalStatus(), fnKlaviyoStatus()]);
       setEmail(e);
       setCal(c);
+      setKlaviyo(k);
+      setKlaviyoFrom(k?.from_email ?? "");
+      setKlaviyoList(k?.default_list_id ?? "");
     } catch (err: any) {
       console.error(err);
     }
     setLoading(false);
-  }, [fnEmailStatus, fnCalStatus]);
+  }, [fnEmailStatus, fnCalStatus, fnKlaviyoStatus]);
 
   useEffect(() => {
     void load();
@@ -148,6 +168,69 @@ export function UserIntegrationsCard() {
     await fnDiscCal({ data: { provider } });
     toast.success("Rozłączono.");
     void load();
+  };
+
+  const saveKlaviyo = async () => {
+    if (!klaviyoKey.trim()) {
+      toast.error("Wklej Private API Key Klaviyo (zaczyna się od „pk_”).");
+      return;
+    }
+    setKlaviyoBusy(true);
+    try {
+      await fnKlaviyoSave({
+        data: {
+          private_api_key: klaviyoKey.trim(),
+          from_email: klaviyoFrom.trim(),
+          default_list_id: klaviyoList.trim(),
+        },
+      });
+      toast.success("Połączono z Klaviyo.");
+      setKlaviyoKey("");
+      void load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Błąd zapisu Klaviyo");
+    } finally {
+      setKlaviyoBusy(false);
+    }
+  };
+
+  const disconnectKlaviyo = async () => {
+    await fnKlaviyoDisc();
+    toast.success("Rozłączono Klaviyo.");
+    setKlaviyo(null);
+    void load();
+  };
+
+  const testKlaviyoSubscribe = async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    const to = auth.user?.email;
+    if (!to) return toast.error("Brak emaila konta.");
+    setKlaviyoBusy(true);
+    try {
+      const r = await fnKlaviyoSubscribe({ data: { email: to } });
+      toast.success(r.subscribed ? "Dodano kontakt i zapisano na listę." : "Dodano kontakt do Klaviyo.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Błąd Klaviyo");
+    } finally {
+      setKlaviyoBusy(false);
+    }
+  };
+
+  const testKlaviyoEvent = async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    const to = auth.user?.email;
+    if (!to) return toast.error("Brak emaila konta.");
+    setKlaviyoBusy(true);
+    try {
+      await fnKlaviyoEvent({
+        data: { email: to, metric: "MarketingNow Test Event", properties: { source: "integrations" } },
+      });
+      toast.success("Wysłano testowy event do Klaviyo (uruchomi pasujący flow).");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Błąd Klaviyo");
+    } finally {
+      setKlaviyoBusy(false);
+    }
   };
 
   if (loading) {
