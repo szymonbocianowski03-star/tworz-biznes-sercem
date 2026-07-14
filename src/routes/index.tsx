@@ -367,9 +367,16 @@ function Pricing() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 max-w-4xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-8 max-w-4xl">
           <p className="text-[12px] uppercase tracking-[0.18em] text-neutral-500">Rozliczenie</p>
-          <BillingPeriodToggle yearly={yearly} onChange={setYearly} variant="landing" discountPct={pctOff} />
+          <BillingPeriodToggle
+            yearly={yearly}
+            onChange={setYearly}
+            variant="landing"
+            discountPct={pctOff}
+            fluid
+            className="w-full sm:w-auto"
+          />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-px bg-neutral-200 border border-neutral-200">
