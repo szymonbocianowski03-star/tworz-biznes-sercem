@@ -21,6 +21,7 @@ import { Route as LlmVisibilityRouteImport } from './routes/llm-visibility'
 import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as KonkurencjaRouteImport } from './routes/konkurencja'
 import { Route as KoloWzrostuRouteImport } from './routes/kolo-wzrostu'
+import { Route as KalendarzRouteImport } from './routes/kalendarz'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CampaignComposerRouteImport } from './routes/campaign-composer'
@@ -32,6 +33,7 @@ import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LaunchIndexRouteImport } from './routes/launch.index'
+import { Route as KalendarzIndexRouteImport } from './routes/kalendarz.index'
 import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
 import { Route as CampaignComposerIndexRouteImport } from './routes/campaign-composer.index'
 import { Route as AgentIndexRouteImport } from './routes/agent.index'
@@ -135,6 +137,11 @@ const KoloWzrostuRoute = KoloWzrostuRouteImport.update({
   path: '/kolo-wzrostu',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KalendarzRoute = KalendarzRouteImport.update({
+  id: '/kalendarz',
+  path: '/kalendarz',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IntegrationsRoute = IntegrationsRouteImport.update({
   id: '/integrations',
   path: '/integrations',
@@ -189,6 +196,11 @@ const LaunchIndexRoute = LaunchIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LaunchRoute,
+} as any)
+const KalendarzIndexRoute = KalendarzIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KalendarzRoute,
 } as any)
 const IntegrationsIndexRoute = IntegrationsIndexRouteImport.update({
   id: '/',
@@ -423,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/campaign-composer': typeof CampaignComposerRouteWithChildren
   '/checkout': typeof CheckoutRouteWithChildren
   '/integrations': typeof IntegrationsRouteWithChildren
+  '/kalendarz': typeof KalendarzRouteWithChildren
   '/kolo-wzrostu': typeof KoloWzrostuRoute
   '/konkurencja': typeof KonkurencjaRoute
   '/launch': typeof LaunchRouteWithChildren
@@ -455,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/agent/': typeof AgentIndexRoute
   '/campaign-composer/': typeof CampaignComposerIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
+  '/kalendarz/': typeof KalendarzIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/campaign-composer/campaign/$draftId': typeof CampaignComposerCampaignDraftIdRoute
   '/campaign-composer/draft/$draftId': typeof CampaignComposerDraftDraftIdRoute
@@ -518,6 +532,7 @@ export interface FileRoutesByTo {
   '/agent': typeof AgentIndexRoute
   '/campaign-composer': typeof CampaignComposerIndexRoute
   '/integrations': typeof IntegrationsIndexRoute
+  '/kalendarz': typeof KalendarzIndexRoute
   '/launch': typeof LaunchIndexRoute
   '/campaign-composer/campaign/$draftId': typeof CampaignComposerCampaignDraftIdRoute
   '/campaign-composer/draft/$draftId': typeof CampaignComposerDraftDraftIdRoute
@@ -554,6 +569,7 @@ export interface FileRoutesById {
   '/campaign-composer': typeof CampaignComposerRouteWithChildren
   '/checkout': typeof CheckoutRouteWithChildren
   '/integrations': typeof IntegrationsRouteWithChildren
+  '/kalendarz': typeof KalendarzRouteWithChildren
   '/kolo-wzrostu': typeof KoloWzrostuRoute
   '/konkurencja': typeof KonkurencjaRoute
   '/launch': typeof LaunchRouteWithChildren
@@ -586,6 +602,7 @@ export interface FileRoutesById {
   '/agent/': typeof AgentIndexRoute
   '/campaign-composer/': typeof CampaignComposerIndexRoute
   '/integrations/': typeof IntegrationsIndexRoute
+  '/kalendarz/': typeof KalendarzIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/campaign-composer/campaign/$draftId': typeof CampaignComposerCampaignDraftIdRoute
   '/campaign-composer/draft/$draftId': typeof CampaignComposerDraftDraftIdRoute
@@ -623,6 +640,7 @@ export interface FileRouteTypes {
     | '/campaign-composer'
     | '/checkout'
     | '/integrations'
+    | '/kalendarz'
     | '/kolo-wzrostu'
     | '/konkurencja'
     | '/launch'
@@ -655,6 +673,7 @@ export interface FileRouteTypes {
     | '/agent/'
     | '/campaign-composer/'
     | '/integrations/'
+    | '/kalendarz/'
     | '/launch/'
     | '/campaign-composer/campaign/$draftId'
     | '/campaign-composer/draft/$draftId'
@@ -718,6 +737,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/campaign-composer'
     | '/integrations'
+    | '/kalendarz'
     | '/launch'
     | '/campaign-composer/campaign/$draftId'
     | '/campaign-composer/draft/$draftId'
@@ -753,6 +773,7 @@ export interface FileRouteTypes {
     | '/campaign-composer'
     | '/checkout'
     | '/integrations'
+    | '/kalendarz'
     | '/kolo-wzrostu'
     | '/konkurencja'
     | '/launch'
@@ -785,6 +806,7 @@ export interface FileRouteTypes {
     | '/agent/'
     | '/campaign-composer/'
     | '/integrations/'
+    | '/kalendarz/'
     | '/launch/'
     | '/campaign-composer/campaign/$draftId'
     | '/campaign-composer/draft/$draftId'
@@ -821,6 +843,7 @@ export interface RootRouteChildren {
   CampaignComposerRoute: typeof CampaignComposerRouteWithChildren
   CheckoutRoute: typeof CheckoutRouteWithChildren
   IntegrationsRoute: typeof IntegrationsRouteWithChildren
+  KalendarzRoute: typeof KalendarzRouteWithChildren
   KoloWzrostuRoute: typeof KoloWzrostuRoute
   KonkurencjaRoute: typeof KonkurencjaRoute
   LaunchRoute: typeof LaunchRouteWithChildren
@@ -941,6 +964,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KoloWzrostuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kalendarz': {
+      id: '/kalendarz'
+      path: '/kalendarz'
+      fullPath: '/kalendarz'
+      preLoaderRoute: typeof KalendarzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/integrations': {
       id: '/integrations'
       path: '/integrations'
@@ -1017,6 +1047,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/launch/'
       preLoaderRoute: typeof LaunchIndexRouteImport
       parentRoute: typeof LaunchRoute
+    }
+    '/kalendarz/': {
+      id: '/kalendarz/'
+      path: '/'
+      fullPath: '/kalendarz/'
+      preLoaderRoute: typeof KalendarzIndexRouteImport
+      parentRoute: typeof KalendarzRoute
     }
     '/integrations/': {
       id: '/integrations/'
@@ -1395,6 +1432,18 @@ const IntegrationsRouteWithChildren = IntegrationsRoute._addFileChildren(
   IntegrationsRouteChildren,
 )
 
+interface KalendarzRouteChildren {
+  KalendarzIndexRoute: typeof KalendarzIndexRoute
+}
+
+const KalendarzRouteChildren: KalendarzRouteChildren = {
+  KalendarzIndexRoute: KalendarzIndexRoute,
+}
+
+const KalendarzRouteWithChildren = KalendarzRoute._addFileChildren(
+  KalendarzRouteChildren,
+)
+
 interface LaunchRouteChildren {
   LaunchIndexRoute: typeof LaunchIndexRoute
 }
@@ -1437,6 +1486,7 @@ const rootRouteChildren: RootRouteChildren = {
   CampaignComposerRoute: CampaignComposerRouteWithChildren,
   CheckoutRoute: CheckoutRouteWithChildren,
   IntegrationsRoute: IntegrationsRouteWithChildren,
+  KalendarzRoute: KalendarzRouteWithChildren,
   KoloWzrostuRoute: KoloWzrostuRoute,
   KonkurencjaRoute: KonkurencjaRoute,
   LaunchRoute: LaunchRouteWithChildren,

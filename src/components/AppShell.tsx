@@ -222,6 +222,7 @@ export function AppShell() {
               { to: "/billing", label: "Plan i kredyty" },
               { to: "/assets/gallery", label: "Zasoby" },
               { to: "/campaign-composer", label: "Panel kampanii" },
+              { to: "/kalendarz", label: "Kalendarz" },
               { to: "/llm-visibility", label: "Widoczność marki w AI" },
               { to: "/seo", label: "SEO" },
               { to: "/konkurencja", label: "Konkurencja" },
