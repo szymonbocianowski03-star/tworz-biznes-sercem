@@ -1,21 +1,82 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { sfx } from "@/lib/sounds";
-import { GROWTH_SEGMENTS } from "@/components/GrowthSalesWheel";
 
 type Props = {
   ctaTo?: string;
 };
 
+type FeatureBlock = {
+  id: string;
+  title: string;
+  description: string;
+  businessEffect: string;
+};
+
+/** Obszary działania — reklamy są scalone w jeden blok „Ads" (Meta, LinkedIn, Google, TikTok). */
+const FEATURE_BLOCKS: FeatureBlock[] = [
+  {
+    id: "ads",
+    title: "Ads",
+    description:
+      "Jedno miejsce do planowania kampanii reklamowych w wielu sieciach — planowane: Meta Ads, LinkedIn Ads, Google Ads i TikTok Ads. MarketingNow pomaga tworzyć kreacje, dobierać grupy odbiorców i testować warianty.",
+    businessEffect: "Więcej leadów przy niższym koszcie pozyskania i spójna komunikacja we wszystkich sieciach.",
+  },
+  {
+    id: "shorts",
+    title: "Virale",
+    description:
+      "Hooki, szkielety i dopasowanie formatu pod Reels, Shorts, TikTok i inne krótkie formy — żeby publikować szybciej i uczyć się z danych, a nie zgadywać.",
+    businessEffect:
+      "Częstsze publikacje i więcej sensownych iteracji pod zasięg i konwersję w tym samym oknie czasowym.",
+  },
+  {
+    id: "seo",
+    title: "SEO",
+    description:
+      "MarketingNow łączy intencję wyszukiwania z treścią i technikalia: propozycje podstron, nagłówków, fraz i struktur pod widoczność organiczną.",
+    businessEffect: "Trwalszy ruch z wyszukiwarki i niższa zależność wyłącznie od płatnych klików.",
+  },
+  {
+    id: "mailing",
+    title: "Mailing",
+    description:
+      "Tworzysz sekwencje maili i follow-upy z jasnym CTA — dopasowane do etapu lejka i kontekstu oferty, bez ręcznego przepisywania tych samych schematów.",
+    businessEffect: "Więcej uporządkowanych touchpointów z leadami i bazą.",
+  },
+  {
+    id: "calendar",
+    title: "Kalendarz",
+    description:
+      "Jeden widok harmonogramu publikacji, kampanii i działań follow-up z priorytetami pod sprzedaż — mniej chaosu, więcej trafionych momentów kontaktu.",
+    businessEffect: "Przewidywalny rytm marketingu i mniej „zgubionych" okazji do konwersji.",
+  },
+  {
+    id: "llm",
+    title: "Widoczność AI",
+    description:
+      "MarketingNow sprawdza, czy Twoja marka pojawia się w ChatGPT, Gemini, Perplexity i Google AI Overviews. Następnie pokazuje, gdzie konkurencja ma przewagę i generuje konkretne działania, które zwiększają Twoją obecność w nowych kanałach wyszukiwania.",
+    businessEffect:
+      "Większa widoczność marki, więcej zapytań i przewaga zanim konkurencja zdąży zareagować.",
+  },
+  {
+    id: "more",
+    title: "I wiele więcej",
+    description:
+      "Poza tymi kanałami MarketingNow scala strategię, kreacje, analizę, automatyzację maili, kalendarz działań i kolejne integracje w jednym workflow.",
+    businessEffect: "Mniej rozproszenia narzędziami, szybsze wdrożenia i większa skala przy tym samym zespole.",
+  },
+];
+
 /**
  * Zamiennik „koła wzrostu" — proste, klikalne bloki z obszarami działania
- * (Meta Ads, SEO, Widoczność w AI itd.). Wybór bloku pokazuje szczegóły poniżej.
+ * (Ads, SEO, Widoczność w AI itd.). Wybór bloku pokazuje szczegóły poniżej.
  */
 export function GrowthFeatureBlocks({ ctaTo = "/auth" }: Props) {
   const [activeId, setActiveId] = useState<string>(
-    GROWTH_SEGMENTS.find((s) => s.id === "llm")?.id ?? GROWTH_SEGMENTS[0].id,
+    FEATURE_BLOCKS.find((s) => s.id === "llm")?.id ?? FEATURE_BLOCKS[0].id,
   );
-  const active = GROWTH_SEGMENTS.find((s) => s.id === activeId) ?? GROWTH_SEGMENTS[0];
+  const active = FEATURE_BLOCKS.find((s) => s.id === activeId) ?? FEATURE_BLOCKS[0];
 
   return (
     <div className="w-full">
@@ -23,7 +84,7 @@ export function GrowthFeatureBlocks({ ctaTo = "/auth" }: Props) {
         Wybierz obszar
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-neutral-300 border border-neutral-300">
-        {GROWTH_SEGMENTS.map((seg) => {
+        {FEATURE_BLOCKS.map((seg) => {
           const selected = seg.id === active.id;
           return (
             <button
