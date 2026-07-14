@@ -9,7 +9,7 @@ import {
   PLANS,
   PLAN_YEARLY_DISCOUNT_FRAC,
 } from "@/lib/plans";
-import { GrowthSalesWheel } from "@/components/GrowthSalesWheel";
+import { GrowthFeatureBlocks } from "@/components/GrowthFeatureBlocks";
 import { MarketingNowLogo } from "@/components/MarketingNowLogo";
 import { BillingPeriodToggle } from "@/components/SegmentedControl";
 import { TestimonialsShorts } from "@/components/TestimonialsShorts";
@@ -235,11 +235,7 @@ function Hero() {
           </div>
 
           <div className="lg:col-span-6 xl:col-span-7 relative">
-            <GrowthSalesWheel
-              compact
-              ctaTo="/auth"
-              hideWheelCaption
-            />
+            <GrowthFeatureBlocks ctaTo="/auth" />
           </div>
         </div>
       </div>
@@ -371,9 +367,16 @@ function Pricing() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 max-w-4xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-8 max-w-4xl">
           <p className="text-[12px] uppercase tracking-[0.18em] text-neutral-500">Rozliczenie</p>
-          <BillingPeriodToggle yearly={yearly} onChange={setYearly} variant="landing" discountPct={pctOff} />
+          <BillingPeriodToggle
+            yearly={yearly}
+            onChange={setYearly}
+            variant="landing"
+            discountPct={pctOff}
+            fluid
+            className="w-full sm:w-auto"
+          />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-px bg-neutral-200 border border-neutral-200">

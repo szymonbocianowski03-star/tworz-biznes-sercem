@@ -14,6 +14,8 @@ type Props<T extends string> = {
   size?: "sm" | "md";
   /** Styl strony głównej (monochrom) vs panel aplikacji */
   variant?: "landing" | "app";
+  /** Rozciąga kontrolkę na całą szerokość z równymi segmentami (dobre na telefonie) */
+  fluid?: boolean;
 };
 
 export function SegmentedControl<T extends string>({
@@ -23,6 +25,7 @@ export function SegmentedControl<T extends string>({
   className,
   size = "md",
   variant = "app",
+  fluid = false,
 }: Props<T>) {
   const activeIndex = Math.max(
     0,
@@ -51,7 +54,13 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       role="tablist"
-      className={cn("relative inline-flex rounded-full border", pad, shell, className)}
+      className={cn(
+        "relative rounded-full border",
+        fluid ? "flex w-full" : "inline-flex",
+        pad,
+        shell,
+        className,
+      )}
     >
       <div
         aria-hidden
@@ -74,7 +83,8 @@ export function SegmentedControl<T extends string>({
             aria-selected={selected}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "relative z-10 min-w-[5.5rem] rounded-full font-semibold transition-colors duration-200",
+              "relative z-10 rounded-full font-semibold transition-colors duration-200",
+              fluid ? "flex-1 min-w-0 text-center" : "min-w-[5.5rem]",
               btnPad,
               selected ? activeText : inactiveText,
             )}
@@ -94,16 +104,19 @@ export function BillingPeriodToggle({
   variant = "app",
   className,
   discountPct = 10,
+  fluid = false,
 }: {
   yearly: boolean;
   onChange: (yearly: boolean) => void;
   variant?: "landing" | "app";
   className?: string;
   discountPct?: number;
+  fluid?: boolean;
 }) {
   return (
     <SegmentedControl
       variant={variant}
+      fluid={fluid}
       className={className}
       value={yearly ? "yearly" : "monthly"}
       onChange={(v) => onChange(v === "yearly")}
@@ -116,7 +129,7 @@ export function BillingPeriodToggle({
               Rocznie
               <span
                 className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                  "rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide shrink-0",
                   yearly
                     ? variant === "landing"
                       ? "bg-white/20 text-white"
