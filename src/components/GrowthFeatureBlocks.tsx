@@ -49,7 +49,7 @@ const FEATURE_BLOCKS: FeatureBlock[] = [
     title: "Kalendarz",
     description:
       "Jeden widok harmonogramu publikacji, kampanii i działań follow-up z priorytetami pod sprzedaż — mniej chaosu, więcej trafionych momentów kontaktu.",
-    businessEffect: "Przewidywalny rytm marketingu i mniej „zgubionych" okazji do konwersji.",
+    businessEffect: "Przewidywalny rytm marketingu i mniej zgubionych okazji do konwersji.",
   },
   {
     id: "llm",
