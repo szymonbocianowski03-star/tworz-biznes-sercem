@@ -234,6 +234,8 @@ type Props = {
   compact?: boolean;
   ctaTo?: "/auth" | "/agent";
   hideWheelCaption?: boolean;
+  /** Ukrywa graficzne koło na telefonie — zostawia panel wyników i przycisk „Zakręć ponownie” */
+  hideWheelOnMobile?: boolean;
   /** Segment „Widoczność AI”: false = pokaż panel, true = pokaż i przewiń do #how-it-works */
   onLlmSegmentReveal?: (scrollToSection: boolean) => void;
 };
@@ -242,6 +244,7 @@ export function GrowthSalesWheel({
   compact = false,
   ctaTo = "/auth",
   hideWheelCaption = false,
+  hideWheelOnMobile = false,
   onLlmSegmentReveal,
 }: Props) {
   const uid = useId().replace(/:/g, "");
