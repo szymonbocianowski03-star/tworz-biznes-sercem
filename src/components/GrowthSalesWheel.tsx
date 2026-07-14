@@ -234,6 +234,8 @@ type Props = {
   compact?: boolean;
   ctaTo?: "/auth" | "/agent";
   hideWheelCaption?: boolean;
+  /** Ukrywa graficzne koło na telefonie — zostawia panel wyników i przycisk „Zakręć ponownie” */
+  hideWheelOnMobile?: boolean;
   /** Segment „Widoczność AI”: false = pokaż panel, true = pokaż i przewiń do #how-it-works */
   onLlmSegmentReveal?: (scrollToSection: boolean) => void;
 };
@@ -242,6 +244,7 @@ export function GrowthSalesWheel({
   compact = false,
   ctaTo = "/auth",
   hideWheelCaption = false,
+  hideWheelOnMobile = false,
   onLlmSegmentReveal,
 }: Props) {
   const uid = useId().replace(/:/g, "");
@@ -472,7 +475,7 @@ export function GrowthSalesWheel({
           />
 
           <div className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12 xl:gap-14">
-            <div className="flex min-h-0 justify-center lg:justify-center">
+            <div className={`min-h-0 justify-center lg:justify-center ${hideWheelOnMobile ? "hidden lg:flex" : "flex"}`}>
               <div className="relative flex w-full max-w-[min(100%,520px)] flex-col items-center justify-center">
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
                   <div className="aspect-square w-[94%] rounded-full bg-[radial-gradient(circle_at_50%_44%,rgba(129,140,248,0.09)_0%,transparent_60%)] blur-3xl" />
