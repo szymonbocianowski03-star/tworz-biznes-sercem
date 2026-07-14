@@ -9,7 +9,7 @@ import {
   PLANS,
   PLAN_YEARLY_DISCOUNT_FRAC,
 } from "@/lib/plans";
-import { GrowthSalesWheel } from "@/components/GrowthSalesWheel";
+import { GrowthFeatureBlocks } from "@/components/GrowthFeatureBlocks";
 import { MarketingNowLogo } from "@/components/MarketingNowLogo";
 import { BillingPeriodToggle } from "@/components/SegmentedControl";
 import { TestimonialsShorts } from "@/components/TestimonialsShorts";
@@ -235,11 +235,7 @@ function Hero() {
           </div>
 
           <div className="lg:col-span-6 xl:col-span-7 relative">
-            <GrowthSalesWheel
-              compact
-              ctaTo="/auth"
-              hideWheelCaption
-            />
+            <GrowthFeatureBlocks ctaTo="/auth" />
           </div>
         </div>
       </div>
