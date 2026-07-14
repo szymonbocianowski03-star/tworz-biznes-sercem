@@ -235,7 +235,7 @@ function Hero() {
           </div>
 
           <div className="lg:col-span-6 xl:col-span-7 relative">
-            <GrowthFeatureBlocks ctaTo="/auth" />
+            <GrowthSalesWheel ctaTo="/auth" hideWheelCaption />
           </div>
         </div>
       </div>
