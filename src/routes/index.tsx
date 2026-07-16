@@ -264,6 +264,9 @@ function Hero() {
           <div className="hidden md:block lg:col-span-6 xl:col-span-7 relative">
             <GrowthSalesWheel ctaTo="/auth" hideWheelCaption hideHeader />
           </div>
+          <div className="md:hidden">
+            <MobileDesktopNotice />
+          </div>
         </div>
       </div>
     </section>
