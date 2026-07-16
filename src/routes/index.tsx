@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { Monitor } from "lucide-react";
 import { sfx, soundsEnabled, setSoundsEnabled } from "@/lib/sounds";
 import {
   formatPlanCreditsLabel,
@@ -192,6 +193,27 @@ function Nav() {
   );
 }
 
+/* ============================== MOBILE NOTICE ============================== */
+function MobileDesktopNotice() {
+  return (
+    <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 sm:p-6">
+      <div className="flex items-start gap-4">
+        <div className="shrink-0 rounded-xl border border-neutral-200 bg-white p-2.5 text-neutral-700">
+          <Monitor className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="text-[15px] font-semibold text-neutral-950">
+            Ta aplikacja najlepiej działa na komputerze
+          </h3>
+          <p className="mt-1 text-[14px] leading-relaxed text-neutral-600">
+            Aby korzystać ze wszystkich funkcji, otwórz stronę na laptopie lub komputerze.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ============================== HERO ============================== */
 function Hero() {
   return (
@@ -241,6 +263,9 @@ function Hero() {
 
           <div className="hidden md:block lg:col-span-6 xl:col-span-7 relative">
             <GrowthSalesWheel ctaTo="/auth" hideWheelCaption hideHeader />
+          </div>
+          <div className="md:hidden">
+            <MobileDesktopNotice />
           </div>
         </div>
       </div>
