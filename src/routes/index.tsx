@@ -13,6 +13,10 @@ import { GrowthSalesWheel } from "@/components/GrowthSalesWheel";
 import { MarketingNowLogo } from "@/components/MarketingNowLogo";
 import { BillingPeriodToggle } from "@/components/SegmentedControl";
 import { TestimonialsShorts } from "@/components/TestimonialsShorts";
+import hoodieAsset from "@/assets/product-examples/hoodie.png.asset.json";
+import tshirtsAsset from "@/assets/product-examples/tshirts.png.asset.json";
+import derbyAsset from "@/assets/product-examples/derby.png.asset.json";
+import sneakersAsset from "@/assets/product-examples/sneakers.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -52,6 +56,7 @@ function Landing() {
       <WhatYouHandle />
       <TestimonialsShorts />
       <Pricing />
+      <ProductExamples />
       <Footer />
     </div>
   );
