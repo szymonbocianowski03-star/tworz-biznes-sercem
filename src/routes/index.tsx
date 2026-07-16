@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { Monitor } from "lucide-react";
 import { sfx, soundsEnabled, setSoundsEnabled } from "@/lib/sounds";
 import {
   formatPlanCreditsLabel,
