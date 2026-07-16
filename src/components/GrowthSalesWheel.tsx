@@ -234,9 +234,11 @@ type Props = {
   compact?: boolean;
   ctaTo?: "/auth" | "/agent";
   hideWheelCaption?: boolean;
+  /** Ukrywa nagłówek sekcji nad kołem (np. w hero, gdy nagłówek jest gdzie indziej) */
+  hideHeader?: boolean;
   /** Ukrywa graficzne koło na telefonie — zostawia panel wyników i przycisk „Zakręć ponownie” */
   hideWheelOnMobile?: boolean;
-  /** Segment „Widoczność AI”: false = pokaż panel, true = pokaż i przewiń do #how-it-works */
+  /** Segment „Widoczność AI": false = pokaż panel, true = pokaż i przewiń do #how-it-works */
   onLlmSegmentReveal?: (scrollToSection: boolean) => void;
 };
 
@@ -244,6 +246,7 @@ export function GrowthSalesWheel({
   compact = false,
   ctaTo = "/auth",
   hideWheelCaption = false,
+  hideHeader = false,
   hideWheelOnMobile = false,
   onLlmSegmentReveal,
 }: Props) {
@@ -450,17 +453,19 @@ export function GrowthSalesWheel({
   return (
     <div className="font-sans antialiased [font-family:Inter,ui-sans-serif,system-ui,sans-serif]">
       <div className="mx-auto max-w-[1180px] px-4 sm:px-5">
-        <header className={`mb-8 text-balance ${compact ? "mb-6" : "mb-10"} md:text-left`}>
-          <h2
-            className={`font-semibold tracking-[-0.03em] text-neutral-950 ${compact ? "text-xl md:text-2xl" : "text-2xl md:text-[1.75rem]"}`}
-          >
-            Odkryj, gdzie tracisz wzrost
-          </h2>
-          <p className={`mt-2 max-w-2xl text-neutral-600 ${compact ? "text-sm" : "text-[15px]"} leading-relaxed`}>
-            Zakręć kołem i zobacz, który obszar marketingu może najszybciej zwiększyć Twoją sprzedaż, widoczność lub liczbę
-            leadów.
-          </p>
-        </header>
+        {!hideHeader && (
+          <header className={`mb-8 text-balance ${compact ? "mb-6" : "mb-10"} md:text-left`}>
+            <h2
+              className={`font-semibold tracking-[-0.03em] text-neutral-950 ${compact ? "text-xl md:text-2xl" : "text-2xl md:text-[1.75rem]"}`}
+            >
+              Odkryj, gdzie tracisz wzrost
+            </h2>
+            <p className={`mt-2 max-w-2xl text-neutral-600 ${compact ? "text-sm" : "text-[15px]"} leading-relaxed`}>
+              Zakręć kołem i zobacz, który obszar marketingu może najszybciej zwiększyć Twoją sprzedaż, widoczność lub liczbę
+              leadów.
+            </p>
+          </header>
+        )}
 
         <div
           className={`relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#080d1a] ${panelPad} shadow-[0_24px_64px_-36px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.035)]`}
