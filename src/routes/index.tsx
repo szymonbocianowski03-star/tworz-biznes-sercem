@@ -55,8 +55,8 @@ function Landing() {
       <WorkflowPitch />
       <WhatYouHandle />
       <TestimonialsShorts />
-      <Pricing />
       <ProductExamples />
+      <Pricing />
       <Footer />
     </div>
   );
@@ -514,8 +514,8 @@ function ProductExamples() {
   ];
   return (
     <section className="border-b border-neutral-200 bg-neutral-50">
-      <div className="mx-auto max-w-[1600px] px-6 md:px-10 py-20 md:py-28">
-        <div className="mb-12 md:mb-14 max-w-3xl">
+      <div className="mx-auto max-w-5xl px-6 md:px-10 py-14 md:py-20">
+        <div className="mb-8 md:mb-10 max-w-3xl">
           <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-4">
             Przykładowe produkty
           </p>
@@ -524,10 +524,10 @@ function ProductExamples() {
             <span className="italic font-light">generowane w MarketingNow</span>.
           </h2>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-neutral-200 border border-neutral-200">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {items.map((it) => (
-            <figure key={it.title} className="bg-white flex flex-col">
-              <div className="aspect-[3/4] overflow-hidden bg-neutral-100">
+            <figure key={it.title} className="bg-white border border-neutral-200 rounded-lg overflow-hidden flex flex-col">
+              <div className="aspect-[4/3] overflow-hidden bg-neutral-100">
                 <img
                   src={it.src}
                   alt={it.title}
@@ -536,11 +536,11 @@ function ProductExamples() {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <figcaption className="p-4 md:p-5">
+              <figcaption className="p-3 md:p-4">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
                   {it.tag}
                 </p>
-                <p className="mt-1 serif text-[16px] md:text-[18px] tracking-tight text-neutral-950">
+                <p className="mt-1 serif text-[15px] md:text-[16px] tracking-tight text-neutral-950">
                   {it.title}
                 </p>
               </figcaption>
