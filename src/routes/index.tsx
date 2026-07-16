@@ -501,6 +501,58 @@ function Pricing() {
 /* ============================== FOOTER ============================== */
 
 function Footer() {
+  return _Footer();
+}
+
+/* ============================== PRODUCT EXAMPLES ============================== */
+function ProductExamples() {
+  const items = [
+    { src: hoodieAsset.url, title: "Bluza z kapturem", tag: "Odzież" },
+    { src: tshirtsAsset.url, title: "Klasyczny t-shirt", tag: "Odzież" },
+    { src: sneakersAsset.url, title: "Sneakersy premium", tag: "Obuwie" },
+    { src: derbyAsset.url, title: "Skórzane derby", tag: "Obuwie" },
+  ];
+  return (
+    <section className="border-b border-neutral-200 bg-neutral-50">
+      <div className="mx-auto max-w-[1600px] px-6 md:px-10 py-20 md:py-28">
+        <div className="mb-12 md:mb-14 max-w-3xl">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-4">
+            Przykładowe produkty
+          </p>
+          <h2 className="serif text-[clamp(1.9rem,4.5vw,3.25rem)] leading-[1.05] tracking-[-0.02em]">
+            Tak wyglądają grafiki produktów{" "}
+            <span className="italic font-light">generowane w MarketingNow</span>.
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-neutral-200 border border-neutral-200">
+          {items.map((it) => (
+            <figure key={it.title} className="bg-white flex flex-col">
+              <div className="aspect-[3/4] overflow-hidden bg-neutral-100">
+                <img
+                  src={it.src}
+                  alt={it.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <figcaption className="p-4 md:p-5">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
+                  {it.tag}
+                </p>
+                <p className="mt-1 serif text-[16px] md:text-[18px] tracking-tight text-neutral-950">
+                  {it.title}
+                </p>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function _Footer() {
   return (
     <footer className="bg-white border-t border-neutral-200">
       <div className="mx-auto max-w-[1600px] px-6 md:px-10 py-12 grid grid-cols-12 gap-6 text-[12px] uppercase tracking-[0.18em] text-neutral-500">
