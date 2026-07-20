@@ -112,6 +112,13 @@ const PRICE_CATALOG: Record<string, CatalogItem> = {
     currency: "pln",
     taxCode: "txcd_10103001",
   },
+  ebook_marketing_one_time: {
+    productName: "E-book: Marketing firmy w jednym miejscu",
+    productDescription: "Praktyczny e-book PDF o marketingu dla nowoczesnych firm. Dostęp natychmiast po zakupie.",
+    amount: 4900,
+    currency: "pln",
+    taxCode: "txcd_10501000",
+  },
 };
 
 const corsHeaders = {
