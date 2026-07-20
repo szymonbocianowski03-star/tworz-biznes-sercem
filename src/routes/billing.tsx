@@ -20,6 +20,7 @@ import {
 } from "@/lib/plans";
 import { FREE_AI_USAGE_BUDGET_CENTS, subscribeCreditsRefresh } from "@/lib/creditsRefresh";
 import { formatCreditUsageRow, formatFreeUsageCredits, formatFreePlanBudgetCredits, AI_PRICE_LIST } from "@/lib/creditUsageDisplay";
+import ebookCover from "@/assets/ebook-cover.webp.asset.json";
 
 type BillingSearch = { yearly: boolean };
 
