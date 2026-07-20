@@ -500,6 +500,34 @@ function BillingPage() {
           </div>
         </section>
 
+        <section className="mt-16 mx-auto max-w-3xl">
+          <div className="rounded-2xl border border-amber-300/70 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-400/30 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
+            <div className="text-5xl md:text-6xl" aria-hidden>📘</div>
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 rounded-full bg-amber-200/70 dark:bg-amber-400/20 text-amber-900 dark:text-amber-100 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1">
+                Oferta limitowana
+              </div>
+              <h2 className="mt-2 font-display text-xl md:text-2xl font-extrabold tracking-tight">
+                E-book: Marketing dla przedsiębiorców
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Praktyczny przewodnik z checklistami i szablonami — zbuduj marketing swojej firmy od zera. Darmowy dodatek do każdej subskrypcji, dostępny też jako osobny zakup.
+              </p>
+              <div className="mt-4 flex flex-wrap items-baseline gap-3">
+                <span className="text-3xl font-bold">49 zł</span>
+                <span className="text-xs text-muted-foreground">jednorazowo · PDF do pobrania</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => buy("ebook_marketing_one_time")}
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-foreground text-background text-sm font-medium px-5 py-2.5 hover:opacity-90"
+              >
+                Kup e-book
+              </button>
+            </div>
+          </div>
+        </section>
+
         {user && usageLog.length > 0 && (
           <section className="mt-16 max-w-3xl mx-auto">
             <h2 className="font-display text-xl font-extrabold tracking-tight text-center">Ślad zużycia AI</h2>
