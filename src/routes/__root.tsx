@@ -7,6 +7,7 @@ import { GoogleAdsTag } from "@/components/GoogleAdsTag";
 import { AuthGate } from "@/components/AuthGate";
 import { CreditsUpgradeProvider } from "@/contexts/CreditsUpgradeContext";
 import { Toaster } from "@/components/ui/sonner";
+import { EbookPopup } from "@/components/EbookPopup";
 import { sfx, soundsEnabled, setSoundsEnabled } from "@/lib/sounds";
 
 function NotFoundComponent() {
@@ -103,6 +104,7 @@ function RootComponent() {
         </CreditsUpgradeProvider>
       </AuthGate>
       <SoundToggle />
+      <EbookPopup />
     </>
   );
 }
