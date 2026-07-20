@@ -5,6 +5,7 @@ import { saveIntegrationConnectionRow } from "@/lib/integrationConnectionSave";
 import { MetaFacebookLoginButton } from "@/components/MetaFacebookLoginButton";
 import { loadMetaFacebookSdk, getMetaFacebookLoginStatus, metaFacebookLogin, metaFacebookStatusLabel, type MetaFbLoginResponse, type MetaFbLoginStatus } from "@/lib/metaFacebookSdk";
 import { isAdPlatformComingSoon } from "@/lib/adPlatform";
+import { fetchOAuthHandoff } from "@/lib/oauthHandoffClient";
 import { toast } from "sonner";
 
 type AdAccount = {
@@ -65,14 +66,13 @@ export function MetaIntegrationCard() {
       );
       return;
     }
-    const { data: sessData } = await supabase.auth.getSession();
-    const token = sessData.session?.access_token;
-    if (!token) {
+    const handoff = await fetchOAuthHandoff();
+    if (!handoff) {
       toast.error("Sesja wygasła. Zaloguj się ponownie.");
       navigate({ to: "/auth" });
       return;
     }
-    const url = `/api/public/meta/start?token=${encodeURIComponent(token)}`;
+    const url = `/api/public/meta/start?handoff=${encodeURIComponent(handoff)}`;
     toast.message("Przekierowuję do autoryzacji Meta (konta reklamowe)…");
     window.location.assign(url);
   }, [navigate, oauthStatus, userId]);
