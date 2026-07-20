@@ -62,6 +62,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as LovableCampaignComposerQueueProcessRouteImport } from './routes/lovable/campaign-composer/queue/process'
 import { Route as ApiPublicTiktokStartRouteImport } from './routes/api/public/tiktok.start'
 import { Route as ApiPublicTiktokCallbackRouteImport } from './routes/api/public/tiktok.callback'
+import { Route as ApiPublicOauthHandoffRouteImport } from './routes/api/public/oauth.handoff'
 import { Route as ApiPublicOauthConfigRouteImport } from './routes/api/public/oauth.config'
 import { Route as ApiPublicMicrosoftStartRouteImport } from './routes/api/public/microsoft.start'
 import { Route as ApiPublicMicrosoftCallbackRouteImport } from './routes/api/public/microsoft.callback'
@@ -347,6 +348,11 @@ const ApiPublicTiktokCallbackRoute = ApiPublicTiktokCallbackRouteImport.update({
   path: '/api/public/tiktok/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicOauthHandoffRoute = ApiPublicOauthHandoffRouteImport.update({
+  id: '/api/public/oauth/handoff',
+  path: '/api/public/oauth/handoff',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicOauthConfigRoute = ApiPublicOauthConfigRouteImport.update({
   id: '/api/public/oauth/config',
   path: '/api/public/oauth/config',
@@ -483,6 +489,7 @@ export interface FileRoutesByFullPath {
   '/api/public/microsoft/callback': typeof ApiPublicMicrosoftCallbackRoute
   '/api/public/microsoft/start': typeof ApiPublicMicrosoftStartRoute
   '/api/public/oauth/config': typeof ApiPublicOauthConfigRoute
+  '/api/public/oauth/handoff': typeof ApiPublicOauthHandoffRoute
   '/api/public/tiktok/callback': typeof ApiPublicTiktokCallbackRoute
   '/api/public/tiktok/start': typeof ApiPublicTiktokStartRoute
   '/lovable/campaign-composer/queue/process': typeof LovableCampaignComposerQueueProcessRoute
@@ -547,6 +554,7 @@ export interface FileRoutesByTo {
   '/api/public/microsoft/callback': typeof ApiPublicMicrosoftCallbackRoute
   '/api/public/microsoft/start': typeof ApiPublicMicrosoftStartRoute
   '/api/public/oauth/config': typeof ApiPublicOauthConfigRoute
+  '/api/public/oauth/handoff': typeof ApiPublicOauthHandoffRoute
   '/api/public/tiktok/callback': typeof ApiPublicTiktokCallbackRoute
   '/api/public/tiktok/start': typeof ApiPublicTiktokStartRoute
   '/lovable/campaign-composer/queue/process': typeof LovableCampaignComposerQueueProcessRoute
@@ -617,6 +625,7 @@ export interface FileRoutesById {
   '/api/public/microsoft/callback': typeof ApiPublicMicrosoftCallbackRoute
   '/api/public/microsoft/start': typeof ApiPublicMicrosoftStartRoute
   '/api/public/oauth/config': typeof ApiPublicOauthConfigRoute
+  '/api/public/oauth/handoff': typeof ApiPublicOauthHandoffRoute
   '/api/public/tiktok/callback': typeof ApiPublicTiktokCallbackRoute
   '/api/public/tiktok/start': typeof ApiPublicTiktokStartRoute
   '/lovable/campaign-composer/queue/process': typeof LovableCampaignComposerQueueProcessRoute
@@ -688,6 +697,7 @@ export interface FileRouteTypes {
     | '/api/public/microsoft/callback'
     | '/api/public/microsoft/start'
     | '/api/public/oauth/config'
+    | '/api/public/oauth/handoff'
     | '/api/public/tiktok/callback'
     | '/api/public/tiktok/start'
     | '/lovable/campaign-composer/queue/process'
@@ -752,6 +762,7 @@ export interface FileRouteTypes {
     | '/api/public/microsoft/callback'
     | '/api/public/microsoft/start'
     | '/api/public/oauth/config'
+    | '/api/public/oauth/handoff'
     | '/api/public/tiktok/callback'
     | '/api/public/tiktok/start'
     | '/lovable/campaign-composer/queue/process'
@@ -821,6 +832,7 @@ export interface FileRouteTypes {
     | '/api/public/microsoft/callback'
     | '/api/public/microsoft/start'
     | '/api/public/oauth/config'
+    | '/api/public/oauth/handoff'
     | '/api/public/tiktok/callback'
     | '/api/public/tiktok/start'
     | '/lovable/campaign-composer/queue/process'
@@ -867,6 +879,7 @@ export interface RootRouteChildren {
   ApiPublicMicrosoftCallbackRoute: typeof ApiPublicMicrosoftCallbackRoute
   ApiPublicMicrosoftStartRoute: typeof ApiPublicMicrosoftStartRoute
   ApiPublicOauthConfigRoute: typeof ApiPublicOauthConfigRoute
+  ApiPublicOauthHandoffRoute: typeof ApiPublicOauthHandoffRoute
   ApiPublicTiktokCallbackRoute: typeof ApiPublicTiktokCallbackRoute
   ApiPublicTiktokStartRoute: typeof ApiPublicTiktokStartRoute
   LovableCampaignComposerQueueProcessRoute: typeof LovableCampaignComposerQueueProcessRoute
@@ -1251,6 +1264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTiktokCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/oauth/handoff': {
+      id: '/api/public/oauth/handoff'
+      path: '/api/public/oauth/handoff'
+      fullPath: '/api/public/oauth/handoff'
+      preLoaderRoute: typeof ApiPublicOauthHandoffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/oauth/config': {
       id: '/api/public/oauth/config'
       path: '/api/public/oauth/config'
@@ -1510,6 +1530,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMicrosoftCallbackRoute: ApiPublicMicrosoftCallbackRoute,
   ApiPublicMicrosoftStartRoute: ApiPublicMicrosoftStartRoute,
   ApiPublicOauthConfigRoute: ApiPublicOauthConfigRoute,
+  ApiPublicOauthHandoffRoute: ApiPublicOauthHandoffRoute,
   ApiPublicTiktokCallbackRoute: ApiPublicTiktokCallbackRoute,
   ApiPublicTiktokStartRoute: ApiPublicTiktokStartRoute,
   LovableCampaignComposerQueueProcessRoute:
