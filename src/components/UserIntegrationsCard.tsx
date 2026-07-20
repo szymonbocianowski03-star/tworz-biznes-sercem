@@ -22,6 +22,7 @@ import {
   scheduleUserCalendarEvent,
 } from "@/lib/userCalendar.functions";
 import { isMailCalendarComingSoon } from "@/lib/userIntegrationsComingSoon";
+import { fetchOAuthHandoff } from "@/lib/oauthHandoffClient";
 
 export function UserIntegrationsCard() {
   const [userId, setUserId] = useState<string | null>(null);
