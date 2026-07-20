@@ -503,7 +503,12 @@ function BillingPage() {
 
         <section className="mt-16 mx-auto max-w-3xl">
           <div className="rounded-2xl border border-amber-300/70 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-400/30 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
-            <div className="text-5xl md:text-6xl" aria-hidden>📘</div>
+            <img
+              src={ebookCover.url}
+              alt="Okładka e-booka Marketing firmy w jednym miejscu"
+              className="w-32 md:w-44 rounded-lg shadow-lg shrink-0"
+              loading="lazy"
+            />
             <div className="flex-1">
               <div className="inline-flex items-center gap-2 rounded-full bg-amber-200/70 dark:bg-amber-400/20 text-amber-900 dark:text-amber-100 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1">
                 Oferta limitowana
