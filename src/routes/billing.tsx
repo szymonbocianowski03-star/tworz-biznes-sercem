@@ -338,6 +338,13 @@ function BillingPage() {
             Te same ceny co na stronie głównej. Po upgrade kredyty doliczają się od razu, proporcjonalnie do różnicy.
           </p>
 
+          <div className="mt-6 mx-auto max-w-2xl rounded-2xl border border-amber-300/60 bg-amber-50 text-amber-950 px-4 py-3 text-sm flex items-center justify-center gap-2 dark:bg-amber-500/10 dark:text-amber-100 dark:border-amber-400/30">
+            <span aria-hidden>🎁</span>
+            <span>
+              <strong>Oferta limitowana:</strong> darmowy e-book o wartości <strong>49 zł</strong> do każdej subskrypcji.
+            </span>
+          </div>
+
           <BillingPeriodToggle
             className="mt-6"
             yearly={yearly}
