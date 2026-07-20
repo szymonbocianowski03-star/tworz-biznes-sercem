@@ -76,11 +76,10 @@ export function UserIntegrationsCard() {
 
   const connectGoogle = async (service: "gmail" | "calendar") => {
     if (!userId) return toast.error("Zaloguj się.");
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) return toast.error("Zaloguj się ponownie.");
+    const handoff = await fetchOAuthHandoff();
+    if (!handoff) return toast.error("Zaloguj się ponownie.");
     const startUrl = new URL("/api/public/google/start", googleIntegrationOrigin());
-    startUrl.searchParams.set("token", token);
+    startUrl.searchParams.set("handoff", handoff);
     startUrl.searchParams.set("service", service);
     startUrl.searchParams.set("force_login", "1");
     startUrl.searchParams.set("return_to", `${window.location.origin}/integrations`);
@@ -88,10 +87,9 @@ export function UserIntegrationsCard() {
   };
   const connectMicrosoft = async (service: "mail" | "calendar") => {
     if (!userId) return toast.error("Zaloguj się.");
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) return toast.error("Zaloguj się ponownie.");
-    window.location.href = `/api/public/microsoft/start?token=${encodeURIComponent(token)}&service=${service}`;
+    const handoff = await fetchOAuthHandoff();
+    if (!handoff) return toast.error("Zaloguj się ponownie.");
+    window.location.href = `/api/public/microsoft/start?handoff=${encodeURIComponent(handoff)}&service=${service}`;
   };
 
   const saveResend = async () => {
