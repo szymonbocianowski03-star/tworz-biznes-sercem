@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { oauthStartErrorResponse } from "@/lib/oauthHtml";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { verifyHandoff } from "@/lib/oauthHandoff.server";
 
 const SCOPES_BY_SERVICE: Record<string, string[]> = {
   mail: ["openid", "profile", "email", "offline_access", "Mail.Send", "User.Read"],
@@ -20,22 +20,14 @@ export const Route = createFileRoute("/api/public/microsoft/start")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const service = url.searchParams.get("service") ?? "mail";
-        const token = url.searchParams.get("token");
-
-        if (!token) {
+        const handoff = url.searchParams.get("handoff");
+        const userId = verifyHandoff(handoff);
+        if (!userId) {
           return oauthStartErrorResponse(400, {
             title: "Brak sesji użytkownika",
             detail: "Odśwież stronę integracji i upewnij się, że jesteś zalogowany.",
           });
         }
-        const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-        if (userErr || !userData?.user) {
-          return oauthStartErrorResponse(401, {
-            title: "Sesja wygasła",
-            detail: "Zaloguj się ponownie i spróbuj jeszcze raz.",
-          });
-        }
-        const userId = userData.user.id;
         if (!SCOPES_BY_SERVICE[service]) {
           return oauthStartErrorResponse(400, {
             title: "Nieznana usługa",
