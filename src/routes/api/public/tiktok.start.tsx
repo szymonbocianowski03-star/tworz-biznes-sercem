@@ -30,21 +30,14 @@ export const Route = createFileRoute("/api/public/tiktok/start")({
     handlers: {
       GET: async ({ request }) => {
         const url = new URL(request.url);
-        const token = url.searchParams.get("token");
-        if (!token) {
+        const handoff = url.searchParams.get("handoff");
+        const userId = verifyHandoff(handoff);
+        if (!userId) {
           return oauthStartErrorResponse(400, {
             title: "Brak sesji użytkownika",
             detail: "Odśwież stronę integracji i upewnij się, że jesteś zalogowany.",
           });
         }
-        const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-        if (userErr || !userData?.user) {
-          return oauthStartErrorResponse(401, {
-            title: "Sesja wygasła",
-            detail: "Zaloguj się ponownie i spróbuj jeszcze raz.",
-          });
-        }
-        const userId = userData.user.id;
 
         const appId = process.env.TIKTOK_APP_ID?.trim();
         const appSecret = process.env.TIKTOK_APP_SECRET?.trim();
