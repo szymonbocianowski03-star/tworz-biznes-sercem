@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { oauthStartErrorResponse } from "@/lib/oauthHtml";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { verifyHandoff } from "@/lib/oauthHandoff.server";
 
 /**
  * Wyjaśnienie poszczególnych poświadczeń TikTok — łatwo je pomylić:
