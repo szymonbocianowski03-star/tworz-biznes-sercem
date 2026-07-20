@@ -82,6 +82,11 @@ export const Route = createFileRoute("/api/public/auth/google/callback")({
 
           const email = me.email as string | undefined;
           if (!email) throw new Error("Google nie zwróciło adresu email dla tego konta.");
+          if (me.email_verified !== true && me.email_verified !== "true") {
+            throw new Error(
+              "Twoje konto Google nie ma zweryfikowanego adresu email. Zweryfikuj email w ustawieniach konta Google i spróbuj ponownie.",
+            );
+          }
 
           const session = await createSupabaseSessionForGoogleUser({
             email,
