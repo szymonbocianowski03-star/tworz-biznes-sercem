@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { saveIntegrationConnectionRow } from "@/lib/integrationConnectionSave";
+import { fetchOAuthHandoff } from "@/lib/oauthHandoffClient";
 import { isAdPlatformComingSoon } from "@/lib/adPlatform";
 import { toast } from "sonner";
 
@@ -69,14 +70,13 @@ export function LinkedInIntegrationCard() {
       navigate({ to: "/auth" });
       return;
     }
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) {
+    const handoff = await fetchOAuthHandoff();
+    if (!handoff) {
       toast.error("Sesja wygasła. Zaloguj się ponownie.");
       navigate({ to: "/auth" });
       return;
     }
-    const url = `/api/public/linkedin/start?token=${encodeURIComponent(token)}${forceLogin ? "&force_login=1" : ""}`;
+    const url = `/api/public/linkedin/start?handoff=${encodeURIComponent(handoff)}${forceLogin ? "&force_login=1" : ""}`;
     toast.message(
       forceLogin ? "Otwieram wybór konta LinkedIn…" : "Przekierowuję do logowania LinkedIn…",
     );

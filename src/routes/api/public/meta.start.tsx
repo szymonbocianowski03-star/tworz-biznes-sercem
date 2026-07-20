@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { oauthStartErrorResponse } from "@/lib/oauthHtml";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { verifyHandoff } from "@/lib/oauthHandoff.server";
 
 const SCOPES = [
   "public_profile",
@@ -15,21 +15,14 @@ export const Route = createFileRoute("/api/public/meta/start")({
     handlers: {
       GET: async ({ request }) => {
         const url = new URL(request.url);
-        const token = url.searchParams.get("token");
-        if (!token) {
+        const handoff = url.searchParams.get("handoff");
+        const userId = verifyHandoff(handoff);
+        if (!userId) {
           return oauthStartErrorResponse(400, {
             title: "Brak sesji użytkownika",
             detail: "Odśwież stronę integracji i upewnij się, że jesteś zalogowany.",
           });
         }
-        const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-        if (userErr || !userData?.user) {
-          return oauthStartErrorResponse(401, {
-            title: "Sesja wygasła",
-            detail: "Zaloguj się ponownie i spróbuj jeszcze raz.",
-          });
-        }
-        const userId = userData.user.id;
 
         const appId = process.env.META_APP_ID;
         if (!appId?.trim()) {

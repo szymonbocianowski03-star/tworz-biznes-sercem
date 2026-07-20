@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { saveIntegrationConnectionRow } from "@/lib/integrationConnectionSave";
 import { isAdPlatformComingSoon } from "@/lib/adPlatform";
+import { fetchOAuthHandoff } from "@/lib/oauthHandoffClient";
 import { toast } from "sonner";
 
 type AdvertiserAccount = { id: string; name?: string; currency?: string };
@@ -64,15 +65,14 @@ export function TikTokIntegrationCard() {
       navigate({ to: "/auth" });
       return;
     }
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) {
+    const handoff = await fetchOAuthHandoff();
+    if (!handoff) {
       toast.error("Sesja wygasła. Zaloguj się ponownie.");
       navigate({ to: "/auth" });
       return;
     }
     toast.message("Przekierowuję do logowania TikTok Ads…");
-    window.location.assign(`/api/public/tiktok/start?token=${encodeURIComponent(token)}`);
+    window.location.assign(`/api/public/tiktok/start?handoff=${encodeURIComponent(handoff)}`);
   };
 
   const disconnect = async () => {

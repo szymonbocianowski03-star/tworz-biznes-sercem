@@ -8,7 +8,7 @@ import {
   safeGoogleIntegrationReturnTo,
   validateGoogleClientId,
 } from "@/lib/googleOAuthRedirect.server";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { verifyHandoff } from "@/lib/oauthHandoff.server";
 
 const SCOPES_BY_SERVICE: Record<string, string[]> = {
   gmail: [
@@ -40,24 +40,17 @@ export const Route = createFileRoute("/api/public/google/start")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const service = url.searchParams.get("service") ?? "gmail";
-        const token = url.searchParams.get("token");
+        const handoff = url.searchParams.get("handoff");
         const forceLogin = url.searchParams.get("force_login") === "1";
         const returnTo = safeGoogleIntegrationReturnTo(url.searchParams.get("return_to"), request);
 
-        if (!token) {
+        const userId = verifyHandoff(handoff);
+        if (!userId) {
           return oauthStartErrorResponse(400, {
             title: "Brak sesji użytkownika",
             detail: "Odśwież stronę integracji i upewnij się, że jesteś zalogowany.",
           });
         }
-        const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-        if (userErr || !userData?.user) {
-          return oauthStartErrorResponse(401, {
-            title: "Sesja wygasła",
-            detail: "Zaloguj się ponownie i spróbuj jeszcze raz.",
-          });
-        }
-        const userId = userData.user.id;
         if (!SCOPES_BY_SERVICE[service]) {
           return oauthStartErrorResponse(400, {
             title: "Nieznana usługa",
