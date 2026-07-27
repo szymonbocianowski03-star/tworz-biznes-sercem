@@ -105,7 +105,7 @@ export function CampaignMediaPicker({
         .eq("user_id", u.user.id)
         .or("user_reaction.is.null,user_reaction.eq.none,user_reaction.eq.like")
         .order("created_at", { ascending: false })
-        .limit(40),
+        .limit(100),
       supabase
         .from("generated_videos")
         .select("id,video_url,prompt,status")
@@ -113,10 +113,10 @@ export function CampaignMediaPicker({
         .eq("status", "succeeded")
         .or("user_reaction.is.null,user_reaction.eq.none,user_reaction.eq.like")
         .order("created_at", { ascending: false })
-        .limit(20),
+        .limit(50),
       supabase
         .from("cc_asset")
-        .select("id,source_ref")
+        .select("id,source_ref,public_url,display_name,source")
         .eq("workspace_id", workspaceId)
         .eq("user_id", u.user.id),
     ]);
@@ -128,7 +128,6 @@ export function CampaignMediaPicker({
     for (const a of assetsRes.data ?? []) {
       if (a.source_ref) map[a.source_ref] = a.id;
     }
-    setRefToAsset(map);
 
     const items: Thumb[] = [];
     for (const g of imgs ?? []) {
@@ -150,6 +149,27 @@ export function CampaignMediaPicker({
         label: v.prompt?.slice(0, 60) ?? "Wideo",
       });
     }
+
+    // Materiały już wybrane w szkicu muszą być widoczne nawet, gdy oryginalna
+    // generacja wypadła poza ostatnie 100 pozycji biblioteki.
+    const known = new Set(items.map((i) => i.sourceId));
+    for (const a of assetsRes.data ?? []) {
+      if (!selectedRef.current.includes(a.id)) continue;
+      const ref = a.source_ref ?? a.id;
+      if (known.has(ref)) continue;
+      if (!a.public_url) continue;
+      const isVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(a.public_url);
+      map[ref] = a.id;
+      items.push({
+        key: `asset-${a.id}`,
+        kind: isVideo ? "video" : "image",
+        sourceId: ref,
+        url: a.public_url,
+        label: a.display_name?.slice(0, 60) ?? (isVideo ? "Wideo" : "Obraz"),
+      });
+    }
+
+    setRefToAsset(map);
     setThumbs(items);
     setLoading(false);
   }, [workspaceId]);
