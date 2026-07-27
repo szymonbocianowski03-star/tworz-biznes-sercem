@@ -183,8 +183,11 @@ export function CampaignMediaPicker({
   // Gdy szkic doczyta się później niż biblioteka, dociągnij brakujące zaznaczenia.
   const knownAssetIds = useMemo(() => new Set(Object.values(refToAsset)), [refToAsset]);
   const missingSelected = selectedAssetIds.filter((id) => !knownAssetIds.has(id)).join(",");
+  const retriedFor = useRef<string | null>(null);
   useEffect(() => {
     if (!missingSelected) return;
+    if (retriedFor.current === missingSelected) return;
+    retriedFor.current = missingSelected;
     void load();
   }, [missingSelected, load]);
 
