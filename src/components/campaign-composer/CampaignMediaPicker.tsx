@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image, Loader2, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -55,6 +55,8 @@ export function CampaignMediaPicker({
   const [thumbs, setThumbs] = useState<Thumb[]>([]);
   /** source_ref (generated_images / generated_videos id) → cc_asset id */
   const [refToAsset, setRefToAsset] = useState<Record<string, string>>({});
+  const selectedRef = useRef<string[]>(selectedAssetIds);
+  selectedRef.current = selectedAssetIds;
 
   const maxPick = provider === "linkedin" ? 5 : 10;
   const effectiveFormat: "single_image" | "carousel" | "video" =
@@ -177,6 +179,14 @@ export function CampaignMediaPicker({
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Gdy szkic doczyta się później niż biblioteka, dociągnij brakujące zaznaczenia.
+  const knownAssetIds = useMemo(() => new Set(Object.values(refToAsset)), [refToAsset]);
+  const missingSelected = selectedAssetIds.filter((id) => !knownAssetIds.has(id)).join(",");
+  useEffect(() => {
+    if (!missingSelected) return;
+    void load();
+  }, [missingSelected, load]);
 
   const resolveAssetId = async (t: Thumb): Promise<string | null> => {
     const existing = refToAsset[t.sourceId];
