@@ -99,7 +99,7 @@ export function googlePreflight(draft: CampaignComposerDraftPayload): Validation
       issues.push({
         code: "GADS_DESCRIPTIONS",
         severity: "blocking",
-        message: `Dodaj co najmniej ${minD} opis${minD === 1 ? "" : "y"} (max 90 znaków).`,
+        message: `Dodaj co najmniej ${minD} opisy (max 90 znaków).`,
         fieldPath: "google.descriptions",
       });
     }
