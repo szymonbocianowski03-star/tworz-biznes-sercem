@@ -4,6 +4,7 @@ import {
   buildGoogleIntegrationOAuthState,
   getGoogleIntegrationOAuthRedirectUri,
   googleIntegrationRedirectHint,
+  googleStateCookieAttrs,
   maskGoogleClientId,
   safeGoogleIntegrationReturnTo,
   validateGoogleClientId,
@@ -104,16 +105,11 @@ export const Route = createFileRoute("/api/public/google/start")({
           scopes: SCOPES_BY_SERVICE[service],
         });
 
-        const isSecure =
-          url.protocol === "https:" &&
-          url.hostname !== "localhost" &&
-          url.hostname !== "127.0.0.1";
-
         return new Response(null, {
           status: 302,
           headers: {
             Location: authUrl.toString(),
-            "Set-Cookie": `google_oauth_state=${state}; Path=/; Max-Age=600; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}`,
+            "Set-Cookie": `google_oauth_state=${state}${googleStateCookieAttrs(request)}`,
           },
         });
       },

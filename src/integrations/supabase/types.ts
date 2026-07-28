@@ -952,45 +952,6 @@ export type Database = {
         }
         Relationships: []
       }
-      google_calendar_connections: {
-        Row: {
-          access_token: string
-          created_at: string
-          email: string
-          id: string
-          primary_calendar_id: string | null
-          refresh_token: string | null
-          scope: string | null
-          token_expires_at: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string
-          email: string
-          id?: string
-          primary_calendar_id?: string | null
-          refresh_token?: string | null
-          scope?: string | null
-          token_expires_at?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string
-          email?: string
-          id?: string
-          primary_calendar_id?: string | null
-          refresh_token?: string | null
-          scope?: string | null
-          token_expires_at?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       google_ads_connections: {
         Row: {
           access_token: string
@@ -1036,6 +997,45 @@ export type Database = {
           scope?: string | null
           selected_customer_id?: string | null
           status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_calendar_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          email: string
+          id: string
+          primary_calendar_id: string | null
+          refresh_token: string | null
+          scope: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          email: string
+          id?: string
+          primary_calendar_id?: string | null
+          refresh_token?: string | null
+          scope?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          email?: string
+          id?: string
+          primary_calendar_id?: string | null
+          refresh_token?: string | null
+          scope?: string | null
           token_expires_at?: string | null
           updated_at?: string
           user_id?: string

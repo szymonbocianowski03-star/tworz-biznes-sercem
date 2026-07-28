@@ -3,6 +3,7 @@ import { isLocalGoogleAuthConfigured } from "@/lib/googleAuthEnv.server";
 import { oauthStartErrorResponse } from "@/lib/oauthHtml";
 import {
   getGoogleAuthOAuthRedirectUri,
+  googleStateCookieAttrs,
   maskGoogleClientId,
   validateGoogleClientId,
 } from "@/lib/googleOAuthRedirect.server";
@@ -54,14 +55,10 @@ export const Route = createFileRoute("/api/public/auth/google/start")({
           clientId: maskGoogleClientId(clientId),
         });
 
-        const isSecure =
-          url.protocol === "https:" &&
-          url.hostname !== "localhost" &&
-          url.hostname !== "127.0.0.1";
-
+        const cookieAttrs = googleStateCookieAttrs(request);
         const headers = new Headers({ Location: authUrl.toString() });
-        headers.append("Set-Cookie", `google_auth_state=${state}; Path=/; Max-Age=600; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}`);
-        headers.append("Set-Cookie", `google_auth_redirect=${encodeURIComponent(redirectTo)}; Path=/; Max-Age=600; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}`);
+        headers.append("Set-Cookie", `google_auth_state=${state}${cookieAttrs}`);
+        headers.append("Set-Cookie", `google_auth_redirect=${encodeURIComponent(redirectTo)}${cookieAttrs}`);
         return new Response(null, { status: 302, headers });
       },
     },
