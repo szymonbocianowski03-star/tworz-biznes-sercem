@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, Mail, Lock, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { signInWithGoogle } from "@/lib/signInWithGoogle";
@@ -248,7 +248,6 @@ function AuthPage() {
           className="text-center"
         >
           <div className="inline-flex items-center gap-2 rounded-md border border-foreground/10 bg-background px-3.5 py-1.5 text-xs font-semibold text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
             Bez karty kredytowej
           </div>
           <h1 className="mt-6 serif text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.08] tracking-[-0.03em]">

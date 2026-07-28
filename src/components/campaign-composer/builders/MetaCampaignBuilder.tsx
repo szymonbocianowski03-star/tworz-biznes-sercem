@@ -10,6 +10,7 @@ import {
   ConnectAccountPrompt,
   ensureFirstCreative,
   Field,
+  FieldWithAi,
   Money,
   MultiCheck,
   SectionTitle,
@@ -41,6 +42,12 @@ export function MetaCampaignBuilder(props: BuilderProps) {
     setAdset({ budget: { currency: "PLN", ...(adset.budget ?? {}), ...patch } });
   const setAudience = (patch: Partial<typeof adset.audience>) => setAdset({ audience: { ...adset.audience, ...patch } });
   const setSchedule = (patch: Partial<NonNullable<typeof adset.schedule>>) => setAdset({ schedule: { ...(adset.schedule ?? {}), ...patch } });
+  const aiCtx = {
+    provider: "meta" as const,
+    campaignType: meta.objective,
+    campaignName: draft.structure.campaignName,
+    finalUrl: cr?.destinationUrl,
+  };
 
   return (
     <div className="space-y-5">
@@ -71,9 +78,18 @@ export function MetaCampaignBuilder(props: BuilderProps) {
         {step === "campaign" && (
           <div className="space-y-4">
             <SectionTitle>Kampania</SectionTitle>
-            <Field label="Nazwa kampanii">
+            <FieldWithAi
+              label="Nazwa kampanii"
+              ai={{
+                kind: "campaignName",
+                context: aiCtx,
+                existing: draft.structure.campaignName,
+                onFilled: (text) =>
+                  applyChange({ ...draft, structure: { ...draft.structure, campaignName: text.split("\n")[0] ?? text } }),
+              }}
+            >
               <Text value={draft.structure.campaignName} onChange={(v) => applyChange({ ...draft, structure: { ...draft.structure, campaignName: v } })} />
-            </Field>
+            </FieldWithAi>
             <Field label="Cel kampanii">
               <Select value={meta.objective} onChange={(v) => setMeta({ objective: metaObjectiveSchema.parse(v) })} options={metaAdsFields.campaignObjectives} />
             </Field>
@@ -178,12 +194,30 @@ export function MetaCampaignBuilder(props: BuilderProps) {
                 }}
               />
             </div>
-            <Field label="Nagłówek">
+            <FieldWithAi
+              label="Nagłówek"
+              ai={{
+                kind: "headline",
+                context: aiCtx,
+                existing: cr!.headline,
+                maxChars: 40,
+                onFilled: (text) => applyChange(patchCreative(draft, { headline: text.split("\n")[0] ?? text })),
+              }}
+            >
               <Text value={cr!.headline ?? ""} onChange={(v) => applyChange(patchCreative(draft, { headline: v }))} />
-            </Field>
-            <Field label="Tekst główny">
+            </FieldWithAi>
+            <FieldWithAi
+              label="Tekst główny"
+              ai={{
+                kind: "primaryText",
+                context: aiCtx,
+                existing: cr!.primaryText,
+                maxChars: 125,
+                onFilled: (text) => applyChange(patchCreative(draft, { primaryText: text })),
+              }}
+            >
               <Area value={cr!.primaryText ?? ""} onChange={(v) => applyChange(patchCreative(draft, { primaryText: v }))} />
-            </Field>
+            </FieldWithAi>
             <Field label="URL docelowy">
               <Text
                 value={cr!.destinationUrl ?? ""}

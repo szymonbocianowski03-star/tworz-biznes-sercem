@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.generate-ad-creative]
 verify_jwt = false
+
+[functions.generate-ad-copy]
+verify_jwt = false

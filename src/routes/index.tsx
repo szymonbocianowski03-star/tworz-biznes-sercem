@@ -14,6 +14,9 @@ import { GrowthSalesWheel } from "@/components/GrowthSalesWheel";
 import { MarketingNowLogo } from "@/components/MarketingNowLogo";
 import { BillingPeriodToggle } from "@/components/SegmentedControl";
 import { TestimonialsShorts } from "@/components/TestimonialsShorts";
+import { GoogleAdsLiveSection } from "@/components/GoogleAdsLiveSection";
+import { AppInsideShowcase } from "@/components/landing/AppInsideShowcase";
+import { PolandFirmBadge } from "@/components/landing/BrandMarks";
 import hoodieAsset from "@/assets/product-examples/hoodie.png.asset.json";
 import tshirtsAsset from "@/assets/product-examples/tshirts.png.asset.json";
 import derbyAsset from "@/assets/product-examples/derby.png.asset.json";
@@ -53,6 +56,8 @@ function Landing() {
     <div className="collins-root min-h-screen bg-white text-neutral-950 antialiased">
       <Nav />
       <Hero />
+      <AppInsideShowcase />
+      <GoogleAdsLiveSection />
       <WorkflowPitch />
       <WhatYouHandle />
       <TestimonialsShorts />
@@ -75,12 +80,21 @@ function Nav() {
     setSoundsEnabled(next);
     if (next) sfx.chime();
   };
+  const navLinks = [
+    { href: "#panel", label: "Panel" },
+    { href: "#google-ads", label: "Google Ads" },
+    { href: "#co-obslugujesz", label: "Zakres" },
+    { href: "#growth-wheel", label: "Widoczność w AI" },
+    { href: "#poznaj-opinie", label: "Opinie" },
+    { href: "#cennik", label: "Cennik" },
+  ] as const;
+
   return (
     <>
       <div className="sticky top-0 z-50 bg-neutral-950 text-white border-b border-neutral-800 shadow-[0_1px_0_rgba(0,0,0,0.15)]">
-        <div className="mx-auto max-w-[1600px] px-4 md:px-10 py-3 md:py-3.5 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3">
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-            <div className="flex flex-wrap items-center justify-center gap-2 shrink-0">
+        <div className="mx-auto max-w-[1600px] px-4 md:px-10 py-3 md:py-3.5 flex flex-col lg:flex-row items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left w-full lg:w-auto">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 shrink-0">
               <Link
                 to="/auth"
                 onClick={() => sfx.chime()}
@@ -104,89 +118,98 @@ function Nav() {
         </div>
       </div>
       <header className="bg-white border-b border-neutral-200">
-        <div className="mx-auto max-w-[1600px] flex items-center justify-between gap-4 md:gap-8 h-[72px] px-6 md:px-10">
-          <div className="shrink-0 min-w-[9.5rem]">
-            <MarketingNowLogo className="text-neutral-950" size="lg" />
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-10 py-2.5 md:py-0">
+          <div className="flex items-center justify-between gap-3 md:gap-8 min-h-[52px] sm:min-h-[64px] md:h-[72px]">
+            <div className="shrink-0 min-w-0">
+              <MarketingNowLogo className="text-neutral-950" size="lg" />
+            </div>
+            <nav className="hidden lg:flex flex-1 items-center justify-center gap-6 xl:gap-8 text-[11px] uppercase tracking-[0.14em] font-sans min-w-0">
+              {navLinks.map((l) => (
+                <a key={l.href} href={l.href} className="hover:opacity-60 transition whitespace-nowrap">
+                  {l.label}
+                </a>
+              ))}
+              <Link
+                to="/program-partnerski"
+                onClick={() => sfx.chime()}
+                className="hover:opacity-60 transition whitespace-nowrap"
+              >
+                Program partnerski
+              </Link>
+            </nav>
+            <div className="flex shrink-0 items-center gap-2 md:gap-3">
+              <button
+                onClick={toggle}
+                aria-label={sound ? "Wyłącz dźwięki" : "Włącz dźwięki"}
+                title={sound ? "Dźwięki: włączone" : "Dźwięki: wyłączone"}
+                className="hidden md:inline-flex items-center justify-center h-9 w-9 border border-neutral-300 hover:border-neutral-950 transition-colors text-neutral-700"
+              >
+                {sound ? (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                    <path d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                    <line x1="22" y1="9" x2="16" y2="15" />
+                    <line x1="16" y1="9" x2="22" y2="15" />
+                  </svg>
+                )}
+              </button>
+              <a
+                href="https://calendly.com/szymon-bocianowski/30min"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => sfx.chime()}
+                className="hidden md:inline-flex text-[13px] uppercase tracking-[0.14em] border border-neutral-300 px-4 py-2 hover:bg-neutral-100 transition-colors"
+              >
+                Umów konsultację
+              </a>
+              <Link
+                to="/auth"
+                onClick={() => sfx.chime()}
+                className="inline-flex text-[11px] sm:text-[12px] uppercase tracking-[0.14em] border border-neutral-300 px-3 sm:px-4 py-2 hover:bg-neutral-100 transition-colors whitespace-nowrap"
+              >
+                Zaloguj się
+              </Link>
+              <Link
+                to="/auth"
+                onClick={() => sfx.success()}
+                className="inline-flex text-[11px] sm:text-[12px] uppercase tracking-[0.14em] border border-neutral-950 bg-neutral-950 text-white px-3 sm:px-4 py-2 hover:bg-white hover:text-neutral-950 transition-colors whitespace-nowrap"
+              >
+                Rozpocznij
+              </Link>
+            </div>
           </div>
-          <nav className="hidden lg:flex flex-1 items-center justify-center gap-6 xl:gap-8 text-[11px] uppercase tracking-[0.14em] font-sans min-w-0">
-            <a href="#co-obslugujesz" className="hover:opacity-60 transition whitespace-nowrap">
-              Zakres
-            </a>
-            <a href="#growth-wheel" className="hover:opacity-60 transition whitespace-nowrap">
-              Widoczność w AI
-            </a>
-            <a href="#poznaj-opinie" className="hover:opacity-60 transition whitespace-nowrap">
-              Opinie
-            </a>
-            <a href="#cennik" className="hover:opacity-60 transition whitespace-nowrap">
-              Cennik
-            </a>
+          <nav className="lg:hidden flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pb-2.5 pt-1 text-[10px] sm:text-[11px] uppercase tracking-[0.12em] text-neutral-600 font-sans border-t border-neutral-100">
+            {navLinks.map((l) => (
+              <a key={l.href} href={l.href} className="hover:text-neutral-950 transition whitespace-nowrap py-1">
+                {l.label}
+              </a>
+            ))}
             <Link
               to="/program-partnerski"
               onClick={() => sfx.chime()}
-              className="hover:opacity-60 transition whitespace-nowrap"
+              className="hover:text-neutral-950 transition whitespace-nowrap py-1"
             >
               Program partnerski
             </Link>
           </nav>
-          <div className="flex shrink-0 items-center gap-2 md:gap-3">
-            <button
-              onClick={toggle}
-              aria-label={sound ? "Wyłącz dźwięki" : "Włącz dźwięki"}
-              title={sound ? "Dźwięki: włączone" : "Dźwięki: wyłączone"}
-              className="hidden md:inline-flex items-center justify-center h-9 w-9 border border-neutral-300 hover:border-neutral-950 transition-colors text-neutral-700"
-            >
-              {sound ? (
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path d="M11 5L6 9H2v6h4l5 4V5z" />
-                  <path d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
-                </svg>
-              ) : (
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path d="M11 5L6 9H2v6h4l5 4V5z" />
-                  <line x1="22" y1="9" x2="16" y2="15" />
-                  <line x1="16" y1="9" x2="22" y2="15" />
-                </svg>
-              )}
-            </button>
-            <a
-              href="https://calendly.com/szymon-bocianowski/30min"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => sfx.chime()}
-              className="hidden md:inline-flex text-[13px] uppercase tracking-[0.14em] border border-neutral-300 px-4 py-2 hover:bg-neutral-100 transition-colors"
-            >
-              Umów konsultację
-            </a>
-            <Link
-              to="/auth"
-              onClick={() => sfx.chime()}
-              className="hidden sm:inline-flex text-[12px] uppercase tracking-[0.14em] border border-neutral-300 px-4 py-2 hover:bg-neutral-100 transition-colors whitespace-nowrap"
-            >
-              Zaloguj się
-            </Link>
-            <Link
-              to="/auth"
-              onClick={() => sfx.success()}
-              className="hidden sm:inline-flex text-[12px] uppercase tracking-[0.14em] border border-neutral-950 px-4 py-2 hover:bg-neutral-950 hover:text-white transition-colors whitespace-nowrap"
-            >
-              Rozpocznij za darmo
-            </Link>
-          </div>
         </div>
       </header>
     </>
@@ -216,57 +239,94 @@ function MobileDesktopNotice() {
 
 /* ============================== HERO ============================== */
 function Hero() {
-  return (
-    <section id="growth-wheel" className="relative border-b border-neutral-200 overflow-hidden scroll-mt-28">
-      <div className="mx-auto max-w-[1600px] px-6 md:px-10 pt-16 md:pt-24 pb-14 md:pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 xl:gap-20 items-center">
-          <div className="lg:col-span-6 xl:col-span-5 max-w-xl lg:max-w-none">
-            <p className="text-[11px] md:text-[12px] uppercase tracking-[0.2em] text-neutral-500 mb-4 md:mb-5">
-              AI marketing workspace
-            </p>
-            <h1 className="serif text-[clamp(1.95rem,4.2vw,4.1rem)] leading-[1.06] tracking-[-0.03em] text-balance text-neutral-950">
-              Marketing firmy
-              <span className="block mt-1 md:mt-0.5">w jednym miejscu</span>
-            </h1>
-            <p className="mt-6 text-[17px] md:text-[18px] leading-[1.55] text-neutral-800 font-medium">
-              Reklamy, hooki, analiza konkurencji, treści i widoczność marki w AI — w jednym panelu
-              MarketingNow.
-            </p>
-            <p className="mt-4 text-[15px] md:text-[16px] leading-[1.55] text-neutral-600">
-              Wklejasz stronę — narzędzie rozumie ofertę i pomaga przejść od briefu do gotowych
-              materiałów bez rozdzielania pracy na wiele aplikacji.
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
-              <Link
-                to="/auth"
-                onClick={() => sfx.success()}
-                className="inline-flex items-center justify-center border border-neutral-950 bg-neutral-950 text-white px-7 py-3.5 text-[12px] md:text-[13px] font-semibold uppercase tracking-[0.12em] hover:bg-white hover:text-neutral-950 transition-colors text-center"
-              >
-                Rozpocznij za darmo
-              </Link>
-            </div>
-            <p className="mt-8 text-[11px] md:text-[12px] uppercase tracking-[0.16em] text-neutral-500">
-              Reklamy · Hooki · Konkurencja · SEO · Maile · Kalendarz · Widoczność w AI
-            </p>
-            <div className="mt-8 max-w-lg mx-auto lg:mx-0 rounded-2xl bg-zinc-950 p-3 sm:p-5 ring-1 ring-zinc-800/90 shadow-[0_20px_50px_-16px_rgba(0,0,0,0.35)]">
-              <img
-                src="/tablet-marketingnow-hero.png"
-                alt="MarketingNow — panel aplikacji na tablecie"
-                width={1200}
-                height={1200}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-auto object-contain"
-              />
-            </div>
-          </div>
+  const [howOpen, setHowOpen] = useState(false);
 
-          <div className="hidden md:block lg:col-span-6 xl:col-span-7 relative">
-            <GrowthSalesWheel ctaTo="/auth" hideWheelCaption hideHeader />
+  return (
+    <section id="growth-wheel" className="relative border-b border-neutral-200 overflow-hidden scroll-mt-24 sm:scroll-mt-28">
+      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-10 pt-10 sm:pt-14 md:pt-20 pb-0">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-[11px] md:text-[12px] uppercase tracking-[0.2em] text-neutral-500 mb-3 sm:mb-4 md:mb-5">
+            AI marketing workspace
+          </p>
+          <h1 className="serif text-[clamp(1.75rem,8vw,4.1rem)] leading-[1.08] tracking-[-0.03em] text-balance text-neutral-950">
+            Marketing firmy
+            <span className="block mt-1 md:mt-0.5">w jednym miejscu</span>
+          </h1>
+          <p className="mt-4 sm:mt-5 text-[15px] sm:text-[16px] md:text-[18px] leading-[1.55] text-neutral-700 px-1">
+            Reklamy, hooki, analiza konkurencji, treści i widoczność marki w AI — zobacz, jak wygląda panel od środka.
+          </p>
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2.5 sm:gap-3">
+            <Link
+              to="/auth"
+              onClick={() => sfx.success()}
+              className="inline-flex w-full sm:w-auto items-center justify-center border border-neutral-950 bg-neutral-950 text-white px-6 py-3.5 text-[12px] md:text-[13px] font-semibold uppercase tracking-[0.12em] hover:bg-white hover:text-neutral-950 transition-colors text-center touch-manipulation"
+            >
+              Rozpocznij za darmo
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                sfx.chime();
+                setHowOpen((v) => !v);
+              }}
+              className="inline-flex w-full sm:w-auto items-center justify-center border border-neutral-300 bg-white text-neutral-900 px-6 py-3.5 text-[12px] md:text-[13px] font-semibold uppercase tracking-[0.12em] hover:border-neutral-950 transition-colors touch-manipulation"
+            >
+              {howOpen ? "Zwiń" : "Pokaż jak działa aplikacja"}
+            </button>
           </div>
-          <div className="md:hidden">
-            <MobileDesktopNotice />
+          <p className="mt-5 sm:mt-6 text-[10px] sm:text-[11px] md:text-[12px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-neutral-500 leading-relaxed px-2">
+            Reklamy · Hooki · Konkurencja · SEO · Maile · Kalendarz · Widoczność w AI
+          </p>
+        </div>
+
+        {howOpen && (
+          <div className="mt-6 sm:mt-8 mx-auto max-w-3xl rounded-2xl border border-neutral-200 bg-neutral-50 p-4 sm:p-5 md:p-6 text-left animate-in fade-in slide-in-from-top-2 duration-300">
+            <ol className="space-y-2.5 sm:space-y-3">
+              {[
+                {
+                  t: "1. Czat AI w centrum",
+                  d: "Opisujesz zadanie albo wybierasz gotowe działanie — agent prowadzi Cię przez kampanie, treści i analizę.",
+                },
+                {
+                  t: "2. Integracje i publikacja",
+                  d: "Łączysz Google Ads, Meta, Gmail, kalendarz — publikujesz z jednego workspace.",
+                },
+                {
+                  t: "3. Panel kampanii i raporty",
+                  d: "Kreujesz reklamy z AI, sprawdzasz SEO, konkurencję i widoczność marki w odpowiedziach asystentów.",
+                },
+              ].map((s) => (
+                <li key={s.t} className="rounded-xl border border-neutral-200 bg-white px-3.5 py-3 sm:px-4">
+                  <p className="text-[13px] font-semibold text-neutral-950">{s.t}</p>
+                  <p className="mt-1 text-[13px] text-neutral-600 leading-relaxed">{s.d}</p>
+                </li>
+              ))}
+            </ol>
           </div>
+        )}
+
+        <div className="mt-8 sm:mt-10 md:mt-14 max-w-3xl mx-auto">
+          <div className="rounded-xl sm:rounded-2xl bg-zinc-950 p-2 sm:p-3 md:p-5 ring-1 ring-zinc-800/90 shadow-[0_20px_50px_-16px_rgba(0,0,0,0.35)]">
+            <img
+              src="/tablet-marketingnow-hero.png"
+              alt="MarketingNow — panel aplikacji na tablecie"
+              width={1200}
+              height={1200}
+              decoding="async"
+              fetchPriority="high"
+              className="w-full h-auto object-contain"
+            />
+          </div>
+          <div className="mt-4 flex justify-center">
+            <PolandFirmBadge />
+          </div>
+        </div>
+
+        <div className="hidden md:block mt-14 md:mt-20 pb-14 md:pb-20">
+          <GrowthSalesWheel ctaTo="/auth" hideWheelCaption hideHeader />
+        </div>
+        <div className="md:hidden py-8 sm:py-10">
+          <MobileDesktopNotice />
         </div>
       </div>
     </section>
@@ -588,6 +648,9 @@ function _Footer() {
           <p className="mt-3 text-[13px] leading-relaxed text-neutral-600 normal-case tracking-normal max-w-sm">
             Produkt stworzony przez ludzi z doświadczeniem marketingowym.
           </p>
+          <div className="mt-4">
+            <PolandFirmBadge />
+          </div>
         </div>
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <p className="text-neutral-950 mb-3">Kontakt</p>

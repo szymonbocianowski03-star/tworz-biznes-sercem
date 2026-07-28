@@ -20,6 +20,7 @@ import {
   ConnectAccountPrompt,
   ensureFirstCreative,
   Field,
+  FieldWithAi,
   Money,
   SectionTitle,
   Select,
@@ -62,6 +63,13 @@ export function GoogleCampaignBuilder(props: BuilderProps) {
   const applyChange = (next: typeof draft) => onChange(ensureFirstCreative(next));
   const setGoogle = (patch: Partial<NonNullable<typeof draft.google>>) =>
     applyChange({ ...draft, google: { ...google, ...patch } });
+  const aiCtx = {
+    provider: "google" as const,
+    campaignType: type,
+    campaignName: draft.structure.campaignName,
+    finalUrl: google.finalUrl ?? cr?.destinationUrl,
+    businessName: google.businessName,
+  };
 
   const mediaSummary = useMemo(() => {
     if (!assetCount) return "Brak materiałów medialnych.";
@@ -128,12 +136,22 @@ export function GoogleCampaignBuilder(props: BuilderProps) {
         {step === "campaign" && (
           <div className="space-y-4">
             <SectionTitle>Typ i nazwa kampanii</SectionTitle>
-            <Field label="Nazwa kampanii">
+            <FieldWithAi
+              label="Nazwa kampanii"
+              ai={{
+                kind: "campaignName",
+                context: aiCtx,
+                existing: draft.structure.campaignName,
+                maxChars: 80,
+                onFilled: (text) =>
+                  applyChange({ ...draft, structure: { ...draft.structure, campaignName: text.split("\n")[0] ?? text } }),
+              }}
+            >
               <Text
                 value={draft.structure.campaignName}
                 onChange={(v) => applyChange({ ...draft, structure: { ...draft.structure, campaignName: v } })}
               />
-            </Field>
+            </FieldWithAi>
             <Field label="Typ kampanii (wszystkie dostępne)">
               <Select
                 value={google.campaignType}
@@ -311,7 +329,21 @@ export function GoogleCampaignBuilder(props: BuilderProps) {
 
             {showTexts && (
               <>
-                <Field label={type === "VIDEO" ? "Nagłówek / headline (1+)" : "Nagłówki (min. 3, max 30 znaków, jeden na linię)"}>
+                <FieldWithAi
+                  label={type === "VIDEO" ? "Nagłówek / headline (1+)" : "Nagłówki (min. 3, max 30 znaków, jeden na linię)"}
+                  ai={{
+                    kind: "headlines",
+                    context: aiCtx,
+                    existing: (google.headlines?.length ? google.headlines : [google.headline]).filter(Boolean).join("\n"),
+                    maxChars: 30,
+                    count: type === "VIDEO" ? 2 : 5,
+                    onFilled: (_t, lines) =>
+                      setGoogle({
+                        headlines: lines.map((s) => s.slice(0, 30)).filter(Boolean),
+                        headline: lines[0],
+                      }),
+                  }}
+                >
                   <Area
                     value={(google.headlines?.length ? google.headlines : [google.headline]).filter(Boolean).join("\n")}
                     onChange={(v) =>
@@ -323,9 +355,20 @@ export function GoogleCampaignBuilder(props: BuilderProps) {
                       })
                     }
                   />
-                </Field>
+                </FieldWithAi>
                 {(type === "DISPLAY" || type === "DEMAND_GEN" || type === "LOCAL" || type === "SMART") && (
-                  <Field label="Długie nagłówki (max 90 znaków, jeden na linię)">
+                  <FieldWithAi
+                    label="Długie nagłówki (max 90 znaków, jeden na linię)"
+                    ai={{
+                      kind: "longHeadlines",
+                      context: aiCtx,
+                      existing: (google.longHeadlines ?? []).join("\n"),
+                      maxChars: 90,
+                      count: 2,
+                      onFilled: (_t, lines) =>
+                        setGoogle({ longHeadlines: lines.map((s) => s.slice(0, 90)).filter(Boolean) }),
+                    }}
+                  >
                     <Area
                       value={(google.longHeadlines ?? []).join("\n")}
                       onChange={(v) =>
@@ -337,10 +380,26 @@ export function GoogleCampaignBuilder(props: BuilderProps) {
                         })
                       }
                     />
-                  </Field>
+                  </FieldWithAi>
                 )}
                 {type !== "VIDEO" && (
-                  <Field label="Opisy (min. 2, max 90 znaków, jeden na linię)">
+                  <FieldWithAi
+                    label="Opisy (min. 2, max 90 znaków, jeden na linię)"
+                    ai={{
+                      kind: "descriptions",
+                      context: aiCtx,
+                      existing: (google.descriptions?.length ? google.descriptions : [google.description])
+                        .filter(Boolean)
+                        .join("\n"),
+                      maxChars: 90,
+                      count: 3,
+                      onFilled: (_t, lines) =>
+                        setGoogle({
+                          descriptions: lines.map((s) => s.slice(0, 90)).filter(Boolean),
+                          description: lines[0],
+                        }),
+                    }}
+                  >
                     <Area
                       value={
                         (google.descriptions?.length ? google.descriptions : [google.description])
@@ -356,16 +415,25 @@ export function GoogleCampaignBuilder(props: BuilderProps) {
                         })
                       }
                     />
-                  </Field>
+                  </FieldWithAi>
                 )}
                 {(type === "DISPLAY" || type === "DEMAND_GEN") && (
-                  <Field label="Nazwa firmy (business name)">
+                  <FieldWithAi
+                    label="Nazwa firmy (business name)"
+                    ai={{
+                      kind: "businessName",
+                      context: aiCtx,
+                      existing: google.businessName,
+                      maxChars: 25,
+                      onFilled: (text) => setGoogle({ businessName: text.split("\n")[0]?.slice(0, 25) || undefined }),
+                    }}
+                  >
                     <Text
                       value={google.businessName ?? ""}
                       onChange={(v) => setGoogle({ businessName: v.slice(0, 25) || undefined })}
                       placeholder="max 25 znaków"
                     />
-                  </Field>
+                  </FieldWithAi>
                 )}
               </>
             )}

@@ -627,3 +627,35 @@ export const ccListAudit = createServerFn({ method: "POST" })
       .limit(50);
     return { events: rows ?? [] };
   });
+
+const GenerateAdCopyIn = z.object({
+  kind: z.enum([
+    "headline",
+    "headlines",
+    "longHeadlines",
+    "descriptions",
+    "primaryText",
+    "adText",
+    "campaignName",
+    "businessName",
+  ]),
+  provider: z.enum(["meta", "linkedin", "tiktok", "google"]),
+  campaignType: z.string().max(40).optional(),
+  campaignName: z.string().max(120).optional(),
+  finalUrl: z.string().max(500).optional(),
+  businessName: z.string().max(80).optional(),
+  language: z.string().max(16).optional(),
+  count: z.number().int().min(1).max(15).optional(),
+  maxChars: z.number().int().min(10).max(500).optional(),
+  hint: z.string().max(500).optional(),
+  existing: z.string().max(2000).optional(),
+});
+
+/** AI uzupełnianie tekstów kreacji (Anthropic / Claude). */
+export const ccGenerateAdCopy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => GenerateAdCopyIn.parse(d))
+  .handler(async ({ data }) => {
+    const { generateAdCopyWithAnthropic } = await import("./server/generate-ad-copy");
+    return generateAdCopyWithAnthropic(data);
+  });

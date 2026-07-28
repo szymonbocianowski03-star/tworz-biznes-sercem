@@ -1,7 +1,13 @@
 import { type ReactNode, useState } from "react";
+import { Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import type { CampaignComposerDraftPayload } from "@/modules/campaign-composer/domain/draft-schema";
 import type { FieldOption } from "@/modules/campaign-composer/config/types";
 import type { ValidationIssue } from "@/modules/campaign-composer/validation/preflight";
+import type { AdCopyKind } from "@/modules/campaign-composer/server/generate-ad-copy";
+import { supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
+import { supabaseFnHeaders } from "@/lib/supabaseFnHeaders";
+import { scheduleCreditsRefresh } from "@/lib/creditsRefresh";
 
 /** Wspólne propsy przekazywane do każdego kreatora platformy. */
 export type BuilderProps = {
@@ -45,6 +51,141 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
       {children}
       {hint && <span className="mt-1 block text-[11px] leading-relaxed text-zinc-400">{hint}</span>}
     </label>
+  );
+}
+
+export type AiFillContext = {
+  provider: "meta" | "linkedin" | "tiktok" | "google";
+  campaignType?: string;
+  campaignName?: string;
+  finalUrl?: string;
+  businessName?: string;
+};
+
+/** Przycisk „AI” — ten sam Anthropic co w czacie (Edge Function generate-ad-copy). */
+export function AiFillButton({
+  kind,
+  context,
+  existing,
+  maxChars,
+  count,
+  onFilled,
+}: {
+  kind: AdCopyKind;
+  context: AiFillContext;
+  existing?: string;
+  maxChars?: number;
+  count?: number;
+  onFilled: (text: string, lines: string[]) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const run = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const headers = await supabaseFnHeaders();
+      if (!headers) {
+        toast.error("Zaloguj się, aby użyć podpowiedzi AI");
+        return;
+      }
+      const resp = await fetch(supabaseEdgeFunctionUrl("generate-ad-copy"), {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          kind,
+          provider: context.provider,
+          campaignType: context.campaignType,
+          campaignName: context.campaignName,
+          finalUrl: context.finalUrl,
+          businessName: context.businessName,
+          language: "pl",
+          maxChars,
+          count,
+          existing: existing?.trim() || undefined,
+        }),
+      });
+      const data = (await resp.json().catch(() => ({}))) as {
+        lines?: string[];
+        text?: string;
+        error?: string;
+        message?: string;
+      };
+      scheduleCreditsRefresh();
+      if (resp.status === 402) {
+        toast.error(data.message || data.error || "Brak kredytów — doładuj plan.");
+        return;
+      }
+      if (!resp.ok) {
+        throw new Error(data.error || data.message || "Nie udało się wygenerować tekstu AI");
+      }
+      const lines = Array.isArray(data.lines) ? data.lines.filter((s) => typeof s === "string" && s.trim()) : [];
+      const text = typeof data.text === "string" ? data.text : lines.join("\n");
+      if (!lines.length && !text.trim()) throw new Error("AI nie zwróciło tekstu");
+      onFilled(text, lines.length ? lines : text.split("\n").filter(Boolean));
+      toast.success("Uzupełniono AI");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Nie udało się wygenerować tekstu AI");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void run();
+      }}
+      disabled={loading}
+      className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+      title="Uzupełnij AI (Anthropic — jak w czacie)"
+    >
+      {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+      AI
+    </button>
+  );
+}
+
+/** Etykieta pola + przycisk AI w jednej linii. */
+export function FieldWithAi({
+  label,
+  hint,
+  ai,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  ai?: {
+    kind: AdCopyKind;
+    context: AiFillContext;
+    existing?: string;
+    maxChars?: number;
+    count?: number;
+    onFilled: (text: string, lines: string[]) => void;
+  };
+  children: ReactNode;
+}) {
+  return (
+    <div className="block">
+      <div className="mb-0.5 flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">{label}</span>
+        {ai && (
+          <AiFillButton
+            kind={ai.kind}
+            context={ai.context}
+            existing={ai.existing}
+            maxChars={ai.maxChars}
+            count={ai.count}
+            onFilled={ai.onFilled}
+          />
+        )}
+      </div>
+      {children}
+      {hint && <span className="mt-1 block text-[11px] leading-relaxed text-zinc-400">{hint}</span>}
+    </div>
   );
 }
 

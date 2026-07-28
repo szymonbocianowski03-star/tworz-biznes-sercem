@@ -9,6 +9,7 @@ import {
   ConnectAccountPrompt,
   ensureFirstCreative,
   Field,
+  FieldWithAi,
   Money,
   MultiCheck,
   SectionTitle,
@@ -39,6 +40,12 @@ export function TikTokCampaignBuilder(props: BuilderProps) {
 
   const isConversion = tt.objective === "website_conversion" || tt.objective === "tiktok_shop";
   const cr0 = value.structure.adSets[0]?.creatives[0];
+  const aiCtx = {
+    provider: "tiktok" as const,
+    campaignType: tt.objective,
+    campaignName: value.structure.campaignName,
+    finalUrl: ad.destinationUrl ?? cr0?.destinationUrl,
+  };
 
   return (
     <div className="space-y-5">
@@ -220,9 +227,18 @@ export function TikTokCampaignBuilder(props: BuilderProps) {
                 </div>
               )
             )}
-            <Field label="Tekst reklamy (caption)">
+            <FieldWithAi
+              label="Tekst reklamy (caption)"
+              ai={{
+                kind: "adText",
+                context: aiCtx,
+                existing: ad.adText,
+                maxChars: 100,
+                onFilled: (text) => setAd({ adText: text.split("\n")[0] ?? text }),
+              }}
+            >
               <Area value={ad.adText} onChange={(v) => setAd({ adText: v })} />
-            </Field>
+            </FieldWithAi>
             <Field label="Przycisk akcji (CTA)">
               <Select value={ad.cta} onChange={(v) => setAd({ cta: v })} options={tiktokAdsFields.ctaOptions} />
             </Field>

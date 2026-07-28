@@ -344,6 +344,7 @@ export function AgentChat() {
   const [quickLabel, setQuickLabel] = useState<string | null>(null);
   const [scenarioCategory, setScenarioCategory] = useState<ScenarioCategory>("Strategy");
   const [scenariosOpen, setScenariosOpen] = useState<boolean>(false);
+  const [howItWorksOpen, setHowItWorksOpen] = useState<boolean>(false);
   const [qaCustom, setQaCustom] = useState<string>("");
   const [qaSelected, setQaSelected] = useState<string[]>([]);
   const qaInputRef = useRef<HTMLInputElement>(null);
@@ -1390,6 +1391,61 @@ export function AgentChat() {
                   />
                 </div>
               )}
+
+              <div className="mt-5 rounded-2xl border border-neutral-200 bg-white p-4 md:p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-600">
+                      Jak działa aplikacja
+                    </p>
+                    <p className="mt-1.5 text-[13px] text-neutral-600 leading-relaxed">
+                      Krótki przewodnik po MarketingNow — od czatu AI po kampanie, integracje i raporty.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setHowItWorksOpen((v) => !v)}
+                    className="shrink-0 text-[12px] px-4 py-2 rounded-full border border-neutral-300 bg-neutral-50 hover:bg-neutral-100 transition font-semibold text-neutral-800"
+                  >
+                    {howItWorksOpen ? "Zwiń" : "Pokaż jak działa aplikacja"}
+                  </button>
+                </div>
+
+                {howItWorksOpen && (
+                  <ol className="mt-4 space-y-3">
+                    {[
+                      {
+                        t: "1. Opisz zadanie w czacie",
+                        d: "Wpisz, co chcesz osiągnąć, albo kliknij propozycję / gotowe działanie — agent AI (Anthropic) prowadzi Cię krok po kroku.",
+                      },
+                      {
+                        t: "2. Wybierz markę i produkt",
+                        d: "U góry ustaw kontekst (Osobiste / marka / produkt), żeby treści i kampanie były dopasowane.",
+                      },
+                      {
+                        t: "3. Połącz integracje",
+                        d: "W „Integracje” podłącz Gmail, Kalendarz, Meta, Google Ads, TikTok lub LinkedIn — potem publikujesz z panelu kampanii.",
+                      },
+                      {
+                        t: "4. Twórz kampanie z AI",
+                        d: "W Panelu kampanii uzupełniaj nagłówki i opisy przyciskiem AI przy polach — ten sam silnik co w czacie.",
+                      },
+                      {
+                        t: "5. Mierz i rozwijaj",
+                        d: "SEO, konkurencja, widoczność w AI, virale i kalendarz — wszystko w jednym miejscu z kredytu planu.",
+                      },
+                    ].map((step) => (
+                      <li
+                        key={step.t}
+                        className="rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3"
+                      >
+                        <p className="text-[13px] font-semibold text-neutral-900">{step.t}</p>
+                        <p className="mt-1 text-[13px] text-neutral-600 leading-relaxed">{step.d}</p>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
             </div>
           </div>
         ) : (

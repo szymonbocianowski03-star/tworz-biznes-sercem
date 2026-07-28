@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { X, Check, Sparkles, ArrowRight, Cloud, History, Package } from "lucide-react";
+import { X, Check, ArrowRight, Cloud, History, Package } from "lucide-react";
 
 type Variant = "signup" | "pro";
 
@@ -23,12 +23,12 @@ export function UpgradeAccountDialog({ open, onClose, variant = "signup" }: Prop
 
   const benefits = isSignup
     ? [
-        { icon: Sparkles, label: "Limit Free na start pracy z AI" },
+        { icon: Package, label: "Limit Free na start pracy z AI" },
         { icon: Cloud, label: "Synchronizacja w chmurze między urządzeniami" },
         { icon: History, label: "Historia czatów i kampanii zapisana na koncie" },
       ]
     : [
-        { icon: Sparkles, label: "Większa pula kredytów AI" },
+        { icon: Package, label: "Większa pula kredytów AI" },
         { icon: Cloud, label: "Kredyty doliczane do konta" },
         { icon: History, label: "Kontynuacja pracy bez utraty historii" },
       ];
@@ -48,7 +48,6 @@ export function UpgradeAccountDialog({ open, onClose, variant = "signup" }: Prop
         </button>
 
         <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 text-accent text-[11px] font-medium px-2.5 py-1">
-          <Sparkles className="h-3 w-3" />
           {isSignup ? "Bez karty kredytowej" : "Upgrade"}
         </div>
 
