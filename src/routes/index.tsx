@@ -300,8 +300,8 @@ function Hero() {
           </div>
         )}
 
-        <div className="mt-8 sm:mt-10 md:mt-14 max-w-3xl mx-auto">
-          <div className="rounded-xl sm:rounded-2xl bg-zinc-950 p-2 sm:p-3 md:p-5 ring-1 ring-zinc-800/90 shadow-[0_20px_50px_-16px_rgba(0,0,0,0.35)]">
+        <div className="mt-8 sm:mt-10 md:mt-14 max-w-xl sm:max-w-2xl mx-auto">
+          <div className="rounded-xl sm:rounded-2xl bg-zinc-950 p-2 sm:p-2.5 md:p-4 ring-1 ring-zinc-800/90 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.3)]">
             <img
               src="/tablet-marketingnow-hero.png"
               alt="MarketingNow — panel aplikacji na tablecie"
@@ -309,7 +309,7 @@ function Hero() {
               height={1200}
               decoding="async"
               fetchPriority="high"
-              className="w-full h-auto object-contain"
+              className="w-full h-auto max-h-[min(52vh,480px)] sm:max-h-[min(58vh,520px)] object-contain mx-auto"
             />
           </div>
           <div className="mt-4 flex justify-center">
