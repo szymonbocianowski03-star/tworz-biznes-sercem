@@ -47,11 +47,41 @@ function integrationRedirectFromEnv(): string | null {
   return null;
 }
 
+/**
+ * Kanoniczny origin dla Google OAuth.
+ * W Google Cloud Console zarejestrowany jest wariant bez `www` — jeśli użytkownik
+ * wejdzie na www.marketingnow.site, sprowadzamy origin do wersji bez www,
+ * inaczej Google zwraca redirect_uri_mismatch (strona 403).
+ */
+export function getCanonicalGoogleOrigin(request: Request): string {
+  const origin = getRequestOrigin(request);
+  try {
+    const u = new URL(origin);
+    if (u.hostname.toLowerCase() === "www.marketingnow.site") {
+      u.hostname = "marketingnow.site";
+      return u.origin;
+    }
+  } catch {
+    /* ignore */
+  }
+  return origin;
+}
+
+/** Atrybuty ciasteczka state — na własnej domenie współdzielone między www i bez www. */
+export function googleStateCookieAttrs(request: Request): string {
+  const url = new URL(request.url);
+  const host = (request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() || url.hostname).toLowerCase();
+  const hostname = host.split(":")[0];
+  const isSecure = hostname !== "localhost" && hostname !== "127.0.0.1";
+  const domain = hostname.endsWith("marketingnow.site") ? "; Domain=.marketingnow.site" : "";
+  return `; Path=/; Max-Age=600; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}${domain}`;
+}
+
 /** Redirect URI logowania konta Google. */
 export function getGoogleAuthOAuthRedirectUri(request: Request): string {
   const configured = integrationRedirectFromEnv();
   if (configured) return configured;
-  return `${getRequestOrigin(request)}/api/public/auth/google/callback`;
+  return `${getCanonicalGoogleOrigin(request)}/api/public/auth/google/callback`;
 }
 
 /**
@@ -66,7 +96,7 @@ export function getGoogleIntegrationOAuthRedirectUri(request: Request): string {
 export function getGoogleLegacyIntegrationOAuthRedirectUri(request: Request): string {
   const configured = integrationRedirectFromEnv();
   if (configured) return configured;
-  return `${getRequestOrigin(request)}/api/public/google/callback`;
+  return `${getCanonicalGoogleOrigin(request)}/api/public/google/callback`;
 }
 
 export function googleIntegrationRedirectHint(redirectUri: string): string {
