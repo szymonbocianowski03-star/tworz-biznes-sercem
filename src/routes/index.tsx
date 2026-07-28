@@ -82,89 +82,76 @@ function Nav() {
   };
   const navLinks = [
     { href: "#panel", label: "Panel" },
-    { href: "#google-ads", label: "Google Ads" },
     { href: "#co-obslugujesz", label: "Zakres" },
     { href: "#growth-wheel", label: "Widoczność w AI" },
     { href: "#poznaj-opinie", label: "Opinie" },
     { href: "#cennik", label: "Cennik" },
+    { href: "/program-partnerski", label: "Program partnerski", isRoute: true },
   ] as const;
 
   return (
     <>
-      <div className="sticky top-0 z-50 bg-neutral-950 text-white border-b border-neutral-800 shadow-[0_1px_0_rgba(0,0,0,0.15)]">
-        <div className="mx-auto max-w-[1600px] px-4 md:px-10 py-3 md:py-3.5 flex flex-col lg:flex-row items-center justify-between gap-3">
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left w-full lg:w-auto">
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 shrink-0">
-              <Link
-                to="/auth"
-                onClick={() => sfx.chime()}
-                className="inline-flex items-center justify-center rounded-sm border border-white/45 text-white px-4 py-2.5 text-[12px] md:text-[13px] font-semibold tracking-tight hover:bg-white/10 transition-colors"
-              >
-                Zaloguj się
-              </Link>
-              <Link
-                to="/auth"
-                onClick={() => sfx.success()}
-                className="inline-flex items-center justify-center rounded-sm bg-white text-neutral-950 px-5 py-2.5 text-[12px] md:text-[13px] font-bold tracking-tight hover:bg-neutral-100 transition-colors"
-              >
-                Rozpocznij za darmo
-              </Link>
-            </div>
-            <p className="text-[12px] md:text-[13px] text-white/90 leading-snug max-w-xl">
-              <span className="text-white font-semibold">Bez karty kredytowej</span> na start —
-              załóż konto, korzystaj z planu Free, płatne plany dopiero gdy chcesz.
-            </p>
+      <div className="sticky top-0 z-50 bg-neutral-950 text-white border-b border-neutral-800">
+        <div className="mx-auto max-w-[1600px] px-4 md:px-10 py-2.5 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-2 text-center sm:text-left">
+          <p className="text-[12px] md:text-[13px] text-white/90 leading-snug">
+            <span className="text-white font-semibold">Bez karty kredytowej</span> na start — plan Free, płatne dopiero gdy chcesz.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Link
+              to="/auth"
+              onClick={() => sfx.chime()}
+              className="inline-flex items-center justify-center rounded-sm border border-white/45 text-white px-4 py-2 text-[12px] font-semibold hover:bg-white/10 transition-colors"
+            >
+              Zaloguj się
+            </Link>
+            <Link
+              to="/auth"
+              onClick={() => sfx.success()}
+              className="inline-flex items-center justify-center rounded-sm bg-white text-neutral-950 px-4 py-2 text-[12px] font-bold hover:bg-neutral-100 transition-colors"
+            >
+              Rozpocznij za darmo
+            </Link>
           </div>
         </div>
       </div>
-      <header className="bg-white border-b border-neutral-200">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-10 py-2.5 md:py-0">
-          <div className="flex items-center justify-between gap-3 md:gap-8 min-h-[52px] sm:min-h-[64px] md:h-[72px]">
-            <div className="shrink-0 min-w-0">
+      <header className="sticky top-0 z-40 bg-white border-b border-neutral-200">
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-10">
+          <div className="flex items-center gap-4 md:gap-6 min-h-[56px] sm:min-h-[64px] md:h-[72px]">
+            <div className="shrink-0">
               <MarketingNowLogo className="text-neutral-950" size="lg" />
             </div>
-            <nav className="hidden lg:flex flex-1 items-center justify-center gap-6 xl:gap-8 text-[11px] uppercase tracking-[0.14em] font-sans min-w-0">
-              {navLinks.map((l) => (
-                <a key={l.href} href={l.href} className="hover:opacity-60 transition whitespace-nowrap">
-                  {l.label}
-                </a>
-              ))}
-              <Link
-                to="/program-partnerski"
-                onClick={() => sfx.chime()}
-                className="hover:opacity-60 transition whitespace-nowrap"
-              >
-                Program partnerski
-              </Link>
+            <nav className="hidden md:flex flex-1 items-center gap-5 lg:gap-7 text-[11px] uppercase tracking-[0.14em] font-sans min-w-0 overflow-x-auto">
+              {navLinks.map((l) =>
+                "isRoute" in l && l.isRoute ? (
+                  <Link
+                    key={l.href}
+                    to={l.href}
+                    onClick={() => sfx.chime()}
+                    className="hover:opacity-60 transition whitespace-nowrap"
+                  >
+                    {l.label}
+                  </Link>
+                ) : (
+                  <a key={l.href} href={l.href} className="hover:opacity-60 transition whitespace-nowrap">
+                    {l.label}
+                  </a>
+                ),
+              )}
             </nav>
-            <div className="flex shrink-0 items-center gap-2 md:gap-3">
+            <div className="ml-auto flex shrink-0 items-center gap-2">
               <button
                 onClick={toggle}
                 aria-label={sound ? "Wyłącz dźwięki" : "Włącz dźwięki"}
                 title={sound ? "Dźwięki: włączone" : "Dźwięki: wyłączone"}
-                className="hidden md:inline-flex items-center justify-center h-9 w-9 border border-neutral-300 hover:border-neutral-950 transition-colors text-neutral-700"
+                className="hidden lg:inline-flex items-center justify-center h-9 w-9 border border-neutral-300 hover:border-neutral-950 transition-colors text-neutral-700"
               >
                 {sound ? (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M11 5L6 9H2v6h4l5 4V5z" />
                     <path d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
                   </svg>
                 ) : (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M11 5L6 9H2v6h4l5 4V5z" />
                     <line x1="22" y1="9" x2="16" y2="15" />
                     <line x1="16" y1="9" x2="22" y2="15" />
@@ -176,39 +163,47 @@ function Nav() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => sfx.chime()}
-                className="hidden md:inline-flex text-[13px] uppercase tracking-[0.14em] border border-neutral-300 px-4 py-2 hover:bg-neutral-100 transition-colors"
+                className="hidden xl:inline-flex text-[12px] uppercase tracking-[0.14em] border border-neutral-300 px-3 py-2 hover:bg-neutral-100 transition-colors whitespace-nowrap"
               >
-                Umów konsultację
+                Konsultacja
               </a>
               <Link
                 to="/auth"
                 onClick={() => sfx.chime()}
-                className="inline-flex text-[11px] sm:text-[12px] uppercase tracking-[0.14em] border border-neutral-300 px-3 sm:px-4 py-2 hover:bg-neutral-100 transition-colors whitespace-nowrap"
+                className="hidden sm:inline-flex text-[11px] uppercase tracking-[0.14em] border border-neutral-300 px-3 py-2 hover:bg-neutral-100 transition-colors whitespace-nowrap"
               >
-                Zaloguj się
+                Zaloguj
               </Link>
               <Link
                 to="/auth"
                 onClick={() => sfx.success()}
-                className="inline-flex text-[11px] sm:text-[12px] uppercase tracking-[0.14em] border border-neutral-950 bg-neutral-950 text-white px-3 sm:px-4 py-2 hover:bg-white hover:text-neutral-950 transition-colors whitespace-nowrap"
+                className="inline-flex text-[11px] uppercase tracking-[0.14em] border border-neutral-950 bg-neutral-950 text-white px-3 py-2 hover:bg-white hover:text-neutral-950 transition-colors whitespace-nowrap"
               >
                 Rozpocznij
               </Link>
             </div>
           </div>
-          <nav className="lg:hidden flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pb-2.5 pt-1 text-[10px] sm:text-[11px] uppercase tracking-[0.12em] text-neutral-600 font-sans border-t border-neutral-100">
-            {navLinks.map((l) => (
-              <a key={l.href} href={l.href} className="hover:text-neutral-950 transition whitespace-nowrap py-1">
-                {l.label}
-              </a>
-            ))}
-            <Link
-              to="/program-partnerski"
-              onClick={() => sfx.chime()}
-              className="hover:text-neutral-950 transition whitespace-nowrap py-1"
-            >
-              Program partnerski
-            </Link>
+          <nav className="md:hidden flex items-center gap-4 overflow-x-auto pb-2.5 -mt-1 text-[10px] uppercase tracking-[0.12em] text-neutral-600 font-sans [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {navLinks.map((l) =>
+              "isRoute" in l && l.isRoute ? (
+                <Link
+                  key={l.href}
+                  to={l.href}
+                  onClick={() => sfx.chime()}
+                  className="hover:text-neutral-950 transition whitespace-nowrap py-1 shrink-0"
+                >
+                  {l.label}
+                </Link>
+              ) : (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className="hover:text-neutral-950 transition whitespace-nowrap py-1 shrink-0"
+                >
+                  {l.label}
+                </a>
+              ),
+            )}
           </nav>
         </div>
       </header>

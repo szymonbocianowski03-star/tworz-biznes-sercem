@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdPlatformComingSoon } from "@/lib/adPlatform";
 import { fetchOAuthHandoff } from "@/lib/oauthHandoffClient";
+import { getGoogleIntegrationOAuthOrigin } from "@/lib/googleIntegrationOrigin";
 import { saveIntegrationConnectionRow } from "@/lib/integrationConnectionSave";
 
 type CustomerAccount = { id: string; resourceName?: string; descriptiveName?: string };
@@ -16,15 +17,6 @@ type Connection = {
   selected_customer_id: string | null;
   login_customer_id: string | null;
 };
-
-function googleIntegrationOrigin(): string {
-  if (typeof window === "undefined") return "https://marketingnow.site";
-  const host = window.location.hostname;
-  if (host === "localhost" || host === "127.0.0.1") return window.location.origin;
-  if (host === "marketingnow.site" || host === "www.marketingnow.site") return "https://marketingnow.site";
-  return "https://marketingnow.site";
-}
-
 export function GoogleAdsIntegrationCard() {
   const comingSoon = isAdPlatformComingSoon("google");
   const navigate = useNavigate();
@@ -83,7 +75,7 @@ export function GoogleAdsIntegrationCard() {
       navigate({ to: "/auth" });
       return;
     }
-    const startUrl = new URL("/api/public/google/start", googleIntegrationOrigin());
+    const startUrl = new URL("/api/public/google/start", getGoogleIntegrationOAuthOrigin());
     startUrl.searchParams.set("handoff", handoff);
     startUrl.searchParams.set("service", "ads");
     startUrl.searchParams.set("force_login", "1");

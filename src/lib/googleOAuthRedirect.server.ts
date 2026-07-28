@@ -100,15 +100,13 @@ export function safeGoogleIntegrationReturnTo(raw: string | null, request: Reque
 }
 
 function isAllowedIntegrationReturnHost(hostname: string): boolean {
-  return (
-    hostname === "marketingnow.site" ||
-    hostname === "www.marketingnow.site" ||
-    hostname === "tworz-biznes-sercem.lovable.app" ||
-    hostname === "10fa611d-9c78-46b3-b583-d064df8ed9eb.lovableproject.com" ||
-    hostname === "id-preview--10fa611d-9c78-46b3-b583-d064df8ed9eb.lovable.app" ||
-    hostname === "localhost" ||
-    hostname === "127.0.0.1"
-  );
+  const host = hostname.toLowerCase();
+  if (host === "marketingnow.site" || host === "www.marketingnow.site") return true;
+  if (host === "localhost" || host === "127.0.0.1") return true;
+  if (host.endsWith(".lovable.app")) return true;
+  if (host.endsWith(".lovableproject.com")) return true;
+  if (host.endsWith(".lovable.dev")) return true;
+  return false;
 }
 
 function encodeStateReturnTo(returnTo: string): string {

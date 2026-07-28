@@ -23,6 +23,7 @@ import {
 } from "@/lib/userCalendar.functions";
 import { isMailCalendarComingSoon } from "@/lib/userIntegrationsComingSoon";
 import { fetchOAuthHandoff } from "@/lib/oauthHandoffClient";
+import { getGoogleIntegrationOAuthOrigin } from "@/lib/googleIntegrationOrigin";
 
 export function UserIntegrationsCard() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export function UserIntegrationsCard() {
     if (!userId) return toast.error("Zaloguj się.");
     const handoff = await fetchOAuthHandoff();
     if (!handoff) return toast.error("Zaloguj się ponownie.");
-    const startUrl = new URL("/api/public/google/start", googleIntegrationOrigin());
+    const startUrl = new URL("/api/public/google/start", getGoogleIntegrationOAuthOrigin());
     startUrl.searchParams.set("handoff", handoff);
     startUrl.searchParams.set("service", service);
     startUrl.searchParams.set("force_login", "1");
@@ -580,17 +581,6 @@ export function UserIntegrationsCard() {
     </div>
   );
 }
-
-function googleIntegrationOrigin(): string {
-  if (typeof window === "undefined") return "https://marketingnow.site";
-  const host = window.location.hostname;
-  if (host === "localhost" || host === "127.0.0.1") {
-    return window.location.origin;
-  }
-  if (host === "marketingnow.site" || host === "www.marketingnow.site") return "https://marketingnow.site";
-  return "https://marketingnow.site";
-}
-
 function ProviderTile({
   title,
   status,
