@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Monitor } from "lucide-react";
+import { Monitor, Megaphone, Sparkles, Users, Search, Mail, CalendarDays, Eye, Palette, type LucideIcon } from "lucide-react";
 import { sfx, soundsEnabled, setSoundsEnabled } from "@/lib/sounds";
 import {
   formatPlanCreditsLabel,
@@ -360,46 +360,54 @@ function WorkflowPitch() {
 
 /* ============================== CO MOŻESZ OBSŁUŻYĆ ============================== */
 function WhatYouHandle() {
-  const items: { id: string; title: string; body: string }[] = [
+  const items: { id: string; title: string; body: string; icon: LucideIcon }[] = [
     {
       id: "obs-kampanie",
       title: "Kampanie reklamowe",
       body: "Planuj kampanie reklamowe end-to-end: struktura, kreacje, grupy odbiorców, komunikaty i testy — bez rozdrabniania na pojedyncze sieci.",
+      icon: Megaphone,
     },
     {
       id: "obs-hooki",
       title: "Hooki i pomysły",
       body: "Generuj hooki, warianty pierwszego kontaktu, kąty narracji i pomysły kreatywne pod reklamy, treści organiczne i landing page’e.",
+      icon: Sparkles,
     },
     {
       id: "obs-konkurencja",
       title: "Analiza konkurencji",
       body: "Zbieraj wnioski o konkurentach: przekazy, oferty, mocne i słabe strony komunikacji — jako podstawa pod strategię i kreacje.",
+      icon: Users,
     },
     {
       id: "obs-seo",
       title: "SEO",
       body: "Tematy artykułów, struktury stron, opisy usług, treści pod intencje, meta title, meta description i briefy contentowe.",
+      icon: Search,
     },
     {
       id: "obs-email",
       title: "Email marketing",
       body: "Newslettery, sekwencje sprzedażowe, follow-upy, maile onboardingowe i komunikacja posprzedażowa.",
+      icon: Mail,
     },
     {
       id: "obs-kalendarz",
       title: "Kalendarz marketingowy",
       body: "Harmonogram kampanii, publikacji, maili, promocji i launchy — jeden widok zamiast rozstrzelonych arkuszy.",
+      icon: CalendarDays,
     },
     {
       id: "obs-llm",
       title: "Widoczność w AI",
       body: "Sprawdzaj, czy marka i oferta są jasno opisane dla modeli AI i co poprawić, żeby były częściej obecne w odpowiedziach asystentów.",
+      icon: Eye,
     },
     {
       id: "obs-kreacje",
       title: "Kreacje i materiały wizualne",
       body: "Warianty kreacji reklamowych, grafiki pod kanały, key visual w kilku formatach i spójne nagłówki — bez przeskakiwania między osobnymi narzędziami do copy i do obrazów.",
+      icon: Palette,
     },
   ];
   return (
@@ -415,20 +423,28 @@ function WhatYouHandle() {
           </p>
         </div>
         <ul className="grid grid-cols-1 gap-px bg-neutral-300 border border-neutral-300 sm:grid-cols-2">
-          {items.map((it) => (
-            <li
-              key={it.title}
-              id={it.id}
-              className="bg-white p-8 md:p-10 hover:bg-neutral-50/90 transition-colors scroll-mt-32"
-            >
-              <h3 className="serif text-[22px] md:text-[26px] tracking-tight text-neutral-950 mb-4">
-                {it.title}
-              </h3>
-              <p className="text-[14px] md:text-[15px] leading-[1.65] text-neutral-700">
-                {it.body}
-              </p>
-            </li>
-          ))}
+          {items.map((it) => {
+            const Icon = it.icon;
+            return (
+              <li
+                key={it.title}
+                id={it.id}
+                className="bg-white p-8 md:p-10 hover:bg-neutral-50/90 transition-colors scroll-mt-32"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-700">
+                    <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                  </span>
+                  <h3 className="serif text-[22px] md:text-[26px] tracking-tight text-neutral-950">
+                    {it.title}
+                  </h3>
+                </div>
+                <p className="text-[14px] md:text-[15px] leading-[1.65] text-neutral-700">
+                  {it.body}
+                </p>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </section>
