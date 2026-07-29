@@ -133,6 +133,25 @@ export async function handleGoogleIntegrationOAuthCallback(
     const me = await meRes.json();
     const email = me.email as string;
 
+    // Sprawdź, czy Google FAKTYCZNIE przyznał wymagany zakres. Przy niezweryfikowanej aplikacji
+    // (restricted scope gmail.send) albo gdy użytkownik odznaczy zgodę na ekranie Google, token
+    // wraca BEZ tego zakresu — wtedy zapisanie „połączenia" wprowadzałoby w błąd (wysyłka i tak by padła).
+    const grantedScopes = scope.split(/\s+/).filter(Boolean);
+    if (svc === "gmail" && !grantedScopes.includes("https://www.googleapis.com/auth/gmail.send")) {
+      return redirectIntegrationBack(returnTo ?? origin, svc, {
+        ok: false,
+        error:
+          "Nie przyznano zgody na wysyłkę e-maili (gmail.send). Na ekranie Google zaznacz tę zgodę. " +
+          "Jeśli Google ją blokuje — aplikacja wymaga weryfikacji dla tego zakresu lub dodania Twojego konta jako „Test user”.",
+      });
+    }
+    if (svc === "calendar" && !grantedScopes.some((s) => s.includes("/auth/calendar"))) {
+      return redirectIntegrationBack(returnTo ?? origin, svc, {
+        ok: false,
+        error: "Nie przyznano zgody na dostęp do Kalendarza Google. Zaznacz tę zgodę na ekranie Google i spróbuj ponownie.",
+      });
+    }
+
     const baseRow = {
       user_id: userId,
       email,
