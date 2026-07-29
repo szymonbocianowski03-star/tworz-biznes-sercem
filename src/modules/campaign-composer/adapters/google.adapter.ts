@@ -2,7 +2,17 @@ import type { AdsPlatformAdapter, AdapterContext, ProviderResult, ProviderStepKi
 import type { CampaignComposerDraftPayload } from "../domain/draft-schema";
 import { normalizeDestinationUrl } from "../validation/preflight";
 
-const GOOGLE_ADS_API = "https://googleads.googleapis.com/v18";
+const GOOGLE_ADS_API = "https://googleads.googleapis.com/v21";
+
+/** Google zwraca HTML (404/502) dla wycofanych wersji API — nie parsuj tego jako JSON. */
+async function readJsonSafe(res: Response): Promise<{ parsed: unknown; text: string }> {
+  const text = await res.text();
+  try {
+    return { parsed: JSON.parse(text), text };
+  } catch {
+    return { parsed: null, text };
+  }
+}
 
 function customerIdDigits(raw: string): string {
   return raw.replace(/[^0-9]/g, "");
@@ -46,7 +56,18 @@ async function googleAdsMutate(
     headers,
     body: JSON.stringify(body),
   });
-  const json = (await res.json()) as MutateResponse;
+  const { parsed, text } = await readJsonSafe(res);
+  if (parsed === null) {
+    console.error("[google ads] odpowiedź nie-JSON", { status: res.status, body: text.slice(0, 300) });
+    return {
+      ok: false,
+      status: res.status,
+      json: {
+        message: `Google Ads API zwróciło odpowiedź nie-JSON (HTTP ${res.status}). Sprawdź wersję API, dostęp do konta i developer token.`,
+      },
+    };
+  }
+  const json = parsed as MutateResponse;
   return { ok: res.ok && !json.error, json, status: res.status };
 }
 
