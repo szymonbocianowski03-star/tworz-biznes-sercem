@@ -49,11 +49,20 @@ function extractGoogleAdsError(json: MutateResponse): string | undefined {
         message?: string;
         errorCode?: Record<string, unknown>;
         trigger?: { stringValue?: string };
+        location?: { fieldPathElements?: Array<{ fieldName?: string; index?: number }> };
       };
       const msg = item?.message?.trim();
       if (!msg) continue;
       const code = item.errorCode ? Object.values(item.errorCode)[0] : undefined;
-      parts.push(code ? `${msg} (${String(code)})` : msg);
+      // Ścieżka pola (np. "operations[0].create.campaign.bidding_strategy") mówi DOKŁADNIE,
+      // którego pola brakuje — kluczowe przy błędach REQUIRED / FIELD_ERROR.
+      const fieldPath = (item.location?.fieldPathElements ?? [])
+        .map((p) => p?.fieldName)
+        .filter(Boolean)
+        .join(".");
+      const codeStr = code ? String(code) : "";
+      const suffix = [codeStr, fieldPath ? `pole: ${fieldPath}` : ""].filter(Boolean).join(", ");
+      parts.push(suffix ? `${msg} (${suffix})` : msg);
     }
   }
 
@@ -302,6 +311,10 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
           name: draft.structure.campaignName,
           status,
           campaignBudget: budgetRn,
+          // WYMAGANE od Google Ads API v19.2+ (dot. v25): brak tego pola => FieldError.REQUIRED
+          // („The required field was not present."). Zwykłe kampanie marketingowe nie zawierają
+          // reklamy politycznej w UE.
+          containsEuPoliticalAdvertising: "DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING",
         };
 
         switch (campaignType) {
