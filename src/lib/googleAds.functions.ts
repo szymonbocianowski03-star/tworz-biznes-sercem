@@ -17,7 +17,11 @@ export type RefreshGoogleAdsResult =
       accounts: GoogleAdsCustomerAccount[];
       selectedCustomerId: string | null;
     }
-  | { ok: false; error: "not_connected" | "no_access" | "list_failed" };
+  | {
+      ok: false;
+      error: "not_connected" | "no_access" | "list_failed" | "missing_developer_token";
+      detail?: string;
+    };
 
 async function refreshAccessToken(
   refreshToken: string,
@@ -55,23 +59,28 @@ function adsHeaders(accessToken: string, loginCustomerId?: string): Record<strin
   return headers;
 }
 
-async function listAccessibleCustomerIds(accessToken: string): Promise<string[] | null> {
+async function listAccessibleCustomerIds(
+  accessToken: string,
+): Promise<{ ids: string[] } | { failed: true; detail: string }> {
   const res = await fetch(`${GOOGLE_ADS_API}/customers:listAccessibleCustomers`, {
     headers: adsHeaders(accessToken),
   });
   const text = await res.text();
-  let json: { resourceNames?: string[] };
+  let json: { resourceNames?: string[]; error?: { message?: string; status?: string } };
   try {
     json = JSON.parse(text);
   } catch {
     console.warn("[google ads] listAccessibleCustomers non-JSON", { status: res.status, body: text.slice(0, 300) });
-    return null;
+    return { failed: true, detail: `Google Ads API zwróciło nieoczekiwaną odpowiedź (HTTP ${res.status}).` };
   }
   if (!res.ok) {
     console.warn("[google ads] listAccessibleCustomers", { status: res.status, json });
-    return null;
+    return {
+      failed: true,
+      detail: json.error?.message ?? `Google Ads API: HTTP ${res.status}`,
+    };
   }
-  return (json.resourceNames ?? []).map((rn) => rn.replace(/^customers\//, ""));
+  return { ids: (json.resourceNames ?? []).map((rn) => rn.replace(/^customers\//, "")) };
 }
 
 /** Pobiera nazwę opisową konta (best-effort). Zwraca undefined przy błędzie. */
@@ -112,6 +121,15 @@ export const refreshGoogleAdsAccounts = createServerFn({ method: "POST" })
   .handler(async ({ context }): Promise<RefreshGoogleAdsResult> => {
     const { userId } = context;
 
+    if (!process.env.GOOGLE_ADS_DEVELOPER_TOKEN?.trim()) {
+      return {
+        ok: false,
+        error: "missing_developer_token",
+        detail:
+          "Brak Google Ads Developer Token w konfiguracji aplikacji. Google Ads API nie zwróci żadnych kont bez tego tokenu.",
+      };
+    }
+
     const { data: conn } = await supabaseAdmin
       .from("google_ads_connections")
       .select("id, access_token, refresh_token, token_expires_at, login_customer_id, selected_customer_id")
@@ -136,9 +154,17 @@ export const refreshGoogleAdsAccounts = createServerFn({ method: "POST" })
       }
     }
 
-    const ids = await listAccessibleCustomerIds(accessToken);
-    if (ids === null) return { ok: false, error: "list_failed" };
-    if (ids.length === 0) return { ok: false, error: "no_access" };
+    const listed = await listAccessibleCustomerIds(accessToken);
+    if ("failed" in listed) return { ok: false, error: "list_failed", detail: listed.detail };
+    const ids = listed.ids;
+    if (ids.length === 0) {
+      return {
+        ok: false,
+        error: "no_access",
+        detail:
+          "To konto Google nie ma dostępu do żadnego konta Google Ads. Zaloguj się kontem, które ma dostęp w Google Ads.",
+      };
+    }
 
     const loginCustomerId = (conn.login_customer_id as string | null) ?? undefined;
     const accounts: GoogleAdsCustomerAccount[] = [];
