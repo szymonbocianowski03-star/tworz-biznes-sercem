@@ -28,6 +28,7 @@ export function GoogleAdsIntegrationCard() {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [noAccounts, setNoAccounts] = useState(false);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
   const fnRefreshAccounts = useServerFn(refreshGoogleAdsAccounts);
   const autoRefreshedRef = useRef(false);
 
@@ -129,6 +130,7 @@ export function GoogleAdsIntegrationCard() {
         const res = await fnRefreshAccounts();
         if (res.ok) {
           setNoAccounts(res.accounts.length === 0);
+          setAccountsError(null);
           setConn((prev) =>
             prev
               ? {
@@ -141,14 +143,16 @@ export function GoogleAdsIntegrationCard() {
           if (!silent && res.accounts.length > 0) toast.success("Zaktualizowano listę kont Google Ads");
         } else {
           setNoAccounts(true);
-          if (!silent) {
-            toast.message(
-              "Nie znaleziono kont reklamowych na tym koncie Google. Upewnij się, że masz dostęp do Google Ads.",
-            );
-          }
+          const msg =
+            res.detail ??
+            "Nie znaleziono kont reklamowych na tym koncie Google. Upewnij się, że masz dostęp do Google Ads.";
+          setAccountsError(msg);
+          if (!silent) toast.error("Google Ads", { description: msg });
         }
       } catch (e) {
-        if (!silent) toast.error(e instanceof Error ? e.message : "Nie udało się odświeżyć kont");
+        const msg = e instanceof Error ? e.message : "Nie udało się odświeżyć kont";
+        setAccountsError(msg);
+        if (!silent) toast.error(msg);
       } finally {
         setRefreshing(false);
       }
@@ -237,9 +241,9 @@ export function GoogleAdsIntegrationCard() {
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Wczytuję Twoje konta reklamowe…
                 </p>
               ) : noAccounts ? (
-                <p className="text-xs text-muted-foreground">
-                  Nie znaleziono kont reklamowych na tym koncie Google. Upewnij się, że wybrane konto ma dostęp do
-                  Google Ads, a następnie odśwież.
+                <p className="rounded-lg border border-amber-600/25 bg-amber-50/80 px-3 py-2 text-xs leading-relaxed text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+                  {accountsError ??
+                    "Nie znaleziono kont reklamowych na tym koncie Google. Upewnij się, że wybrane konto ma dostęp do Google Ads, a następnie odśwież."}
                 </p>
               ) : (
                 <p className="flex items-center gap-2 text-xs text-muted-foreground">
