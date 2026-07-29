@@ -308,6 +308,23 @@ export function UserIntegrationsCard() {
           />
         </div>
 
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            disabled={!canSendTest}
+            title={canSendTest ? undefined : "Najpierw połącz Gmail, Outlook lub Resend"}
+            onClick={() => {
+              setAcceptedEmailRisk(false);
+              setSendConfirmOpen(true);
+            }}
+            className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-semibold text-background disabled:opacity-50"
+          >
+            Wyślij testowy e-mail do siebie
+          </button>
+          <span className="text-[11px] text-muted-foreground">
+            Przed wysyłką pokażemy okno akceptacji „na własne ryzyko”.
+          </span>
+        </div>
+
         <div className="mt-4 rounded-lg border border-foreground/10 bg-muted/20 p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {email?.smtp ? "Zaktualizuj klucz Resend" : "Klucz Resend (alternatywa)"}
