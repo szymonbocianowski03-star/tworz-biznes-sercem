@@ -6,7 +6,7 @@ import {
   parseGoogleIntegrationOAuthState,
 } from "@/lib/googleOAuthRedirect.server";
 
-const GOOGLE_ADS_API = "https://googleads.googleapis.com/v18";
+const GOOGLE_ADS_API = "https://googleads.googleapis.com/v21";
 
 type GoogleAdsCustomerAccount = { id: string; resourceName: string; descriptiveName?: string };
 
@@ -19,7 +19,17 @@ async function listGoogleAdsAccessibleCustomers(accessToken: string): Promise<Go
   if (developerToken) headers["developer-token"] = developerToken;
 
   const res = await fetch(`${GOOGLE_ADS_API}/customers:listAccessibleCustomers`, { headers });
-  const json = (await res.json()) as { resourceNames?: string[]; error?: { message?: string } };
+  const raw = await res.text();
+  let json: { resourceNames?: string[]; error?: { message?: string } };
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    console.warn("[google ads] listAccessibleCustomers — odpowiedź nie-JSON", {
+      status: res.status,
+      body: raw.slice(0, 300),
+    });
+    return [];
+  }
   if (!res.ok) {
     console.warn("[google ads] listAccessibleCustomers", json);
     return [];
