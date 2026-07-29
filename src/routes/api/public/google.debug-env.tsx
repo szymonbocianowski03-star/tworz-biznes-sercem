@@ -13,6 +13,7 @@ export const Route = createFileRoute("/api/public/google/debug-env")({
       GET: async ({ request }) => {
         const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID?.trim();
         const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim();
+        const adsDeveloperToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN?.trim();
         const redirectUri = getGoogleIntegrationOAuthRedirectUri(request);
         const clientIdError = validateGoogleClientId(clientId);
 
@@ -29,6 +30,10 @@ export const Route = createFileRoute("/api/public/google/debug-env")({
             clientSecret: {
               exists: Boolean(clientSecret),
               startsWithGocspx: Boolean(clientSecret?.startsWith("GOCSPX")),
+            },
+            googleAds: {
+              developerTokenExists: Boolean(adsDeveloperToken),
+              developerTokenLength: adsDeveloperToken ? adsDeveloperToken.length : 0,
             },
             redirectUri: {
               resolved: redirectUri,

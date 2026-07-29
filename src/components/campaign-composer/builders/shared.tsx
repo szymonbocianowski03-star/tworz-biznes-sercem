@@ -5,9 +5,9 @@ import type { CampaignComposerDraftPayload } from "@/modules/campaign-composer/d
 import type { FieldOption } from "@/modules/campaign-composer/config/types";
 import type { ValidationIssue } from "@/modules/campaign-composer/validation/preflight";
 import type { AdCopyKind } from "@/modules/campaign-composer/server/generate-ad-copy";
-import { supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
 import { supabaseFnHeaders } from "@/lib/supabaseFnHeaders";
 import { scheduleCreditsRefresh } from "@/lib/creditsRefresh";
+import { generateAdCopy } from "@/lib/adCopyGeneration";
 
 /** Wspólne propsy przekazywane do każdego kreatora platformy. */
 export type BuilderProps = {
@@ -89,40 +89,24 @@ export function AiFillButton({
         toast.error("Zaloguj się, aby użyć podpowiedzi AI");
         return;
       }
-      const resp = await fetch(supabaseEdgeFunctionUrl("generate-ad-copy"), {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          kind,
-          provider: context.provider,
-          campaignType: context.campaignType,
-          campaignName: context.campaignName,
-          finalUrl: context.finalUrl,
-          businessName: context.businessName,
-          language: "pl",
-          maxChars,
-          count,
-          existing: existing?.trim() || undefined,
-        }),
+      const result = await generateAdCopy(headers, {
+        kind,
+        provider: context.provider,
+        campaignType: context.campaignType,
+        campaignName: context.campaignName,
+        finalUrl: context.finalUrl,
+        businessName: context.businessName,
+        language: "pl",
+        maxChars,
+        count,
+        existing: existing?.trim() || undefined,
       });
-      const data = (await resp.json().catch(() => ({}))) as {
-        lines?: string[];
-        text?: string;
-        error?: string;
-        message?: string;
-      };
       scheduleCreditsRefresh();
-      if (resp.status === 402) {
-        toast.error(data.message || data.error || "Brak kredytów — doładuj plan.");
+      if (!result.ok) {
+        toast.error(result.error);
         return;
       }
-      if (!resp.ok) {
-        throw new Error(data.error || data.message || "Nie udało się wygenerować tekstu AI");
-      }
-      const lines = Array.isArray(data.lines) ? data.lines.filter((s) => typeof s === "string" && s.trim()) : [];
-      const text = typeof data.text === "string" ? data.text : lines.join("\n");
-      if (!lines.length && !text.trim()) throw new Error("AI nie zwróciło tekstu");
-      onFilled(text, lines.length ? lines : text.split("\n").filter(Boolean));
+      onFilled(result.text, result.lines);
       toast.success("Uzupełniono AI");
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Nie udało się wygenerować tekstu AI");

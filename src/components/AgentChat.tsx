@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowUp, TrendingUp, Megaphone, MousePointerClick, Mail, BarChart3, Rocket, Eye, Play, FileText, ArrowRight, Compass, Pencil, X, ImagePlus, Square, Clock, RotateCw } from "lucide-react";
+import { ArrowUp, TrendingUp, Megaphone, MousePointerClick, Mail, BarChart3, Rocket, Eye, Play, FileText, ArrowRight, Compass, Pencil, X, ImagePlus, Square, Clock, RotateCw, Send, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useCreditsUpgrade } from "@/contexts/CreditsUpgradeContext";
 import { useChats } from "@/hooks/useChats";
@@ -22,12 +22,20 @@ import { checkImageGenerationAffordability } from "@/lib/imageCreditsGate";
 import { GeneratedImageToolbar } from "@/components/GeneratedImageToolbar";
 import { supabaseEdgeFunctionUrl } from "@/integrations/supabase/publicEnv";
 import { getUserCalendarStatus, scheduleUserCalendarEvent } from "@/lib/userCalendar.functions";
+import { getUserEmailStatus, sendUserEmail } from "@/lib/userEmail.functions";
 import {
   addMinutesIso,
   extractCalMarkers,
   normalizeCalDateTime,
   stripCalMarkers,
 } from "@/lib/agentCalendar";
+import {
+  extractMailMarker,
+  isValidEmail,
+  mailBodyToHtml,
+  stripMailMarkers,
+  type MailDraft,
+} from "@/lib/agentEmail";
 
 type ImageEntry = { url: string; dbId: string | null; prompt: string };
 type Msg = { role: "user" | "assistant"; content: string; images?: string[]; imageSet?: ImageEntry[] };
@@ -358,6 +366,10 @@ export function AgentChat() {
   const [calConfirmMessageIdx, setCalConfirmMessageIdx] = useState<number | null>(null);
   const [calConfirmAccepted, setCalConfirmAccepted] = useState(false);
   const [calScheduling, setCalScheduling] = useState(false);
+  const [mailDraft, setMailDraft] = useState<(MailDraft & { messageIdx: number }) | null>(null);
+  const [mailAccepted, setMailAccepted] = useState(false);
+  const [mailSending, setMailSending] = useState(false);
+  const mailHandledRef = useRef<Set<number>>(new Set());
   const imgRatio = "1024x1024" as const;
   const imgDefaultN = 4;
 
@@ -372,24 +384,41 @@ export function AgentChat() {
 
   const fnCalStatus = useServerFn(getUserCalendarStatus);
   const fnScheduleCal = useServerFn(scheduleUserCalendarEvent);
+  const fnEmailStatus = useServerFn(getUserEmailStatus);
+  const fnSendEmail = useServerFn(sendUserEmail);
   const [calendarStatus, setCalendarStatus] = useState<{
     google: { email: string } | null;
     outlook: { email: string } | null;
   } | null>(null);
+  const [emailStatus, setEmailStatus] = useState<{
+    gmail: { email: string } | null;
+    outlook: { email: string } | null;
+    smtp: { provider: string; from_email: string } | null;
+  } | null>(null);
+  const emailProviderLabel = emailStatus?.gmail
+    ? `Gmail (${emailStatus.gmail.email})`
+    : emailStatus?.outlook
+      ? `Outlook (${emailStatus.outlook.email})`
+      : emailStatus?.smtp
+        ? `${emailStatus.smtp.provider} (${emailStatus.smtp.from_email})`
+        : null;
 
   const loadCalendarStatus = useCallback(async () => {
     try {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
         setCalendarStatus(null);
+        setEmailStatus(null);
         return;
       }
-      const c = await fnCalStatus();
+      const [c, e] = await Promise.all([fnCalStatus(), fnEmailStatus()]);
       setCalendarStatus(c);
+      setEmailStatus(e);
     } catch {
       setCalendarStatus(null);
+      setEmailStatus(null);
     }
-  }, [fnCalStatus]);
+  }, [fnCalStatus, fnEmailStatus]);
 
   useEffect(() => {
     void loadCalendarStatus();
@@ -917,6 +946,7 @@ export function AgentChat() {
       abortRef.current = null;
       setLoading(false);
       if (!paused) void detectAndScheduleCalendarEvents();
+      if (!paused) void detectAndPrepareEmail();
       if (!paused) void detectAndGenerateImages();
       // Nie pokazuj "Sugerowanych kroków" jeśli asystent sam zadał pytanie (Q&A) —
       // inaczej ekran dubluje opcje wyboru.
@@ -988,6 +1018,7 @@ export function AgentChat() {
     const prev = messagesRef.current;
     const cleaned = stripCalMarkers(prev[lastIdx]?.content ?? "");
     let scheduled = 0;
+    let lastError = "";
 
     for (const m of markers) {
       try {
@@ -1003,15 +1034,22 @@ export function AgentChat() {
           },
         });
         if (r.results.some((x) => x.ok)) scheduled++;
+        else {
+          const err = r.results.find((x) => !x.ok && x.error)?.error;
+          if (err) lastError = err;
+        }
       } catch (e) {
         console.error("calendar schedule", e);
+        lastError = e instanceof Error ? e.message : String(e);
       }
     }
 
     const statusLine =
       scheduled > 0
         ? `\n\n_📅 Dodano ${scheduled} ${scheduled === 1 ? "wpis" : scheduled < 5 ? "wpisy" : "wpisów"} do kalendarza (po Twojej akceptacji)._`
-        : `\n\n_⚠️ Nie udało się zapisać w kalendarzu — sprawdź połączenie w Integracjach._`;
+        : `\n\n_⚠️ Nie udało się zapisać w kalendarzu${lastError ? ` — ${lastError}` : " — sprawdź połączenie w Integracjach."}_`;
+
+    if (scheduled === 0 && lastError) toast.error(lastError);
 
     update(active.id, {
       messages: prev.map((m, i) => (i === lastIdx ? { ...m, content: cleaned + statusLine } : m)),
@@ -1026,6 +1064,97 @@ export function AgentChat() {
           ? "Dodano wpis do kalendarza"
           : `Dodano ${scheduled} wpisów do kalendarza`,
       );
+    }
+  }
+
+  /** Po odpowiedzi agenta: wykrywa marker [MAIL:] i pokazuje edytowalny kreator maila. */
+  async function detectAndPrepareEmail() {
+    if (!active) return;
+    const prev = messagesRef.current;
+    const lastIdx = prev.length - 1;
+    const last = prev[lastIdx];
+    if (!last || last.role !== "assistant") return;
+    if (mailHandledRef.current.has(lastIdx)) return;
+
+    const draft = extractMailMarker(last.content);
+    if (!draft) return;
+
+    mailHandledRef.current.add(lastIdx);
+    // Usuń surowy marker z treści wiadomości (draft pokażemy w edytowalnym panelu).
+    const cleaned = stripMailMarkers(last.content);
+    update(active.id, {
+      messages: prev.map((m, i) => (i === lastIdx ? { ...m, content: cleaned } : m)),
+    });
+    setMailDraft({ ...draft, messageIdx: lastIdx });
+    setMailAccepted(false);
+  }
+
+  function discardMailDraft() {
+    setMailDraft(null);
+    setMailAccepted(false);
+  }
+
+  async function copyMailDraft() {
+    if (!mailDraft) return;
+    const text = `${mailDraft.subject ? `Temat: ${mailDraft.subject}\n\n` : ""}${mailDraft.body}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Skopiowano treść maila");
+    } catch {
+      toast.error("Nie udało się skopiować — zaznacz i skopiuj ręcznie.");
+    }
+  }
+
+  async function sendMailDraft() {
+    if (!mailDraft || !active) return;
+    const to = mailDraft.to.trim();
+    const subject = mailDraft.subject.trim();
+    const bodyText = mailDraft.body.trim();
+    if (!isValidEmail(to)) {
+      toast.error("Podaj poprawny adres odbiorcy.");
+      return;
+    }
+    if (!subject) {
+      toast.error("Uzupełnij temat wiadomości.");
+      return;
+    }
+    if (!bodyText) {
+      toast.error("Treść wiadomości jest pusta.");
+      return;
+    }
+    if (!emailProviderLabel) {
+      toast.error("Połącz skrzynkę (Gmail / Outlook / Resend) w Integracjach, aby wysyłać maile.");
+      return;
+    }
+    if (!mailAccepted) {
+      toast.error("Zaakceptuj wysyłkę na własne ryzyko.");
+      return;
+    }
+
+    setMailSending(true);
+    try {
+      const r = await fnSendEmail({
+        data: {
+          to,
+          subject: subject.slice(0, 998),
+          html: mailBodyToHtml(bodyText),
+          text: bodyText,
+          acceptedAtOwnRisk: true,
+        },
+      });
+      const idx = mailDraft.messageIdx;
+      const cur = messagesRef.current;
+      const note = `\n\n_✉️ Wysłano e-mail do ${to} przez ${r.provider}._`;
+      update(active.id, {
+        messages: cur.map((m, i) => (i === idx ? { ...m, content: (m.content + note).trim() } : m)),
+      });
+      toast.success(`Wysłano e-mail przez ${r.provider}`);
+      setMailDraft(null);
+      setMailAccepted(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Nie udało się wysłać maila.");
+    } finally {
+      setMailSending(false);
     }
   }
 
@@ -1675,6 +1804,102 @@ export function AgentChat() {
 
       <div className="border-t border-neutral-200 bg-white/90 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-4">
+          {mailDraft && (
+            <div className="mb-3 rounded-xl border border-neutral-300 bg-white px-4 py-3 space-y-3 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-neutral-700" strokeWidth={1.75} />
+                <p className="text-sm font-semibold text-neutral-900">
+                  Wiadomość e-mail — edytuj przed wysłaniem
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="block">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Do</span>
+                  <input
+                    type="email"
+                    value={mailDraft.to}
+                    onChange={(e) => setMailDraft((d) => (d ? { ...d, to: e.target.value } : d))}
+                    placeholder="np. klient@firma.pl"
+                    className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-400 focus:bg-white focus:outline-none"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Temat</span>
+                  <input
+                    type="text"
+                    value={mailDraft.subject}
+                    onChange={(e) => setMailDraft((d) => (d ? { ...d, subject: e.target.value } : d))}
+                    placeholder="Temat wiadomości"
+                    className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-400 focus:bg-white focus:outline-none"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Treść</span>
+                  <textarea
+                    value={mailDraft.body}
+                    onChange={(e) => setMailDraft((d) => (d ? { ...d, body: e.target.value } : d))}
+                    rows={8}
+                    placeholder="Treść wiadomości…"
+                    className="mt-1 w-full resize-y rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm leading-relaxed focus:border-neutral-400 focus:bg-white focus:outline-none"
+                  />
+                </label>
+              </div>
+              {emailProviderLabel ? (
+                <p className="text-[12px] text-neutral-500">
+                  Wyślemy z: <span className="font-semibold text-neutral-700">{emailProviderLabel}</span>
+                </p>
+              ) : (
+                <p className="text-[12px] text-amber-700">
+                  Brak połączonej skrzynki. Możesz edytować i skopiować treść, a wysyłkę włączysz po połączeniu
+                  Gmaila / Outlooka / Resend w{" "}
+                  <Link to="/integrations" className="font-semibold underline">
+                    Integracjach
+                  </Link>
+                  .
+                </p>
+              )}
+              {emailProviderLabel && (
+                <label className="flex items-start gap-2 text-[12px] text-neutral-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={mailAccepted}
+                    onChange={(e) => setMailAccepted(e.target.checked)}
+                  />
+                  <span>
+                    Akceptuję wysyłkę <strong>na własne ryzyko</strong> i potwierdzam treść wiadomości.
+                  </span>
+                </label>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {emailProviderLabel && (
+                  <button
+                    type="button"
+                    disabled={!mailAccepted || mailSending}
+                    onClick={() => void sendMailDraft()}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-neutral-900 text-white text-xs font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                  >
+                    <Send className="h-3.5 w-3.5" strokeWidth={2} />
+                    {mailSending ? "Wysyłanie…" : "Wyślij e-mail"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void copyMailDraft()}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-neutral-300 bg-white text-neutral-700 text-xs font-medium hover:bg-neutral-50 transition-colors"
+                >
+                  <Copy className="h-3.5 w-3.5" strokeWidth={2} /> Kopiuj treść
+                </button>
+                <button
+                  type="button"
+                  onClick={discardMailDraft}
+                  className="inline-flex items-center h-8 px-3 rounded-md border border-neutral-300 bg-white text-neutral-700 text-xs font-medium hover:bg-neutral-50 transition-colors"
+                >
+                  Odrzuć
+                </button>
+              </div>
+            </div>
+          )}
           {calConfirmMarkers && calConfirmMarkers.length > 0 && (
             <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 space-y-3">
               <p className="text-sm text-amber-950">

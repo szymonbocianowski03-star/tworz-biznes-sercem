@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, Loader2, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Check, Loader2, RotateCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdPlatformComingSoon } from "@/lib/adPlatform";
 import { fetchOAuthHandoff } from "@/lib/oauthHandoffClient";
 import { getGoogleIntegrationOAuthOrigin } from "@/lib/googleIntegrationOrigin";
 import { saveIntegrationConnectionRow } from "@/lib/integrationConnectionSave";
+import { refreshGoogleAdsAccounts } from "@/lib/googleAds.functions";
 
 type CustomerAccount = { id: string; resourceName?: string; descriptiveName?: string };
 
@@ -24,6 +26,10 @@ export function GoogleAdsIntegrationCard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [conn, setConn] = useState<Connection | null>(null);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [noAccounts, setNoAccounts] = useState(false);
+  const fnRefreshAccounts = useServerFn(refreshGoogleAdsAccounts);
+  const autoRefreshedRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -116,6 +122,49 @@ export function GoogleAdsIntegrationCard() {
     }
   };
 
+  const refreshAccounts = useCallback(
+    async (silent = false) => {
+      setRefreshing(true);
+      try {
+        const res = await fnRefreshAccounts();
+        if (res.ok) {
+          setNoAccounts(res.accounts.length === 0);
+          setConn((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  customer_accounts: res.accounts,
+                  selected_customer_id: res.selectedCustomerId,
+                }
+              : prev,
+          );
+          if (!silent && res.accounts.length > 0) toast.success("Zaktualizowano listę kont Google Ads");
+        } else {
+          setNoAccounts(true);
+          if (!silent) {
+            toast.message(
+              "Nie znaleziono kont reklamowych na tym koncie Google. Upewnij się, że masz dostęp do Google Ads.",
+            );
+          }
+        }
+      } catch (e) {
+        if (!silent) toast.error(e instanceof Error ? e.message : "Nie udało się odświeżyć kont");
+      } finally {
+        setRefreshing(false);
+      }
+    },
+    [fnRefreshAccounts],
+  );
+
+  // Po połączeniu automatycznie pobierz listę kont (bez ręcznego wpisywania ID).
+  useEffect(() => {
+    if (!conn || autoRefreshedRef.current) return;
+    if (conn.customer_accounts.length === 0 || !conn.selected_customer_id) {
+      autoRefreshedRef.current = true;
+      void refreshAccounts(true);
+    }
+  }, [conn, refreshAccounts]);
+
   return (
     <section className="rounded-xl border border-foreground/10 bg-card p-5">
       <header className="mb-4 flex items-start gap-3">
@@ -182,11 +231,22 @@ export function GoogleAdsIntegrationCard() {
             </label>
           )}
           {conn && conn.customer_accounts.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              Brak listy kont — upewnij się, że masz dostęp do Google Ads i ustaw{" "}
-              <code className="rounded bg-muted px-1">GOOGLE_ADS_DEVELOPER_TOKEN</code> na serwerze. Możesz też wpisać
-              Customer ID ręcznie w kreatorze kampanii.
-            </p>
+            <div className="space-y-2">
+              {refreshing ? (
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Wczytuję Twoje konta reklamowe…
+                </p>
+              ) : noAccounts ? (
+                <p className="text-xs text-muted-foreground">
+                  Nie znaleziono kont reklamowych na tym koncie Google. Upewnij się, że wybrane konto ma dostęp do
+                  Google Ads, a następnie odśwież.
+                </p>
+              ) : (
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Przygotowuję listę kont…
+                </p>
+              )}
+            </div>
           )}
           <div className="flex flex-wrap gap-2">
             <button
@@ -194,8 +254,18 @@ export function GoogleAdsIntegrationCard() {
               onClick={() => void connect()}
               className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
             >
-              {conn ? "Zmień konto / odśwież" : "Połącz Google Ads"}
+              {conn ? "Zmień konto Google" : "Połącz Google Ads"}
             </button>
+            {conn && (
+              <button
+                type="button"
+                disabled={refreshing}
+                onClick={() => void refreshAccounts(false)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-60"
+              >
+                <RotateCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} /> Odśwież konta
+              </button>
+            )}
             {conn && (
               <button
                 type="button"

@@ -1,8 +1,9 @@
 import type { AdsPlatformAdapter, AdapterContext, ProviderResult, ProviderStepKind } from "./types";
 import type { CampaignComposerDraftPayload } from "../domain/draft-schema";
 import { normalizeDestinationUrl } from "../validation/preflight";
+import { GOOGLE_ADS_API_BASE } from "@/lib/googleAdsApi";
 
-const GOOGLE_ADS_API = "https://googleads.googleapis.com/v21";
+const GOOGLE_ADS_API = GOOGLE_ADS_API_BASE;
 
 /** Google zwraca HTML (404/502) dla wycofanych wersji API — nie parsuj tego jako JSON. */
 async function readJsonSafe(res: Response): Promise<{ parsed: unknown; text: string }> {

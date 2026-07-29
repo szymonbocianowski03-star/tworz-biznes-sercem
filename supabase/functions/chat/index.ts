@@ -74,6 +74,7 @@ Korzystasz z najlepszego modelu — używaj tego. Nie generuj generycznych list 
 - odnoś się do **konkretnego produktu** użytkownika (nazwa, cena, branża, język rynku)
 - dawaj **gotowe artefakty** (copy, nagłówek, CTA — nie "podpowiedzi co napisać")
 - jeśli brakuje danych do dobrej odpowiedzi — zadaj 1 pytanie Q&A zamiast zgadywać
+- **NIGDY** nie odpowiadaj zdawkowo, pustką ani śmieciem (np. pojedyncze litery, „aaa”, „...", „ok"). Każda wiadomość musi nieść realną wartość. Jeśli nie masz danych — zadaj konkretne pytanie Q&A.
 
 # PRZEBIEG ROZMOWY (sekwencja onboardingu nowego produktu)
 Gdy użytkownik zaczyna nowy produkt — prowadź go po kolei, jedno pytanie naraz:
@@ -134,6 +135,18 @@ Zasady:
 - Max **10** markerów na odpowiedź.
 - Frontend zapisze wydarzenia w kalendarzu użytkownika — potwierdź po polsku co zaplanowałeś (bez technicznych szczegółów OAuth).
 - Markery [CAL:] są przetwarzane w tle — nie proś o osobne potwierdzenie zapisu do kalendarza.`;
+
+const EMAIL_PROMPT = `
+# E-MAIL (EDYTOWALNY SZKIC + WYSYŁKA ZA ZGODĄ — KRYTYCZNE)
+Gdy użytkownik prosi o napisanie lub wysłanie maila (cold mail, follow-up, newsletter, odpowiedź, oferta) — **NIGDY nie pisz, że nie możesz wysłać maila** i nie proponuj ręcznego kopiowania do Gmaila. Zamiast tego przygotuj gotową, konkretną wiadomość i umieść ją w JEDNYM markerze w osobnej linii na końcu odpowiedzi:
+\`[MAIL: adres@odbiorcy.pl | Temat wiadomości | Treść wiadomości]\`
+
+Zasady:
+- Jeśli nie znasz adresu odbiorcy — zostaw pierwsze pole puste: \`[MAIL:  | Temat | Treść]\`. Użytkownik uzupełni adres sam.
+- Treść pisz jako zwykły tekst; akapity oddzielaj pustą linią. **Nie używaj znaku "]" w treści maila.**
+- Frontend pokaże użytkownikowi **edytowalny kreator maila** (może poprawić odbiorcę, temat i treść). Wysyłka nastąpi **dopiero po jego akceptacji „na własne ryzyko”** — z jego połączonej skrzynki (Gmail/Outlook/Resend).
+- **NIGDY nie twierdź, że mail został wysłany.** To użytkownik klika „Wyślij". Jeśli nie ma połączonej skrzynki, i tak może edytować i skopiować treść.
+- Przed markerem dodaj 1 zdanie po polsku (np. „Gotowy szkic — możesz go edytować i wysłać poniżej."). Po markerze [MAIL:] nie musisz dodawać bloku Q&A.`;
 
 type RawMsg = { role: string; content: string };
 type AnthropicMsg =
@@ -225,11 +238,12 @@ Deno.serve(async (req) => {
       ? "Jesteś analitykiem danych. Wykonujesz wyłącznie instrukcje z ostatniej wiadomości użytkownika. Nie używaj formatu Q&A (linii „Q:” / „A:”). Nie owijaj odpowiedzi w ``` — tylko treść wymaganą w tej wiadomości."
       : (() => {
         const calendarBlock = hasCalendar ? `\n\n${CALENDAR_PROMPT}` : "";
+        const emailBlock = `\n\n${EMAIL_PROMPT}`;
         const skillsBlock =
           skillsContext && typeof skillsContext === "string" && skillsContext.trim().length
             ? `\n\n# AKTYWNE SKILLE (TWARDE INSTRUKCJE — STOSUJ DOSŁOWNIE)\n\n${skillsContext.slice(0, 60000)}`
             : "";
-        return `${SYSTEM_PROMPT}${calendarBlock}${skillsBlock}`;
+        return `${SYSTEM_PROMPT}${calendarBlock}${emailBlock}${skillsBlock}`;
       })();
 
     // Koszt liczymy sprawiedliwie:

@@ -5,8 +5,9 @@ import {
   maskGoogleClientId,
   parseGoogleIntegrationOAuthState,
 } from "@/lib/googleOAuthRedirect.server";
+import { GOOGLE_ADS_API_BASE } from "@/lib/googleAdsApi";
 
-const GOOGLE_ADS_API = "https://googleads.googleapis.com/v21";
+const GOOGLE_ADS_API = GOOGLE_ADS_API_BASE;
 
 type GoogleAdsCustomerAccount = { id: string; resourceName: string; descriptiveName?: string };
 

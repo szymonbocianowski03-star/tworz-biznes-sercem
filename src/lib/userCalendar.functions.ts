@@ -92,13 +92,22 @@ export const scheduleUserCalendarEvent = createServerFn({ method: "POST" })
                 summary: data.title,
                 description: data.description,
                 location: data.location,
-                start: { dateTime: data.start },
-                end: { dateTime: data.end },
+                start: { dateTime: data.start, timeZone: "Europe/Warsaw" },
+                end: { dateTime: data.end, timeZone: "Europe/Warsaw" },
               }),
             },
           );
           const j = await res.json();
-          if (!res.ok) throw new Error(JSON.stringify(j));
+          if (!res.ok) {
+            const reason = j?.error?.message ?? JSON.stringify(j);
+            const status = res.status;
+            let friendly = reason;
+            if (status === 401 || status === 403 || /insufficient|permission|scope|forbidden/i.test(reason)) {
+              friendly =
+                "Brak uprawnień do zapisu w Google Calendar. Rozłącz i połącz kalendarz ponownie w Integracjach (zaznacz zgodę na zarządzanie kalendarzem).";
+            }
+            throw new Error(friendly);
+          }
           results.push({ provider: "google", ok: true, link: j.htmlLink });
         } catch (e: any) {
           results.push({ provider: "google", ok: false, error: String(e?.message ?? e).slice(0, 300) });
