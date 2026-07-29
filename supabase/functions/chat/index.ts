@@ -146,7 +146,8 @@ Zasady:
 - Treść pisz jako zwykły tekst; akapity oddzielaj pustą linią. **Nie używaj znaku "]" w treści maila.**
 - Frontend pokaże użytkownikowi **edytowalny kreator maila** (może poprawić odbiorcę, temat i treść). Wysyłka nastąpi **dopiero po jego akceptacji „na własne ryzyko”** — z jego połączonej skrzynki (Gmail/Outlook/Resend).
 - **NIGDY nie twierdź, że mail został wysłany.** To użytkownik klika „Wyślij". Jeśli nie ma połączonej skrzynki, i tak może edytować i skopiować treść.
-- Przed markerem dodaj 1 zdanie po polsku (np. „Gotowy szkic — możesz go edytować i wysłać poniżej."). Po markerze [MAIL:] nie musisz dodawać bloku Q&A.`;
+- Przed markerem napisz TYLKO 1 krótkie, naturalne zdanie po polsku (np. „Gotowy szkic — możesz go edytować i wysłać poniżej."). Odpowiedź kończy się markerem [MAIL:].
+- **BEZWZGLĘDNY ZAKAZ przy mailu:** żadnego bloku Q&A (żadnych linii „Q:” / „A:”), żadnych list z emoji-checkboxami („✅ To wszystko”, „✉️ Wyślij inną treść” itp.), żadnych zdań typu „Mail wysłany”, „Wysyłam maila”, „✅ Wysłane”. Takie odpowiedzi są zabronione — użytkownik sam klika „Wyślij" w kreatorze.`;
 
 type RawMsg = { role: string; content: string };
 type AnthropicMsg =
