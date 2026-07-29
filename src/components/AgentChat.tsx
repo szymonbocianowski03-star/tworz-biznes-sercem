@@ -34,6 +34,7 @@ import {
   isValidEmail,
   mailBodyToHtml,
   stripMailMarkers,
+  stripFalseSentClaims,
   type MailDraft,
 } from "@/lib/agentEmail";
 
@@ -879,6 +880,14 @@ export function AgentChat() {
           calendarConnected: calendarStatus
             ? { google: !!calendarStatus.google, outlook: !!calendarStatus.outlook }
             : undefined,
+          emailConnected: emailStatus
+            ? {
+                gmail: !!emailStatus.gmail,
+                outlook: !!emailStatus.outlook,
+                smtp: !!emailStatus.smtp,
+                provider: emailProviderLabel ?? undefined,
+              }
+            : undefined,
           imageAttachment: attachment
             ? { media_type: attachment.mediaType, data: attachment.dataUrl }
             : undefined,
@@ -1080,8 +1089,8 @@ export function AgentChat() {
     if (!draft) return;
 
     mailHandledRef.current.add(lastIdx);
-    // Usuń surowy marker z treści wiadomości (draft pokażemy w edytowalnym panelu).
-    const cleaned = stripMailMarkers(last.content);
+    // Usuń surowy marker + ewentualne fałszywe „wysłałem maila” (mail wysyła dopiero użytkownik).
+    const cleaned = stripFalseSentClaims(stripMailMarkers(last.content));
     update(active.id, {
       messages: prev.map((m, i) => (i === lastIdx ? { ...m, content: cleaned } : m)),
     });

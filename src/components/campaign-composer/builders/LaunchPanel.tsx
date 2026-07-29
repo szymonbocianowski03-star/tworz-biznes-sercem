@@ -99,6 +99,17 @@ export function LaunchPanel({
         </ul>
       )}
 
+      {liveJobs.length > 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
+          <p className="font-semibold">⚠️ Uwaga — zweryfikuj publikację w swoim koncie</p>
+          <p className="mt-1">
+            Status poniżej pochodzi z odpowiedzi API i może nie odzwierciedlać stanu docelowego (moderacja, płatności,
+            akceptacja platformy). <strong>Zaloguj się do swojego konta reklamowego</strong> (np. Google Ads / Meta) i
+            sprawdź, czy kampania, budżet i reklamy zostały utworzone poprawnie oraz czy mają właściwy status.
+          </p>
+        </div>
+      )}
+
       {jobItems.length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase text-muted-foreground">Etapy publikacji</p>
@@ -107,7 +118,7 @@ export function LaunchPanel({
               <li key={idx} className="rounded-lg border border-border bg-muted/30 px-3 py-2">
                 <p className="font-medium">{labelPublishStep(it.step_kind)}</p>
                 <p className="text-muted-foreground">{labelPublishStatus(it.status)}</p>
-                {it.provider_message && <p className="mt-1">{it.provider_message}</p>}
+                {it.provider_message && <p className="mt-1 break-words text-destructive">{it.provider_message}</p>}
               </li>
             ))}
           </ul>
@@ -122,6 +133,10 @@ export function LaunchPanel({
               Kampania zostanie utworzona na połączonym koncie reklamowym. Działasz{" "}
               <strong className="text-foreground">na własne ryzyko</strong> — odpowiadasz za budżet, treść reklam,
               odbiorców i zgodność z regulaminem platformy. MarketingNow nie ponosi odpowiedzialności za skutki publikacji.
+            </p>
+            <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
+              ⚠️ Po publikacji <strong>koniecznie sprawdź w swoim koncie reklamowym</strong>, czy kampania została
+              utworzona prawidłowo (budżet, reklamy, status, moderacja).
             </p>
             <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/30 p-3 text-sm">
               <Checkbox

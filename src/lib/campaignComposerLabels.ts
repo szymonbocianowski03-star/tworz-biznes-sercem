@@ -37,6 +37,7 @@ export const LIFECYCLE_LABELS: Record<string, string> = {
 export const PUBLISH_STATUS_LABELS: Record<string, string> = {
   queued: "W kolejce",
   running: "W trakcie",
+  success: "Opublikowano",
   succeeded: "Opublikowano",
   failed: "Nie powiodło się",
   partial_success: "Częściowo opublikowano",

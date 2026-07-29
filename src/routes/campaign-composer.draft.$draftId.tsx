@@ -321,7 +321,8 @@ function DraftEditor() {
 
       if (status === "success" || status === "partial_success") {
         toast.success("Kampania utworzona na koncie reklamowym", {
-          description: `Sprawdź panel ${providerLabel} — reklamy mogą wymagać akceptacji przez platformę.`,
+          description: `⚠️ Zaloguj się do swojego konta ${providerLabel} i sprawdź, czy kampania, budżet i reklamy zostały opublikowane poprawnie — mogą wymagać akceptacji/moderacji przez platformę.`,
+          duration: 12000,
         });
         return;
       }

@@ -202,6 +202,17 @@ Deno.serve(async (req) => {
     const skillsContext = body.skillsContext as string | undefined;
     const calendarConnected = body.calendarConnected as { google?: boolean; outlook?: boolean } | undefined;
     const hasCalendar = !!(calendarConnected?.google || calendarConnected?.outlook);
+    const emailConnected = body.emailConnected as
+      | { gmail?: boolean; outlook?: boolean; smtp?: boolean; provider?: string }
+      | undefined;
+    const hasEmail = !!(emailConnected?.gmail || emailConnected?.outlook || emailConnected?.smtp);
+    const emailProviderName = emailConnected?.gmail
+      ? "Gmail"
+      : emailConnected?.outlook
+        ? "Outlook"
+        : emailConnected?.smtp
+          ? "połączoną skrzynkę"
+          : null;
     const imageAttachment = body.imageAttachment as { media_type?: string; data?: string } | undefined;
     /** Widok LLM visibility / inne narzędzia: bez persony agenta Q&A i bez obcinania strumienia przy „Q:” w JSON. */
     const skipAgentPersona = body.skipAgentPersona === true;
@@ -239,7 +250,10 @@ Deno.serve(async (req) => {
       ? "Jesteś analitykiem danych. Wykonujesz wyłącznie instrukcje z ostatniej wiadomości użytkownika. Nie używaj formatu Q&A (linii „Q:” / „A:”). Nie owijaj odpowiedzi w ``` — tylko treść wymaganą w tej wiadomości."
       : (() => {
         const calendarBlock = hasCalendar ? `\n\n${CALENDAR_PROMPT}` : "";
-        const emailBlock = `\n\n${EMAIL_PROMPT}`;
+        const emailStatusBlock = hasEmail
+          ? `\n\n# STATUS SKRZYNKI E-MAIL (WAŻNE)\nUżytkownik MA połączoną skrzynkę: **${emailProviderName}**. Wysyłka e-maili jest w pełni dostępna. NIGDY nie mów, że „nie masz integracji z Gmailem/pocztą”, że „nie możesz wysyłać maili” ani nie proponuj ręcznego kopiowania do klienta poczty. Zawsze przygotuj marker [MAIL:] — użytkownik wyśle go jednym kliknięciem ze swojej skrzynki ${emailProviderName}.`
+          : `\n\n# STATUS SKRZYNKI E-MAIL\nUżytkownik NIE ma jeszcze połączonej skrzynki. Mimo to i tak przygotuj gotowy marker [MAIL:] (użytkownik będzie mógł edytować i skopiować treść, a wysyłkę włączy po połączeniu Gmaila/Outlooka/Resend w Integracjach). Nie odmawiaj napisania maila.`;
+        const emailBlock = `\n\n${EMAIL_PROMPT}${emailStatusBlock}`;
         const skillsBlock =
           skillsContext && typeof skillsContext === "string" && skillsContext.trim().length
             ? `\n\n# AKTYWNE SKILLE (TWARDE INSTRUKCJE — STOSUJ DOSŁOWNIE)\n\n${skillsContext.slice(0, 60000)}`

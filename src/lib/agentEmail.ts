@@ -43,6 +43,20 @@ export function stripMailMarkers(content: string): string {
     .trim();
 }
 
+/**
+ * Bot bywa, że mimo instrukcji napisze „wysłałem maila” — a mail NIE został jeszcze wysłany
+ * (to użytkownik klika „Wyślij" w edytowalnym kreatorze). Usuwamy takie fałszywe deklaracje,
+ * żeby UI nie wprowadzał w błąd. Nasza własna adnotacja po wysyłce ma inny format ("✉️ Wysłano…").
+ */
+export function stripFalseSentClaims(content: string): string {
+  const FALSE_SENT =
+    /^.*(?:mail|maila|wiadomo(?:ść|sc)|e-?mail)\s+(?:zosta(?:ł|l)\s+wys(?:ł|l)any|wys(?:ł|l)an[aoy]?)\b.*$|^.*\b(?:wys(?:y|ł|l)a(?:m|łem|lem)|wysłano)\b.*\b(?:mail|maila|wiadomo(?:ść|sc)|e-?mail)\b.*$|^.*✅\s*wys(?:ł|l)an.*$/gim;
+  return content
+    .replace(FALSE_SENT, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** Zamienia zwykły tekst maila na bezpieczny HTML (escape + zachowanie akapitów). */
 export function mailBodyToHtml(body: string): string {
   const esc = body

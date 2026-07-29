@@ -29,6 +29,41 @@ type MutateResponse = {
   message?: string;
 };
 
+/**
+ * Google Ads API zwraca ogólny komunikat „Request contains an invalid argument.”,
+ * a prawdziwą przyczynę (nazwa pola, limit, powód odrzucenia) chowa w
+ * error.details[].errors[].message + errorCode. Ta funkcja wyciąga czytelny opis,
+ * żeby użytkownik wiedział CO dokładnie poprawić, zamiast widzieć suchy komunikat.
+ */
+function extractGoogleAdsError(json: MutateResponse): string | undefined {
+  const err = json.error;
+  if (!err) return json.message;
+
+  const details = Array.isArray(err.details) ? (err.details as unknown[]) : [];
+  const parts: string[] = [];
+  for (const d of details) {
+    const errors = (d as { errors?: unknown[] })?.errors;
+    if (!Array.isArray(errors)) continue;
+    for (const e of errors) {
+      const item = e as {
+        message?: string;
+        errorCode?: Record<string, unknown>;
+        trigger?: { stringValue?: string };
+      };
+      const msg = item?.message?.trim();
+      if (!msg) continue;
+      const code = item.errorCode ? Object.values(item.errorCode)[0] : undefined;
+      parts.push(code ? `${msg} (${String(code)})` : msg);
+    }
+  }
+
+  if (parts.length) {
+    // Deduplikacja + skrócenie, żeby toast/UI się nie rozjechały.
+    return [...new Set(parts)].join(" • ").slice(0, 600);
+  }
+  return err.message ?? json.message;
+}
+
 async function googleAdsMutate(
   customerId: string,
   path: string,
@@ -72,6 +107,22 @@ async function googleAdsMutate(
   return { ok: res.ok && !json.error, json, status: res.status };
 }
 
+/** Wykrywa błąd zduplikowanej nazwy kampanii (Google zwraca go jako INVALID_ARGUMENT). */
+function isDuplicateNameError(json: MutateResponse): boolean {
+  const details = Array.isArray(json.error?.details) ? (json.error!.details as unknown[]) : [];
+  for (const d of details) {
+    const errors = (d as { errors?: unknown[] })?.errors;
+    if (!Array.isArray(errors)) continue;
+    for (const e of errors) {
+      const item = e as { message?: string; errorCode?: Record<string, unknown> };
+      const codeVal = item.errorCode ? String(Object.values(item.errorCode)[0] ?? "") : "";
+      if (/DUPLICATE_NAME|DUPLICATE_CAMPAIGN_NAME/i.test(codeVal)) return true;
+      if (/duplicate.*name|nazwa.*istnieje|already exists/i.test(item.message ?? "")) return true;
+    }
+  }
+  return /duplicate.*name|already exists/i.test(json.error?.message ?? "");
+}
+
 function resourceId(resourceName: string | undefined): string | null {
   if (!resourceName) return null;
   const parts = resourceName.split("/");
@@ -110,7 +161,7 @@ async function uploadImageAsset(
   if (!ok) {
     return {
       ok: false,
-      message: json.error?.message ?? json.message ?? "Upload obrazu do Google Ads nie powiódł się",
+      message: extractGoogleAdsError(json) ?? "Upload obrazu do Google Ads nie powiódł się",
       code: String(status),
       retryable: status === 429 || status >= 500,
       raw: json,
@@ -232,7 +283,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
         if (!ok) {
           return {
             ok: false,
-            message: json.error?.message ?? json.message ?? "Nie utworzono budżetu Google Ads",
+            message: extractGoogleAdsError(json) ?? "Nie utworzono budżetu Google Ads",
             code: String(http),
             retryable: http === 429 || http >= 500,
             raw: json,
@@ -319,17 +370,38 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
             break;
         }
 
-        const { ok, json, status: http } = await googleAdsMutate(
+        let { ok, json, status: http } = await googleAdsMutate(
           customerId,
           "campaigns:mutate",
           ctx.accessToken,
           { operations: [{ create }] },
           loginCustomerId,
         );
+
+        // Nazwa kampanii musi być unikalna na koncie. Przy ponownej publikacji tego samego
+        // szkicu Google zwraca DUPLICATE_CAMPAIGN_NAME jako INVALID_ARGUMENT ("Request contains an
+        // invalid argument."). Wtedy ponawiamy raz z krótkim sufiksem, żeby kampania się utworzyła.
+        if (!ok && isDuplicateNameError(json)) {
+          const suffix = new Date().toLocaleString("pl-PL", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          create.name = `${String(create.name).slice(0, 240)} (${suffix})`;
+          ({ ok, json, status: http } = await googleAdsMutate(
+            customerId,
+            "campaigns:mutate",
+            ctx.accessToken,
+            { operations: [{ create }] },
+            loginCustomerId,
+          ));
+        }
+
         if (!ok) {
           return {
             ok: false,
-            message: json.error?.message ?? json.message ?? "Nie utworzono kampanii Google Ads",
+            message: extractGoogleAdsError(json) ?? "Nie utworzono kampanii Google Ads",
             code: String(http),
             retryable: http === 429 || http >= 500,
             raw: json,
@@ -371,7 +443,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
         if (!ok) {
           return {
             ok: false,
-            message: json.error?.message ?? json.message ?? "Nie utworzono grupy reklam",
+            message: extractGoogleAdsError(json) ?? "Nie utworzono grupy reklam",
             code: String(http),
             retryable: http === 429 || http >= 500,
             raw: json,
@@ -446,7 +518,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
         if (!ok) {
           return {
             ok: false,
-            message: json.error?.message ?? json.message ?? "Nie utworzono reklamy RSA",
+            message: extractGoogleAdsError(json) ?? "Nie utworzono reklamy RSA",
             code: String(http),
             retryable: http === 429 || http >= 500,
             raw: json,
@@ -498,7 +570,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
           if (!ok) {
             return {
               ok: false,
-              message: json.error?.message ?? json.message ?? `Nie dodano YouTube ${ytId}`,
+              message: extractGoogleAdsError(json) ?? `Nie dodano YouTube ${ytId}`,
               code: String(http),
               retryable: http === 429 || http >= 500,
               raw: json,
@@ -657,7 +729,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
         if (!ok) {
           return {
             ok: false,
-            message: json.error?.message ?? json.message ?? "Nie utworzono asset group (PMax)",
+            message: extractGoogleAdsError(json) ?? "Nie utworzono asset group (PMax)",
             code: String(http),
             retryable: http === 429 || http >= 500,
             raw: json,
@@ -730,7 +802,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
         if (!ok) {
           return {
             ok: false,
-            message: json.error?.message ?? json.message ?? "Nie utworzono reklamy Display",
+            message: extractGoogleAdsError(json) ?? "Nie utworzono reklamy Display",
             code: String(http),
             retryable: http === 429 || http >= 500,
             raw: json,
@@ -768,7 +840,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
         if (!ytAsset.ok) {
           return {
             ok: false,
-            message: ytAsset.json.error?.message ?? "Nie utworzono assetu YouTube",
+            message: extractGoogleAdsError(ytAsset.json) ?? "Nie utworzono assetu YouTube",
             retryable: ytAsset.status >= 500,
             raw: ytAsset.json,
           };
@@ -805,7 +877,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
         if (!ok) {
           return {
             ok: false,
-            message: json.error?.message ?? json.message ?? "Nie utworzono reklamy Video",
+            message: extractGoogleAdsError(json) ?? "Nie utworzono reklamy Video",
             code: String(http),
             retryable: http === 429 || http >= 500,
             raw: json,
@@ -873,7 +945,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
         if (!ok) {
           return {
             ok: false,
-            message: json.error?.message ?? json.message ?? "Nie utworzono reklamy Demand Gen",
+            message: extractGoogleAdsError(json) ?? "Nie utworzono reklamy Demand Gen",
             code: String(http),
             retryable: http === 429 || http >= 500,
             raw: json,
@@ -909,7 +981,7 @@ export class GoogleAdsAdapter implements AdsPlatformAdapter {
         if (!ok) {
           return {
             ok: false,
-            message: json.error?.message ?? json.message ?? "Nie utworzono grupy Shopping",
+            message: extractGoogleAdsError(json) ?? "Nie utworzono grupy Shopping",
             code: String(http),
             retryable: http === 429 || http >= 500,
             raw: json,
