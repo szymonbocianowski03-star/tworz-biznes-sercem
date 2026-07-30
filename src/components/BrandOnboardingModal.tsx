@@ -8,9 +8,11 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { runCompetitorScan } from "@/lib/competitorScan.functions";
 import { extractBrandColorsFromUrl } from "@/lib/brandColors.functions";
 import { mapCompetitorScanToBrandContext } from "@/lib/brandScan";
-import { readScopedJson, writeScopedJson } from "@/lib/userScopedStorage";
+import {
+  markBrandOnboardingDone,
+  shouldShowBrandOnboarding,
+} from "@/lib/brandOnboarding";
 
-const SKIP_KEY = "brandOnboarding.skipped.v1";
 const DEFAULT_COLORS = ["#0A0A0A", "#FFFFFF", "#16A34A", "#2563EB"];
 
 function normalizeUrl(raw: string): string {
@@ -47,16 +49,14 @@ export function BrandOnboardingModal() {
       setOpen(false);
       return;
     }
-    if (brands.length > 0) {
-      setOpen(false);
-      return;
-    }
-    if (readScopedJson<boolean>(SKIP_KEY, false)) {
-      setOpen(false);
-      return;
-    }
-    setOpen(true);
-  }, [authLoading, isAuthenticated, user?.id, brands.length]);
+    // Tylko nowe konta — stare konta bez marki nie dostają popupu.
+    const show = shouldShowBrandOnboarding({
+      userId: user.id,
+      createdAt: user.created_at,
+      hasBrands: brands.length > 0,
+    });
+    setOpen(show);
+  }, [authLoading, isAuthenticated, user?.id, user?.created_at, brands.length]);
 
   if (!open) return null;
 
@@ -129,7 +129,7 @@ export function BrandOnboardingModal() {
   };
 
   const skip = () => {
-    writeScopedJson(SKIP_KEY, true);
+    markBrandOnboardingDone(user?.id);
     setOpen(false);
     toast.message("Możesz uzupełnić markę później w zakładce Marki.");
   };
@@ -179,9 +179,9 @@ export function BrandOnboardingModal() {
         ...(nextCtx ? { aiContext: nextCtx } : {}),
       });
 
-      writeScopedJson(SKIP_KEY, true);
+      markBrandOnboardingDone(user?.id);
       setOpen(false);
-      toast.success("Marka zapisana — DNA Twojej firmy jest w workspace.");
+      toast.success(`Marka „${brand.name}” zapisana — znajdziesz ją w zakładce Marki.`);
     } finally {
       setSaving(false);
     }

@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { signInWithGoogle } from "@/lib/signInWithGoogle";
 import { hasSupabasePublicEnv } from "@/integrations/supabase/publicEnv";
 import { MarketingNowLogo } from "@/components/MarketingNowLogo";
+import { markBrandOnboardingPending, isNewAuthAccount } from "@/lib/brandOnboarding";
+import { syncLocalDataOwner } from "@/lib/localUserData";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -51,6 +53,11 @@ function AuthPage() {
 
         const { data, error: userError } = await supabase.auth.getUser();
         if (userError || !data.user) throw userError ?? new Error("Nie udało się potwierdzić sesji Google.");
+
+        syncLocalDataOwner(data.user.id);
+        if (isNewAuthAccount(data.user.created_at)) {
+          markBrandOnboardingPending(data.user.id);
+        }
 
         toast.success("Zalogowano przez Google.");
         navigate({ to: "/agent", replace: true });
@@ -139,7 +146,16 @@ function AuthPage() {
         });
         if (error) throw error;
         if (data.session) {
+          syncLocalDataOwner(data.session.user.id);
+          markBrandOnboardingPending(data.session.user.id);
           toast.success("Konto utworzone. Zalogowano.");
+        } else if (data.user) {
+          // Potwierdzenie e-mailem — oznacz pending pod userId, żeby po pierwszym logowaniu wyskoczył popup
+          markBrandOnboardingPending(data.user.id);
+          toast.success(
+            "Konto utworzone. Sprawdź skrzynkę i kliknij link potwierdzający — dopiero potem zaloguj się hasłem.",
+            { duration: 8000 },
+          );
         } else {
           toast.success(
             "Konto utworzone. Sprawdź skrzynkę i kliknij link potwierdzający — dopiero potem zaloguj się hasłem.",
@@ -179,6 +195,10 @@ function AuthPage() {
         // instead of relying only on the onAuthStateChange listener.
         const { data } = await supabase.auth.getSession();
         if (data.session) {
+          syncLocalDataOwner(data.session.user.id);
+          if (isNewAuthAccount(data.session.user.created_at)) {
+            markBrandOnboardingPending(data.session.user.id);
+          }
           navigate({ to: "/agent", replace: true });
         } else {
           setOauthLoading(false);
