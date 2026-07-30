@@ -33,6 +33,20 @@ export async function ensureGoogleAdsAccessToken(admin: AdminClient, connectionI
   const needsRefresh = tokenExpiredOrUnknown(conn.token_expires_at as string | null | undefined);
   if (!needsRefresh || !conn.refresh_token) return conn.access_token as string;
 
+  if (!conn.refresh_token) {
+    await (admin as any)
+      .from("google_ads_connections")
+      .update({
+        status: "reauth_required",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", connectionId);
+    throw new GoogleAdsTokenError(
+      "Połączenie Google Ads nie ma refresh tokenu. Wejdź w Integracje i połącz Google Ads ponownie.",
+      "GOOGLE_ADS_REAUTH_REQUIRED",
+    );
+  }
+
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret) {
