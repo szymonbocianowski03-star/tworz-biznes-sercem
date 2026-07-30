@@ -31,6 +31,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { useCredits } from "@/hooks/useCredits";
 import { CreditsHeaderBadge } from "@/components/CreditsHeaderBadge";
 import { NewProductModal } from "@/components/NewProductModal";
+import { BrandOnboardingModal } from "@/components/BrandOnboardingModal";
 import { ProductAvatar } from "@/components/ProductAvatar";
 import { readImageAsDataUrl } from "@/lib/readImageAsDataUrl";
 import { useChats } from "@/hooks/useChats";
@@ -529,6 +530,7 @@ export function AppShell() {
           onCreate={handleCreateProduct}
           onThumbnailPreview={setNewProductThumbPreview}
         />
+        <BrandOnboardingModal />
 
         {showHistory && (
           <div className="fixed inset-0 z-50">

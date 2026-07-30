@@ -81,7 +81,7 @@ function Nav() {
     if (next) sfx.chime();
   };
   const navLinks = [
-    { href: "#panel", label: "Panel" },
+    { href: "#panel", label: "DNA marki" },
     { href: "#co-obslugujesz", label: "Zakres" },
     { href: "#growth-wheel", label: "Widoczność w AI" },
     { href: "#poznaj-opinie", label: "Opinie" },
@@ -248,7 +248,7 @@ function Hero() {
             <span className="block mt-1 md:mt-0.5">w jednym miejscu</span>
           </h1>
           <p className="mt-4 sm:mt-5 text-[15px] sm:text-[16px] md:text-[18px] leading-[1.55] text-neutral-700 px-1">
-            Reklamy, hooki, analiza konkurencji, treści i widoczność marki w AI — zobacz, jak wygląda panel od środka.
+            Reklamy, hooki, analiza konkurencji, treści i widoczność marki w AI — na bazie DNA Twojej firmy, które platforma zapamiętuje raz na zawsze.
           </p>
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2.5 sm:gap-3">
             <Link
@@ -301,16 +301,26 @@ function Hero() {
         )}
 
         <div className="mt-8 sm:mt-10 md:mt-14 max-w-xl sm:max-w-2xl mx-auto">
-          <div className="rounded-xl sm:rounded-2xl bg-zinc-950 p-2 sm:p-2.5 md:p-4 ring-1 ring-zinc-800/90 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.3)]">
-            <img
-              src="/tablet-marketingnow-hero.png"
-              alt="MarketingNow — panel aplikacji na tablecie"
-              width={1200}
-              height={1200}
-              decoding="async"
-              fetchPriority="high"
-              className="w-full h-auto max-h-[min(52vh,480px)] sm:max-h-[min(58vh,520px)] object-contain mx-auto"
+          <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-950 px-6 py-10 sm:px-10 sm:py-14 text-center ring-1 ring-zinc-800/90 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.3)]">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-80"
+              aria-hidden
+              style={{
+                background:
+                  "radial-gradient(ellipse 60% 55% at 50% 0%, rgba(255,255,255,0.10), transparent 60%), radial-gradient(ellipse 40% 40% at 85% 90%, rgba(16,185,129,0.08), transparent 55%)",
+              }}
             />
+            <p className="relative text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-white/50">
+              Platforma z pamięcią
+            </p>
+            <h2 className="relative mt-4 serif text-[clamp(1.6rem,5vw,2.75rem)] leading-[1.12] tracking-[-0.02em] text-white text-balance">
+              Platforma, która{" "}
+              <span className="italic font-light text-white/90">zapamiętuje DNA Twojej firmy</span>.
+            </h2>
+            <p className="relative mt-4 sm:mt-5 mx-auto max-w-xl text-[14px] sm:text-[15px] leading-[1.6] text-white/60">
+              Marka, oferta, ton komunikacji i kolory — raz uzupełnione, MarketingNow pamięta je w każdej
+              kampanii, treści i grafice. Nie zaczynasz od zera za każdym razem.
+            </p>
           </div>
           <div className="mt-4 flex justify-center">
             <PolandFirmBadge />
