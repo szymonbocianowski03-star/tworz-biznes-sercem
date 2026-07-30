@@ -383,7 +383,7 @@ export const campaignComposerDraftPayloadSchema = z.object({
     .object({
       campaignType: googleCampaignTypeSchema.default("PERFORMANCE_MAX"),
       status: z.enum(["paused", "active"]).default("paused"),
-      dailyBudgetMinor: z.number().int().nonnegative().default(5000),
+      dailyBudgetMinor: z.number().int().nonnegative().default(0),
       bidStrategy: z.string().default("MAXIMIZE_CLICKS"),
       includeSearchPartners: z.boolean().default(false),
       adGroupName: z.string().default("Grupa reklam 1"),
@@ -512,7 +512,7 @@ export function defaultDraftPayload(partial: {
       google: {
         campaignType: "PERFORMANCE_MAX",
         status: "paused",
-        dailyBudgetMinor: 5000,
+        dailyBudgetMinor: 0,
         bidStrategy: "MAXIMIZE_CLICKS",
         includeSearchPartners: false,
         adGroupName: "Asset group 1",
@@ -527,7 +527,7 @@ export function defaultDraftPayload(partial: {
         ...base.structure,
         adSets: base.structure.adSets.map((a) => ({
           ...a,
-          budget: { dailyBudgetMinorUnits: 5000, currency: "PLN" },
+          budget: { dailyBudgetMinorUnits: 0, currency: "PLN" },
         })),
       },
     });

@@ -14,7 +14,7 @@ export function PolitykaPrywatnosciMarketingNowContent() {
       </p>
 
       <p className="leading-relaxed">
-        <strong>Administrator:</strong> Szymon Bocianowski (osoba fizyczna), adres: Aleja Jerzego Waszyngtona 57/18,
+        <strong>Administrator:</strong> Szymon Bocianowski (osoba fizyczna), adres: Aleja Jerzego Waszyngtona 57,
         Warszawa, Polska, e-mail:{" "}
         <a href="mailto:support@marketingnow.tech" className="text-accent underline-offset-2 hover:underline">
           support@marketingnow.tech
@@ -137,7 +137,7 @@ export function PolitykaPrywatnosciMarketingNowContent() {
       <h2>3. Kto jest administratorem danych?</h2>
       <p>
         Administratorem danych osobowych użytkowników jest <strong>Szymon Bocianowski</strong> (osoba fizyczna),
-        adres: Aleja Jerzego Waszyngtona 57/18, Warszawa, Polska.
+        adres: Aleja Jerzego Waszyngtona 57, Warszawa, Polska.
       </p>
       <p>
         Kontakt w sprawach prywatności:{" "}
@@ -776,7 +776,7 @@ export function PolitykaPrywatnosciMarketingNowContent() {
         .
       </p>
       <p>
-        Adres administratora: Szymon Bocianowski (osoba fizyczna), Aleja Jerzego Waszyngtona 57/18, Warszawa, Polska.
+        Adres administratora: Szymon Bocianowski (osoba fizyczna), Aleja Jerzego Waszyngtona 57, Warszawa, Polska.
       </p>
 
       <h2>Załącznik nr 1 — Postanowienia powierzenia przetwarzania danych</h2>

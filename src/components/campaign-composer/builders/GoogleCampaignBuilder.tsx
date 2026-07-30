@@ -251,10 +251,16 @@ export function GoogleCampaignBuilder(props: BuilderProps) {
                 }}
               />
             </Field>
-            {google.dailyBudgetMinor < GOOGLE_MIN_DAILY_BUDGET_MINOR && (
-              <p className="text-xs text-amber-700">
-                Zalecane minimum ok. {(GOOGLE_MIN_DAILY_BUDGET_MINOR / 100).toFixed(0)} w walucie konta.
+            {!google.dailyBudgetMinor || google.dailyBudgetMinor <= 0 ? (
+              <p className="text-xs font-medium text-amber-700">
+                Uzupełnij budżet dzienny — pole jest wymagane przed publikacją.
               </p>
+            ) : (
+              google.dailyBudgetMinor < GOOGLE_MIN_DAILY_BUDGET_MINOR && (
+                <p className="text-xs text-amber-700">
+                  Zalecane minimum ok. {(GOOGLE_MIN_DAILY_BUDGET_MINOR / 100).toFixed(0)} w walucie konta.
+                </p>
+              )
             )}
             <Field label="Strategia stawek">
               <Select

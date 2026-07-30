@@ -18,7 +18,7 @@ export function RegulaminMarketingNowContent() {
         </li>
         <li>
           Usługodawcą jest osoba fizyczna <strong>Szymon Bocianowski</strong>, adres: Aleja Jerzego Waszyngtona
-          57/18, Warszawa, Polska, e-mail:{" "}
+          57, Warszawa, Polska, e-mail:{" "}
           <a href="mailto:support@marketingnow.tech" className="text-accent underline-offset-2 hover:underline">
             support@marketingnow.tech
           </a>{" "}
@@ -659,7 +659,7 @@ export function RegulaminMarketingNowContent() {
       <h2>Załącznik nr 1 — wzór formularza odstąpienia od umowy</h2>
       <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed not-prose">
         <p>
-          <strong>Adresat:</strong> Szymon Bocianowski (osoba fizyczna), Aleja Jerzego Waszyngtona 57/18, Warszawa,
+          <strong>Adresat:</strong> Szymon Bocianowski (osoba fizyczna), Aleja Jerzego Waszyngtona 57, Warszawa,
           Polska, e-mail: support@marketingnow.tech.
         </p>
         <p className="mt-3">

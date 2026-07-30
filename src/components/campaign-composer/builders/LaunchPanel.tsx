@@ -9,16 +9,14 @@ import type { BuilderProps } from "./shared";
 export function LaunchPanel({
   jobs,
   jobItems,
-  activeJob,
   blocking,
   onEnqueue,
   onRefreshJobs,
   onLoadItems,
-  onCancelJob,
   requireOwnRiskAck = false,
 }: Pick<
   BuilderProps,
-  "jobs" | "jobItems" | "activeJob" | "blocking" | "onEnqueue" | "onRefreshJobs" | "onLoadItems" | "onCancelJob"
+  "jobs" | "jobItems" | "blocking" | "onEnqueue" | "onRefreshJobs" | "onLoadItems"
 > & { requireOwnRiskAck?: boolean }) {
   const liveJobs = jobs.filter((j) => j.intent === "go_live");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -74,11 +72,22 @@ export function LaunchPanel({
         <Button size="sm" variant="secondary" onClick={onRefreshJobs}>
           Odśwież listę
         </Button>
-        {activeJob && (
-          <Button size="sm" variant="destructive" onClick={() => onCancelJob(activeJob)}>
-            Anuluj bieżącą publikację
-          </Button>
-        )}
+      </div>
+
+      <div className="rounded-xl border border-blue-300 bg-blue-50 px-4 py-3 text-xs leading-relaxed text-blue-900 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-200">
+        <p className="font-semibold">Anulowanie / zatrzymanie kampanii</p>
+        <p className="mt-1">
+          Aby anulować lub zatrzymać kampanię, musisz to zrobić bezpośrednio w panelu{" "}
+          <strong>Google Ads</strong> (lub innej platformy reklamowej, na której kampania została opublikowana). Po
+          anulowaniu <strong>sprawdź jeszcze raz w Google Ads, czy kampania została poprawnie zamknięta</strong>.
+        </p>
+        <p className="mt-2">
+          Integracja działa w trybie <strong>beta</strong> — jakiekolwiek problemy prosimy zgłaszać na{" "}
+          <a href="mailto:support@marketingnow.tech" className="font-semibold underline underline-offset-2">
+            support@marketingnow.tech
+          </a>
+          .
+        </p>
       </div>
 
       {liveJobs.length === 0 ? (
@@ -127,7 +136,7 @@ export function LaunchPanel({
 
       {confirmOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-xl">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-5 shadow-xl">
             <h3 className="font-display text-lg font-bold">Potwierdź publikację</h3>
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
               Kampania zostanie utworzona na połączonym koncie reklamowym. Działasz{" "}
