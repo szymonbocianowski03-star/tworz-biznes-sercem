@@ -39,6 +39,11 @@ function extractGoogleAdsError(json: MutateResponse): string | undefined {
   const err = json.error;
   if (!err) return json.message;
 
+  const baseMessage = err.message ?? json.message;
+  if (/invalid authentication credentials|expected oauth 2 access token|unauthenticated/i.test(baseMessage ?? "")) {
+    return "Token Google Ads jest nieważny albo wygasł. Połącz Google Ads ponownie w Integracjach i spróbuj uruchomić kampanię jeszcze raz.";
+  }
+
   const details = Array.isArray(err.details) ? (err.details as unknown[]) : [];
   const parts: string[] = [];
   for (const d of details) {
@@ -70,7 +75,7 @@ function extractGoogleAdsError(json: MutateResponse): string | undefined {
     // Deduplikacja + skrócenie, żeby toast/UI się nie rozjechały.
     return [...new Set(parts)].join(" • ").slice(0, 600);
   }
-  return err.message ?? json.message;
+  return baseMessage;
 }
 
 async function googleAdsMutate(
