@@ -2,16 +2,13 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { X, Sparkles, RefreshCw, Palette } from "lucide-react";
 import { toast } from "sonner";
-import { useBrands } from "@/hooks/useBrands";
+import { useBrands, type BrandAiContext } from "@/hooks/useBrands";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { runCompetitorScan } from "@/lib/competitorScan.functions";
+import { extractBrandColorsFromUrl } from "@/lib/brandColors.functions";
 import { mapCompetitorScanToBrandContext } from "@/lib/brandScan";
-import {
-  readScopedJson,
-  writeScopedJson,
-  getScopedUserId,
-} from "@/lib/userScopedStorage";
+import { readScopedJson, writeScopedJson } from "@/lib/userScopedStorage";
 
 const SKIP_KEY = "brandOnboarding.skipped.v1";
 const DEFAULT_COLORS = ["#0A0A0A", "#FFFFFF", "#16A34A", "#2563EB"];
@@ -33,11 +30,14 @@ export function BrandOnboardingModal() {
   const { activeWorkspaceId } = useWorkspace();
   const { brands, create, update } = useBrands(activeWorkspaceId);
   const competitorScanFn = useServerFn(runCompetitorScan);
+  const extractColorsFn = useServerFn(extractBrandColorsFromUrl);
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [colors, setColors] = useState<string[]>(DEFAULT_COLORS);
+  const [colorsFromSite, setColorsFromSite] = useState(false);
+  const [scanCtx, setScanCtx] = useState<BrandAiContext | null>(null);
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [scanHint, setScanHint] = useState<string | null>(null);
@@ -51,13 +51,12 @@ export function BrandOnboardingModal() {
       setOpen(false);
       return;
     }
-    const skipped = readScopedJson<boolean>(SKIP_KEY, false);
-    if (skipped) {
+    if (readScopedJson<boolean>(SKIP_KEY, false)) {
       setOpen(false);
       return;
     }
     setOpen(true);
-  }, [authLoading, isAuthenticated, user?.id, brands.length, getScopedUserId()]);
+  }, [authLoading, isAuthenticated, user?.id, brands.length]);
 
   if (!open) return null;
 
@@ -65,6 +64,7 @@ export function BrandOnboardingModal() {
     const next = [...colors];
     next[idx] = value;
     setColors(next);
+    setColorsFromSite(false);
   };
 
   const runScan = async () => {
@@ -77,9 +77,13 @@ export function BrandOnboardingModal() {
     setScanning(true);
     setScanHint(null);
     try {
-      const result = await competitorScanFn({
-        data: { url, focusAreas: ["copy", "landing", "seo"] },
-      });
+      const [result, colorRes] = await Promise.all([
+        competitorScanFn({
+          data: { url, focusAreas: ["copy", "landing", "seo"] },
+        }),
+        extractColorsFn({ data: { url } }).catch(() => ({ ok: false as const, message: "skip" })),
+      ]);
+
       const mapped = mapCompetitorScanToBrandContext(url, result);
       if (!mapped.ok) {
         toast.error(mapped.error);
@@ -93,10 +97,30 @@ export function BrandOnboardingModal() {
       if (guessedName?.trim() && !name.trim()) {
         setName(guessedName.trim().slice(0, 80));
       }
+      setScanCtx(ctx);
       setScanHint(ctx.summary.slice(0, 280) + (ctx.summary.length > 280 ? "…" : ""));
-      // Zachowaj kontekst w stanie tymczasowym przez dataset na oknie — zapisujemy przy submit
-      (window as unknown as { __mnBrandScanCtx?: typeof ctx }).__mnBrandScanCtx = ctx;
-      toast.success("Strona zeskanowana — dane uzupełnione automatycznie. Sprawdź i zapisz.");
+
+      const fromScan =
+        result.ok && Array.isArray((result.data as { brandColors?: string[] }).brandColors)
+          ? ((result.data as { brandColors?: string[] }).brandColors ?? []).filter((c) =>
+              /^#[0-9A-Fa-f]{6}$/i.test(c),
+            )
+          : [];
+      const fromExtract =
+        colorRes.ok && "colors" in colorRes
+          ? colorRes.colors.filter((c) => /^#[0-9A-Fa-f]{6}$/i.test(c))
+          : [];
+      const nextColors = (fromExtract.length ? fromExtract : fromScan).slice(0, 4).map((c) => c.toUpperCase());
+      if (nextColors.length) {
+        setColors(nextColors);
+        setColorsFromSite(true);
+        toast.success("Strona zeskanowana — kontekst i kolory marki uzupełnione. Sprawdź i zapisz.");
+      } else {
+        setColorsFromSite(false);
+        toast.success(
+          "Strona zeskanowana — kontekst uzupełniony. Kolorów nie znaleziono, zostaw lub zmień paletę ręcznie.",
+        );
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Nie udało się zeskanować strony.");
     } finally {
@@ -123,31 +147,39 @@ export function BrandOnboardingModal() {
         workspaceId: activeWorkspaceId ?? undefined,
       });
       const cleanColors = colors.map((c) => c.trim()).filter(isValidHex);
-      const scanCtx = (window as unknown as { __mnBrandScanCtx?: import("@/hooks/useBrands").BrandAiContext })
-        .__mnBrandScanCtx;
+      let nextCtx = scanCtx;
 
-      update(brand.id, {
-        ...(cleanColors.length ? { brandColors: cleanColors } : {}),
-        ...(scanCtx ? { aiContext: scanCtx } : {}),
-      });
-
-      // Jeśli jest URL, a jeszcze nie skanowano — skan w tle przy zapisie
-      if (url && !scanCtx) {
+      if (url && !nextCtx) {
         try {
           const result = await competitorScanFn({
             data: { url, focusAreas: ["copy", "landing", "seo"] },
           });
           const mapped = mapCompetitorScanToBrandContext(url, result);
-          if (mapped.ok) {
-            update(brand.id, { aiContext: mapped.context });
-          }
+          if (mapped.ok) nextCtx = mapped.context;
         } catch {
           // nie blokuj zapisu marki
         }
       }
 
+      // Jeśli kolory nadal domyślne — spróbuj jeszcze raz wyciągnąć przy zapisie
+      let nextColors = cleanColors;
+      if (url && !colorsFromSite) {
+        try {
+          const colorRes = await extractColorsFn({ data: { url } });
+          if (colorRes.ok && colorRes.colors.length) {
+            nextColors = colorRes.colors.map((c) => c.toUpperCase()).filter(isValidHex);
+          }
+        } catch {
+          // zostaw dotychczasowe
+        }
+      }
+
+      update(brand.id, {
+        ...(nextColors.length ? { brandColors: nextColors } : {}),
+        ...(nextCtx ? { aiContext: nextCtx } : {}),
+      });
+
       writeScopedJson(SKIP_KEY, true);
-      delete (window as unknown as { __mnBrandScanCtx?: unknown }).__mnBrandScanCtx;
       setOpen(false);
       toast.success("Marka zapisana — DNA Twojej firmy jest w workspace.");
     } finally {
@@ -172,8 +204,7 @@ export function BrandOnboardingModal() {
               Uzupełnij dane swojej marki
             </h2>
             <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-              Zapisujemy to jako Twój brand. Skanujemy stronę i uzupełniamy kontekst automatycznie — możesz
-              też od razu podać kolory.
+              Zapisujemy to jako Twój brand. Skanujemy stronę i uzupełniamy kontekst oraz kolory automatycznie.
             </p>
           </div>
           <button
@@ -229,7 +260,9 @@ export function BrandOnboardingModal() {
               <Palette className="h-3.5 w-3.5" /> Kolory marki
             </label>
             <p className="mt-1 text-xs text-muted-foreground">
-              Startowo uzupełnione przykładową paletą — zmień na kolory swojej marki (hex).
+              {colorsFromSite
+                ? "Wczytane ze strony — możesz je poprawić (hex)."
+                : "Startowo przykładowa paleta — po skanie wczytamy kolory ze strony."}
             </p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {colors.map((c, i) => (

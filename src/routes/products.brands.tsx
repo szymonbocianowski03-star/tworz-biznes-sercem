@@ -23,6 +23,7 @@ import { useBrands, type Brand, type BrandAiContext } from "@/hooks/useBrands";
 import { useProducts, type CatalogKind } from "@/hooks/useProducts";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { runCompetitorScan } from "@/lib/competitorScan.functions";
+import { extractBrandColorsFromUrl } from "@/lib/brandColors.functions";
 import { mapCompetitorScanToBrandContext } from "@/lib/brandScan";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { NewProductModal } from "@/components/NewProductModal";
@@ -193,6 +194,7 @@ function ProductsBrands() {
   const { products, create: createItem, select, remove: removeItem } = useProducts(activeWorkspaceId);
   const { isAuthenticated } = useAuthSession();
   const competitorScanFn = useServerFn(runCompetitorScan);
+  const extractColorsFn = useServerFn(extractBrandColorsFromUrl);
 
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState("");
@@ -228,17 +230,31 @@ function ProductsBrands() {
 
     setScanningId(brand.id);
     try {
-      const result = await competitorScanFn({
-        data: { url, focusAreas: ["copy", "landing", "seo"] },
-      });
+      const [result, colorRes] = await Promise.all([
+        competitorScanFn({
+          data: { url, focusAreas: ["copy", "landing", "seo"] },
+        }),
+        extractColorsFn({ data: { url } }).catch(() => ({ ok: false as const, message: "skip" })),
+      ]);
       const mapped = mapCompetitorScanToBrandContext(url, result);
       if (!mapped.ok) {
         toast.error(mapped.error);
         return;
       }
-      update(brand.id, { aiContext: mapped.context });
+      const colors =
+        colorRes.ok && "colors" in colorRes
+          ? colorRes.colors.filter((c) => /^#[0-9A-Fa-f]{6}$/i.test(c)).slice(0, 4)
+          : [];
+      update(brand.id, {
+        aiContext: mapped.context,
+        ...(colors.length ? { brandColors: colors.map((c) => c.toUpperCase()) } : {}),
+      });
       setExpandedId(brand.id);
-      toast.success("Strona marki zeskanowana — możesz edytować kontekst.");
+      toast.success(
+        colors.length
+          ? "Strona marki zeskanowana — kontekst i kolory zapisane."
+          : "Strona marki zeskanowana — możesz edytować kontekst.",
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Nie udało się zeskanować strony.");
     } finally {
