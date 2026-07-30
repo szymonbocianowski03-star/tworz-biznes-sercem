@@ -15,6 +15,7 @@ type CustomerAccount = { id: string; resourceName?: string; descriptiveName?: st
 type Connection = {
   id: string;
   email: string;
+  status: string | null;
   customer_accounts: CustomerAccount[];
   selected_customer_id: string | null;
   login_customer_id: string | null;
@@ -31,6 +32,7 @@ export function GoogleAdsIntegrationCard() {
   const [accountsError, setAccountsError] = useState<string | null>(null);
   const fnRefreshAccounts = useServerFn(refreshGoogleAdsAccounts);
   const autoRefreshedRef = useRef(false);
+  const needsReconnect = conn?.status === "reauth_required";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,7 +45,7 @@ export function GoogleAdsIntegrationCard() {
     }
     const { data, error } = await supabase
       .from("google_ads_connections")
-      .select("id,email,customer_accounts,selected_customer_id,login_customer_id")
+      .select("id,email,status,customer_accounts,selected_customer_id,login_customer_id")
       .eq("user_id", auth.user.id)
       .maybeSingle();
     if (error) {
@@ -53,6 +55,7 @@ export function GoogleAdsIntegrationCard() {
       setConn({
         id: data.id,
         email: data.email,
+        status: data.status,
         customer_accounts: Array.isArray(data.customer_accounts)
           ? (data.customer_accounts as CustomerAccount[])
           : [],
@@ -182,9 +185,13 @@ export function GoogleAdsIntegrationCard() {
               <span className="rounded-full border border-amber-600/20 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
                 Wkrótce
               </span>
-            ) : conn ? (
+            ) : conn && !needsReconnect ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-600/20 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
                 <Check className="h-3 w-3" /> połączone
+              </span>
+            ) : needsReconnect ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-600/20 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                <X className="h-3 w-3" /> połącz ponownie
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full border border-foreground/10 bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
@@ -214,6 +221,11 @@ export function GoogleAdsIntegrationCard() {
           {conn && (
             <p className="text-xs text-muted-foreground">
               Połączono jako <span className="font-semibold text-foreground">{conn.email}</span>
+            </p>
+          )}
+          {needsReconnect && (
+            <p className="rounded-lg border border-amber-600/25 bg-amber-50/80 px-3 py-2 text-xs leading-relaxed text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+              Google odrzuciło odświeżenie tokenu. Kliknij „Zmień konto Google”, zaakceptuj dostęp do Google Ads i spróbuj opublikować kampanię ponownie.
             </p>
           )}
           {conn && conn.customer_accounts.length > 0 && (
