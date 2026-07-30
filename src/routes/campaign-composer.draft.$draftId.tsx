@@ -389,7 +389,7 @@ function DraftEditor() {
               Kreator {labelProvider(payload.channel.provider)}
             </p>
             <input
-              className="mt-1 block w-full max-w-xl border-0 bg-transparent font-display text-2xl font-bold tracking-tight text-zinc-900 focus:outline-none dark:text-zinc-50"
+              className="mt-1 block w-full max-w-xl border-0 bg-transparent font-display text-lg font-bold tracking-tight text-zinc-900 focus:outline-none sm:text-xl md:text-2xl dark:text-zinc-50"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => void saveNow(payload, title)}
