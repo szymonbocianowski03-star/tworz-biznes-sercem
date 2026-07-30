@@ -31,7 +31,7 @@ export async function ensureGoogleAdsAccessToken(admin: AdminClient, connectionI
   if (!conn?.access_token) return "";
 
   const needsRefresh = tokenExpiredOrUnknown(conn.token_expires_at as string | null | undefined);
-  if (!needsRefresh || !conn.refresh_token) return conn.access_token as string;
+  if (!needsRefresh) return conn.access_token as string;
 
   if (!conn.refresh_token) {
     await (admin as any)
