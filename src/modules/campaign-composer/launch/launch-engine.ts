@@ -9,7 +9,7 @@ import { googleAdsAdapter } from "../adapters/google.adapter";
 import type { AdsPlatformAdapter, ProviderStepKind, ResolvedCampaignAsset } from "../adapters/types";
 import type { CampaignComposerDraftPayload } from "../domain/draft-schema";
 import { ensureTikTokAccessToken } from "../server/tiktok-token";
-import { ensureGoogleAdsAccessToken } from "../server/google-ads-token";
+import { ensureGoogleAdsAccessToken, GoogleAdsTokenError } from "../server/google-ads-token";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -170,7 +170,23 @@ export async function processLaunchJob(admin: AdminClient, jobId: string): Promi
       await admin.from("cc_launch_job").update({ status: "failed", last_error: { code: "NO_GOOGLE_CONNECTION" } as unknown as Json }).eq("id", jobId);
       return { jobId, finalStatus: "failed", message: "Brak połączenia Google Ads — połącz konto w Integracjach." };
     }
-    accessToken = await ensureGoogleAdsAccessToken(admin, gid);
+    try {
+      accessToken = await ensureGoogleAdsAccessToken(admin, gid);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Nie udało się odświeżyć tokenu Google Ads.";
+      await admin
+        .from("cc_launch_job")
+        .update({
+          status: "failed",
+          last_error: {
+            code: error instanceof GoogleAdsTokenError ? error.code : "GOOGLE_ADS_TOKEN_REFRESH_FAILED",
+            message,
+          } as unknown as Json,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+      return { jobId, finalStatus: "failed", message };
+    }
     if (!payload.channel.googleConnectionId) {
       payload.channel.googleConnectionId = gid;
     }
