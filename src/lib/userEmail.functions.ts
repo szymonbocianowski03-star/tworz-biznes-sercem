@@ -12,19 +12,31 @@ const SendInput = z.object({
   acceptedAtOwnRisk: z.literal(true),
 });
 
+const GMAIL_RECONNECT_MSG =
+  "Połączenie z Gmail wygasło lub zostało unieważnione (zmiana konfiguracji Google). " +
+  "Wejdź w Integracje → Gmail i kliknij „Połącz ponownie”.";
+
 async function refreshGoogleToken(refreshToken: string) {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) {
+    throw new Error("Brak konfiguracji Google OAuth po stronie serwera. Skontaktuj się z administratorem.");
+  }
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID!.trim(),
-      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!.trim(),
+      client_id: clientId,
+      client_secret: clientSecret,
       refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),
   });
-  const j = await res.json();
-  if (!res.ok) throw new Error(`google_refresh: ${JSON.stringify(j)}`);
+  const j = await res.json().catch(() => ({}) as Record<string, unknown>);
+  if (!res.ok) {
+    console.error("[gmail] refresh failed", { status: res.status, body: j });
+    throw new Error(GMAIL_RECONNECT_MSG);
+  }
   return { accessToken: j.access_token as string, expiresIn: (j.expires_in as number) ?? 3600 };
 }
 
@@ -85,34 +97,68 @@ export const sendUserEmail = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (gmail) {
+      if (gmail.scope && !gmail.scope.includes("gmail.send")) {
+        throw new Error(
+          "Połączenie Gmail nie ma zgody na wysyłkę (gmail.send). Połącz Gmail ponownie i zaznacz zgodę na wysyłanie wiadomości.",
+        );
+      }
+      if (!gmail.refresh_token) {
+        await supabaseAdmin.from("gmail_connections").delete().eq("user_id", userId);
+        throw new Error(GMAIL_RECONNECT_MSG);
+      }
+
       let accessToken = gmail.access_token;
       const exp = gmail.token_expires_at ? new Date(gmail.token_expires_at).getTime() : 0;
-      if (Date.now() > exp - 60_000 && gmail.refresh_token) {
-        const r = await refreshGoogleToken(gmail.refresh_token);
-        accessToken = r.accessToken;
-        await supabaseAdmin
-          .from("gmail_connections")
-          .update({
-            access_token: accessToken,
-            token_expires_at: new Date(Date.now() + r.expiresIn * 1000).toISOString(),
-          })
-          .eq("user_id", userId);
+      // Odświeżamy z 5-minutowym zapasem — Gmail odrzuca token, który wygaśnie w trakcie żądania.
+      if (Date.now() > exp - 5 * 60_000) {
+        try {
+          const r = await refreshGoogleToken(gmail.refresh_token);
+          accessToken = r.accessToken;
+          await supabaseAdmin
+            .from("gmail_connections")
+            .update({
+              access_token: accessToken,
+              token_expires_at: new Date(Date.now() + r.expiresIn * 1000).toISOString(),
+            })
+            .eq("user_id", userId);
+        } catch (e) {
+          // Refresh token unieważniony (np. po zmianie Client ID) — usuwamy martwe połączenie,
+          // żeby UI pokazało „Połącz” zamiast udawać, że integracja działa.
+          await supabaseAdmin.from("gmail_connections").delete().eq("user_id", userId);
+          throw e instanceof Error ? e : new Error(GMAIL_RECONNECT_MSG);
+        }
       }
+
       const raw = buildRfc2822(gmail.email, to, subject, html);
-      const res = await fetch(
-        "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ raw: base64Url(raw) }),
+      const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
-      );
-      const j = await res.json();
-      if (!res.ok) throw new Error(`gmail_send: ${JSON.stringify(j)}`);
-      return { provider: "gmail" as const, messageId: j.id as string };
+        body: JSON.stringify({ raw: base64Url(raw) }),
+      });
+      const bodyText = await res.text();
+      let j: { id?: string; error?: { message?: string; status?: string } } = {};
+      try {
+        j = JSON.parse(bodyText);
+      } catch {
+        /* Gmail zwrócił nie-JSON */
+      }
+      if (!res.ok) {
+        console.error("[gmail] send failed", { status: res.status, body: bodyText.slice(0, 500) });
+        if (res.status === 401) {
+          await supabaseAdmin.from("gmail_connections").delete().eq("user_id", userId);
+          throw new Error(GMAIL_RECONNECT_MSG);
+        }
+        if (res.status === 403) {
+          throw new Error(
+            "Google odmówił wysyłki (brak zgody gmail.send albo konto nie ma uprawnień). Połącz Gmail ponownie i zaznacz zgodę na wysyłanie.",
+          );
+        }
+        throw new Error(j.error?.message ?? `Gmail: błąd wysyłki (${res.status}).`);
+      }
+      return { provider: "gmail" as const, messageId: (j.id ?? "") as string };
     }
 
     const { data: outlook } = await supabaseAdmin
