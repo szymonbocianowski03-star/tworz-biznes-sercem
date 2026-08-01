@@ -87,7 +87,7 @@ export const extractBrandColorsFromUrl = createServerFn({ method: "POST" })
       const cssHrefs = [
         ...cssCandidates.filter((c) => c.sameOrigin).map((c) => c.href),
         ...cssCandidates.filter((c) => !c.sameOrigin).map((c) => c.href),
-      ].slice(0, 4);
+      ].slice(0, 8);
       const cssChunks = await Promise.all(
         cssHrefs.map(async (href) => {
           try {
@@ -97,7 +97,7 @@ export const extractBrandColorsFromUrl = createServerFn({ method: "POST" })
               signal: AbortSignal.timeout(10_000),
             });
             if (!cr.ok) return "";
-            return (await cr.text()).slice(0, 400_000);
+            return (await cr.text()).slice(0, 600_000);
           } catch {
             return "";
           }
