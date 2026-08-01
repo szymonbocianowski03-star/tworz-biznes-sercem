@@ -59,6 +59,33 @@ function isBoring(hex: string): boolean {
   return false;
 }
 
+/** Kolory frameworków/bibliotek — zwykle nie są kolorem marki. */
+const GENERIC_COLORS = new Set([
+  "#007BFF", // bootstrap primary
+  "#0D6EFD",
+  "#6C757D",
+  "#28A745",
+  "#DC3545",
+  "#FFC107",
+  "#17A2B8",
+  "#3B82F6", // tailwind blue-500
+  "#EF4444",
+  "#22C55E",
+  "#F3F4F6",
+  "#E5E7EB",
+  "#111827",
+  "#1877F2", // facebook
+  "#1DA1F2", // twitter
+  "#25D366", // whatsapp
+  "#FF0000", // youtube / generic red
+  "#4267B2",
+  "#0A66C2", // linkedin
+  "#E1306C", // instagram
+  "#25F4EE",
+  "#000000",
+  "#FFFFFF",
+]);
+
 function scoreColor(hex: string, boost = 0): number {
   const sat = saturation(hex);
   const lum = luminance(hex);
@@ -74,7 +101,9 @@ function pushColor(counts: Map<string, number>, hex: string | null, weight = 1) 
   const n = expandHex(hex);
   if (!n) return;
   if (isBoring(n) && weight < 5) return;
-  counts.set(n, (counts.get(n) ?? 0) + weight);
+  let w = weight;
+  if (GENERIC_COLORS.has(n)) w *= 0.25;
+  counts.set(n, (counts.get(n) ?? 0) + w);
 }
 
 function metaContent(html: string, name: string): string | null {
