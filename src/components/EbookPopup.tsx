@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { X, Gift, Target, TrendingUp, Sparkles, User } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import ebookCover from "@/assets/ebook-cover-hero.png.asset.json";
 
 const STORAGE_KEY = "ebook_popup_dismissed_until";
 const SESSION_KEY = "ebook_popup_shown_session";
@@ -222,26 +223,13 @@ export function EbookPopup() {
           </div>
 
           {/* Prawa — wizual e-booka */}
-          <div className="relative hidden md:flex items-center justify-center">
-            <div className="relative w-full max-w-sm aspect-[3/4] rounded-2xl bg-white shadow-xl border border-slate-200 p-6 flex flex-col">
-              <div className="text-xs font-semibold tracking-wider text-slate-500">MarketingNow</div>
-              <div className="mt-3 font-display text-3xl font-extrabold leading-tight text-slate-900">
-                Marketing<br />firmy<br />w jednym<br />miejscu
-              </div>
-              <div className="mt-3 h-px w-10 bg-slate-900" />
-              <p className="mt-3 text-xs text-slate-600 leading-relaxed">
-                Reklamy, hooki, analiza konkurencji, treści i widoczność marki w AI.
-              </p>
-              <div className="mt-auto flex items-center justify-center pt-6">
-                <div className="relative h-32 w-32 rounded-full bg-slate-900 text-white flex items-center justify-center font-display text-3xl font-extrabold">
-                  M
-                </div>
-              </div>
-              <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-slate-900 text-white flex flex-col items-center justify-center text-center shadow-lg">
-                <span className="text-[10px] tracking-widest">WARTOŚĆ:</span>
-                <span className="font-display text-xl font-extrabold">49 zł</span>
-              </div>
-            </div>
+          <div className="relative flex items-center justify-center">
+            <img
+              src={ebookCover.url}
+              alt="Okładka e-booka MarketingNow — marketing firmy w jednym miejscu, darmowy e-book o wartości 49 zł"
+              loading="lazy"
+              className="w-full max-w-sm rounded-2xl shadow-xl border border-slate-200 object-contain"
+            />
           </div>
         </div>
 
