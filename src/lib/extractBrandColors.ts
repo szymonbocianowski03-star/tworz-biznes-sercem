@@ -134,6 +134,43 @@ function collectFromCssChunk(chunk: string, counts: Map<string, number>, weight:
   }
 }
 
+/** Selektory, które zwykle niosą kolor marki (CTA, header, logo, linki). */
+const STRONG_SELECTOR_RE =
+  /(^|[\s,.#:])(btn|button|cta|primary|brand|accent|logo|header|navbar|nav|hero|badge|tag|price|highlight|link|a\b|menu|footer|banner)/i;
+/** Właściwości, w których kolor marki faktycznie widać. */
+const STRONG_PROP_RE =
+  /(background(-color)?|border(-[a-z]+)?-color|border|color|fill|stroke|box-shadow|outline-color|--[a-z0-9-]*(brand|primary|accent|main))/i;
+
+/**
+ * Parsuje CSS regułami: kolor z `.btn { background: X }` waży dużo więcej
+ * niż losowy hex z resetu czy ilustracji.
+ */
+function collectFromCssRules(css: string, counts: Map<string, number>, baseWeight: number) {
+  const ruleRe = /([^{}@]{1,300})\{([^{}]{0,2000})\}/g;
+  let rm: RegExpExecArray | null;
+  let guard = 0;
+  while ((rm = ruleRe.exec(css)) !== null && guard++ < 6000) {
+    const selector = rm[1];
+    const body = rm[2];
+    if (!/#|rgb|hsl/i.test(body)) continue;
+    const selectorBoost = STRONG_SELECTOR_RE.test(selector) ? 3 : 1;
+    const isRoot = /:root|^\s*html\b|^\s*body\b/i.test(selector);
+    for (const decl of body.split(";")) {
+      const idx = decl.indexOf(":");
+      if (idx < 0) continue;
+      const prop = decl.slice(0, idx);
+      const value = decl.slice(idx + 1);
+      if (!/#|rgb|hsl/i.test(value)) continue;
+      if (!STRONG_PROP_RE.test(prop)) continue;
+      // gradienty / cienie mają wiele kolorów — waż słabiej
+      const spread = (value.match(/#|rgb|hsl/gi)?.length ?? 1) > 2 ? 0.5 : 1;
+      const propBoost = /background|fill|--/i.test(prop) ? 1.6 : 1;
+      const rootBoost = isRoot && /^--/.test(prop.trim()) ? 3 : 1;
+      collectFromCssChunk(value, counts, baseWeight * selectorBoost * propBoost * rootBoost * spread);
+    }
+  }
+}
+
 /**
  * Zwraca do 4 hexów marki z HTML (theme-color, CSS vars, style inline / <style>).
  */
@@ -165,7 +202,7 @@ export function extractBrandColorsFromHtml(html: string, max = 4): string[] {
   const styleRe = /<style[^>]*>([\s\S]*?)<\/style>/gi;
   let sm: RegExpExecArray | null;
   while ((sm = styleRe.exec(html)) !== null) {
-    collectFromCssChunk(sm[1], counts, 2);
+    collectFromCssRules(sm[1], counts, 2);
   }
 
   // Inline style=
@@ -181,14 +218,15 @@ export function extractBrandColorsFromHtml(html: string, max = 4): string[] {
   }
 
   const ranked = [...counts.entries()]
-    .map(([hex, count]) => ({ hex, score: scoreColor(hex) * Math.log2(count + 1) }))
+    .filter(([, count]) => count >= 1)
+    .map(([hex, count]) => ({ hex, score: scoreColor(hex) * Math.sqrt(count) }))
     .sort((a, b) => b.score - a.score);
 
   const out: string[] = [];
   for (const { hex } of ranked) {
     if (out.includes(hex)) continue;
     // unikaj prawie-identycznych
-    const tooClose = out.some((o) => colorDistance(o, hex) < 28);
+    const tooClose = out.some((o) => colorDistance(o, hex) < 40);
     if (tooClose) continue;
     out.push(hex);
     if (out.length >= max) break;
