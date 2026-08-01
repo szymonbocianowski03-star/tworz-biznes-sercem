@@ -222,6 +222,17 @@ export function extractBrandColorsFromHtml(html: string, max = 4): string[] {
     .map(([hex, count]) => ({ hex, score: scoreColor(hex) * Math.sqrt(count) }))
     .sort((a, b) => b.score - a.score);
 
+  // Fallback: strona bez klasycznego CSS (SPA / inline) — skanuj cały dokument
+  if (ranked.length === 0) {
+    const loose = new Map<string, number>();
+    collectFromCssChunk(html, loose, 1);
+    ranked.push(
+      ...[...loose.entries()]
+        .map(([hex, count]) => ({ hex, score: scoreColor(hex) * Math.sqrt(count) }))
+        .sort((a, b) => b.score - a.score),
+    );
+  }
+
   const out: string[] = [];
   for (const { hex } of ranked) {
     if (out.includes(hex)) continue;
