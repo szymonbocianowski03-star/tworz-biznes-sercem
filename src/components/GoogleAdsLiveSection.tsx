@@ -181,7 +181,8 @@ function CaseStudyPanel({ open, onClose }: { open: boolean; onClose: () => void 
               Więcej kliknięć w krótszym okresie działania.
             </p>
             <p className="mt-2 text-[12px] text-white/35">
-              Poprzednie wyniki nie gwarantują przyszłych.
+              Kampanie działały przez różne okresy, dlatego liczby wyświetleń i kliknięć należy analizować
+              razem z czasem emisji. Poprzednie wyniki nie gwarantują przyszłych.
             </p>
           </div>
 
@@ -276,10 +277,11 @@ export function GoogleAdsLiveSection() {
         </div>
 
         <h2 className="mt-6 sm:mt-7 md:mt-8 serif text-[clamp(1.65rem,7.5vw,3.5rem)] leading-[1.08] tracking-[-0.03em] text-balance max-w-4xl">
-          Google Ads jest teraz LIVE w MarketingNow.
+          Zobacz, jak uporządkowaliśmy kampanię reklamową
         </h2>
         <p className="mt-4 sm:mt-5 max-w-2xl text-[15px] sm:text-[16px] md:text-[18px] leading-[1.55] text-white/65">
-          Twórz, uruchamiaj i zarządzaj kampaniami Google Ads bezpośrednio z jednego workspace.
+          Nowa kampania została przygotowana z wykorzystaniem MarketingNow i uruchomiona w Google Ads.
+          Porównaj sposób działania oraz dostępne wyniki.
         </p>
 
         <div className="mt-8 sm:mt-12 md:mt-14 space-y-6 sm:space-y-8 max-w-xl">
