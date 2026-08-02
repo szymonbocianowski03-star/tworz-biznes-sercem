@@ -343,17 +343,17 @@ function WorkflowPitch() {
       <div className="mx-auto max-w-[1600px] px-6 md:px-10 py-16 md:py-24">
         <div className="max-w-4xl">
           <h2 className="serif text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[1.08] tracking-[-0.02em] text-balance">
-            Nie kolejne narzędzie do pisania tekstów.{" "}
-            <span className="italic font-light">Cały marketing w jednym workflow.</span>
+            To więcej niż{" "}
+            <span className="italic font-light">generator tekstów AI.</span>
           </h2>
           <p className="mt-6 text-[16px] md:text-[17px] leading-[1.6] text-neutral-700">
-            MarketingNow łączy strategię, reklamy, hooki, analizę konkurencji, SEO, maile, kalendarz
-            działań i widoczność w AI. Przechodzisz od pomysłu do gotowych materiałów bez
-            rozdzielania pracy na wiele narzędzi.
+            Zwykłe narzędzie AI tworzy pojedynczą odpowiedź na podstawie promptu. MarketingNow wykorzystuje
+            kontekst Twojej firmy i łączy kampanie, treści, SEO, mailing, grafiki oraz plan działań w jednym
+            procesie.
           </p>
           <p className="mt-6 text-[16px] md:text-[17px] leading-[1.6] text-neutral-800 font-medium">
-            Wklejasz stronę — narzędzie rozumie ofertę i pomaga zamienić ją w kampanie reklamowe,
-            treści, sekwencje maili i plan publikacji.
+            Marketing nie powinien zajmować całego dnia. Wklejasz adres strony, a narzędzie pomaga zamienić
+            ofertę w kampanie, treści, maile i plan publikacji.
           </p>
         </div>
       </div>
