@@ -8,14 +8,14 @@ export function AppInsideShowcase() {
       <div className="mx-auto max-w-[1600px] px-4 sm:px-6 md:px-10 py-12 sm:py-16 md:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500 mb-3">
-            DNA Twojej firmy
+            Jak to działa
           </p>
           <h2 className="serif text-[clamp(1.7rem,5.5vw,3.1rem)] leading-[1.08] tracking-[-0.02em] text-balance text-neutral-950">
-            Platforma, która zapamiętuje DNA Twojej firmy.
+            Od informacji o firmie do gotowego marketingu
           </h2>
           <p className="mt-4 text-[15px] sm:text-[16px] leading-relaxed text-neutral-600">
-            Po założeniu konta uzupełniasz dane marki raz — skanujemy Twoją stronę, zapisujemy kolory, ton i
-            ofertę jako Twój brand. Potem MarketingNow korzysta z tego w każdej kampanii, treści i grafice.
+            Trzy kroki: dodajesz firmę, wybierasz, co chcesz przygotować, i odbierasz gotowe materiały do
+            wykorzystania w swoich działaniach.
           </p>
         </div>
 
@@ -23,18 +23,18 @@ export function AppInsideShowcase() {
           {[
             {
               step: "01",
-              title: "Uzupełnij markę",
-              body: "Nazwa, strona WWW i kolory — popup po rejestracji prowadzi Cię przez pierwszy setup.",
+              title: "Dodaj swoją firmę",
+              body: "Wklej adres strony lub opisz produkt, grupę docelową i cel marketingowy.",
             },
             {
               step: "02",
-              title: "Skanujemy stronę",
-              body: "Automatycznie wyciągamy opis, branżę i kontekst oferty, żebyś nie wpisywał wszystkiego ręcznie.",
+              title: "Wybierz, co chcesz przygotować",
+              body: "Stwórz kampanię, treści, grafiki, maile, SEO lub plan publikacji.",
             },
             {
               step: "03",
-              title: "Zapamiętujemy DNA",
-              body: "Brand zostaje w workspace — agent i kampanie korzystają z niego przy każdym kolejnym zadaniu.",
+              title: "Odbierz gotowe materiały",
+              body: "Edytuj wyniki, dopasuj je do swojej marki i wykorzystaj w swoich działaniach.",
             },
           ].map((item) => (
             <div
@@ -48,14 +48,17 @@ export function AppInsideShowcase() {
           ))}
         </div>
 
-        <div className="mt-8 sm:mt-10 flex justify-center">
+        <div className="mt-8 sm:mt-10 flex flex-col items-center justify-center">
           <Link
             to="/auth"
             onClick={() => sfx.success()}
             className="inline-flex w-full sm:w-auto items-center justify-center border border-neutral-950 bg-neutral-950 text-white px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.12em] hover:bg-white hover:text-neutral-950 transition-colors touch-manipulation"
           >
-            Załóż konto i uzupełnij DNA marki
+            Zacznij za darmo
           </Link>
+          <p className="mt-4 text-center text-[12px] text-neutral-500">
+            400 kredytów na start · bez karty · anulowanie w każdej chwili
+          </p>
         </div>
       </div>
     </section>
