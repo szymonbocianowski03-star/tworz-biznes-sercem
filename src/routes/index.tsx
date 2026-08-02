@@ -311,15 +311,15 @@ function Hero() {
               }}
             />
             <p className="relative text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-white/50">
-              Platforma z pamięcią
+              Jeden workspace
             </p>
             <h2 className="relative mt-4 serif text-[clamp(1.6rem,5vw,2.75rem)] leading-[1.12] tracking-[-0.02em] text-white text-balance">
-              Platforma, która{" "}
-              <span className="italic font-light text-white/90">zapamiętuje DNA Twojej firmy</span>.
+              Cały marketing firmy{" "}
+              <span className="italic font-light text-white/90">w jednym workspace</span>.
             </h2>
             <p className="relative mt-4 sm:mt-5 mx-auto max-w-xl text-[14px] sm:text-[15px] leading-[1.6] text-white/60">
-              Marka, oferta, ton komunikacji i kolory — raz uzupełnione, MarketingNow pamięta je w każdej
-              kampanii, treści i grafice. Nie zaczynasz od zera za każdym razem.
+              Zamiast przełączać się między narzędziami do reklam, treści, SEO, mailingu i planowania, możesz
+              przygotować swoje działania marketingowe w jednym miejscu.
             </p>
           </div>
           <div className="mt-4 flex justify-center">
@@ -327,9 +327,10 @@ function Hero() {
           </div>
         </div>
 
-        <div className="py-10 sm:py-12 md:py-16">
+        <div className="md:hidden py-8 sm:py-10">
           <MobileDesktopNotice />
         </div>
+        <div className="hidden md:block pb-14 md:pb-20" />
       </div>
     </section>
   );
