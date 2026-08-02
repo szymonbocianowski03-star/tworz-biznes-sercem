@@ -181,7 +181,8 @@ function CaseStudyPanel({ open, onClose }: { open: boolean; onClose: () => void 
               Więcej kliknięć w krótszym okresie działania.
             </p>
             <p className="mt-2 text-[12px] text-white/35">
-              Poprzednie wyniki nie gwarantują przyszłych.
+              Kampanie działały przez różne okresy, dlatego liczby wyświetleń i kliknięć należy analizować
+              razem z czasem emisji. Poprzednie wyniki nie gwarantują przyszłych.
             </p>
           </div>
 
