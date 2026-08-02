@@ -366,50 +366,50 @@ function WhatYouHandle() {
   const items: { id: string; title: string; body: string; icon: LucideIcon }[] = [
     {
       id: "obs-kampanie",
-      title: "Kampanie reklamowe",
-      body: "Planuj kampanie reklamowe end-to-end: struktura, kreacje, grupy odbiorców, komunikaty i testy — bez rozdrabniania na pojedyncze sieci.",
+      title: "Uruchamiaj kampanie bez budowania ich od zera",
+      body: "Przygotuj strukturę, komunikaty i materiały do Google Ads, Meta Ads, LinkedIn Ads i TikTok Ads.",
       icon: Megaphone,
     },
     {
       id: "obs-hooki",
-      title: "Hooki i pomysły",
-      body: "Generuj hooki, warianty pierwszego kontaktu, kąty narracji i pomysły kreatywne pod reklamy, treści organiczne i landing page’e.",
+      title: "Znajdź komunikaty, które przyciągają uwagę",
+      body: "Twórz hooki, nagłówki, kąty reklamowe i różne wersje tekstów do testowania.",
       icon: Sparkles,
     },
     {
       id: "obs-konkurencja",
-      title: "Analiza konkurencji",
-      body: "Zbieraj wnioski o konkurentach: przekazy, oferty, mocne i słabe strony komunikacji — jako podstawa pod strategię i kreacje.",
+      title: "Zobacz, jak komunikuje się konkurencja",
+      body: "Analizuj oferty, pozycjonowanie i sposób przedstawiania produktów przez inne firmy.",
       icon: Users,
     },
     {
       id: "obs-seo",
-      title: "SEO",
-      body: "Tematy artykułów, struktury stron, opisy usług, treści pod intencje, meta title, meta description i briefy contentowe.",
+      title: "Twórz treści, których szukają Twoi klienci",
+      body: "Przygotowuj materiały SEO dopasowane do oferty, słów kluczowych i intencji odbiorców.",
       icon: Search,
     },
     {
       id: "obs-email",
-      title: "Email marketing",
-      body: "Newslettery, sekwencje sprzedażowe, follow-upy, maile onboardingowe i komunikacja posprzedażowa.",
+      title: "Przygotuj maile bez pisania wszystkiego od początku",
+      body: "Twórz wiadomości sprzedażowe, newslettery i sekwencje dopasowane do celu kampanii.",
       icon: Mail,
     },
     {
       id: "obs-kalendarz",
-      title: "Kalendarz marketingowy",
-      body: "Harmonogram kampanii, publikacji, maili, promocji i launchy — jeden widok zamiast rozstrzelonych arkuszy.",
+      title: "Zaplanuj marketing z wyprzedzeniem",
+      body: "Uporządkuj publikacje, kampanie i zadania w jednym kalendarzu.",
       icon: CalendarDays,
     },
     {
       id: "obs-llm",
-      title: "Widoczność w AI",
-      body: "Sprawdzaj, czy marka i oferta są jasno opisane dla modeli AI i co poprawić, żeby były częściej obecne w odpowiedziach asystentów.",
+      title: "Sprawdź, jak systemy AI rozumieją Twoją markę",
+      body: "Analizuj obecność firmy w odpowiedziach AI i otrzymuj rekomendacje dotyczące widoczności.",
       icon: Eye,
     },
     {
       id: "obs-kreacje",
-      title: "Kreacje i materiały wizualne",
-      body: "Warianty kreacji reklamowych, grafiki pod kanały, key visual w kilku formatach i spójne nagłówki — bez przeskakiwania między osobnymi narzędziami do copy i do obrazów.",
+      title: "Twórz grafiki dopasowane do kampanii",
+      body: "Przygotowuj materiały reklamowe i produktowe bez korzystania z kolejnego osobnego narzędzia.",
       icon: Palette,
     },
   ];
@@ -418,11 +418,11 @@ function WhatYouHandle() {
       <div className="mx-auto max-w-[1600px] px-6 md:px-10 py-20 md:py-28">
         <div className="mb-14 md:mb-16 max-w-4xl">
           <h2 className="serif text-[clamp(2.2rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.03em] text-balance">
-            Co możesz <span className="italic font-light">obsłużyć</span> w MarketingNow?
+            Marketing nie powinien <span className="italic font-light">zajmować całego dnia</span>.
           </h2>
           <p className="mt-5 text-[16px] md:text-[17px] text-neutral-600 max-w-2xl leading-relaxed">
-            Jedno miejsce do planowania, tworzenia i obsługi marketingu — nie tylko „wygeneruj
-            tekst”, lecz cały przebieg pracy od strategii po materiały do publikacji.
+            Kampanie, treści, SEO, maile i planowanie w jednym workspace — od informacji o Twojej firmie do
+            gotowych materiałów.
           </p>
         </div>
         <ul className="grid grid-cols-1 gap-px bg-neutral-300 border border-neutral-300 sm:grid-cols-2">
