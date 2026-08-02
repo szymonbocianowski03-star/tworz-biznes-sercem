@@ -10,7 +10,6 @@ import {
   PLANS,
   PLAN_YEARLY_DISCOUNT_FRAC,
 } from "@/lib/plans";
-import { GrowthSalesWheel } from "@/components/GrowthSalesWheel";
 import { MarketingNowLogo } from "@/components/MarketingNowLogo";
 import { BillingPeriodToggle } from "@/components/SegmentedControl";
 import { TestimonialsShorts } from "@/components/TestimonialsShorts";
@@ -244,11 +243,12 @@ function Hero() {
             AI marketing workspace
           </p>
           <h1 className="serif text-[clamp(1.75rem,8vw,4.1rem)] leading-[1.08] tracking-[-0.03em] text-balance text-neutral-950">
-            Marketing firmy
-            <span className="block mt-1 md:mt-0.5">w jednym miejscu</span>
+            Przestań składać marketing
+            <span className="block mt-1 md:mt-0.5">z wielu różnych narzędzi</span>
           </h1>
           <p className="mt-4 sm:mt-5 text-[15px] sm:text-[16px] md:text-[18px] leading-[1.55] text-neutral-700 px-1">
-            Reklamy, hooki, analiza konkurencji, treści i widoczność marki w AI — na bazie DNA Twojej firmy, które platforma zapamiętuje raz na zawsze.
+            MarketingNow pomaga tworzyć kampanie reklamowe, treści, maile, SEO, grafiki oraz plan działań w
+            jednym miejscu — bez agencji, chaosu i zaczynania wszystkiego od zera.
           </p>
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2.5 sm:gap-3">
             <Link
@@ -256,7 +256,7 @@ function Hero() {
               onClick={() => sfx.success()}
               className="inline-flex w-full sm:w-auto items-center justify-center border border-neutral-950 bg-neutral-950 text-white px-6 py-3.5 text-[12px] md:text-[13px] font-semibold uppercase tracking-[0.12em] hover:bg-white hover:text-neutral-950 transition-colors text-center touch-manipulation"
             >
-              Rozpocznij za darmo
+              Stwórz pierwszą kampanię za darmo
             </Link>
             <button
               type="button"
@@ -266,11 +266,11 @@ function Hero() {
               }}
               className="inline-flex w-full sm:w-auto items-center justify-center border border-neutral-300 bg-white text-neutral-900 px-6 py-3.5 text-[12px] md:text-[13px] font-semibold uppercase tracking-[0.12em] hover:border-neutral-950 transition-colors touch-manipulation"
             >
-              {howOpen ? "Zwiń" : "Pokaż jak działa aplikacja"}
+              {howOpen ? "Zwiń" : "Zobacz, jak to działa"}
             </button>
           </div>
           <p className="mt-5 sm:mt-6 text-[10px] sm:text-[11px] md:text-[12px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-neutral-500 leading-relaxed px-2">
-            Reklamy · Hooki · Konkurencja · SEO · Maile · Kalendarz · Widoczność w AI
+            Bez karty płatniczej · 400 kredytów na start · możesz anulować w każdej chwili
           </p>
         </div>
 
@@ -327,10 +327,7 @@ function Hero() {
           </div>
         </div>
 
-        <div className="hidden md:block mt-14 md:mt-20 pb-14 md:pb-20">
-          <GrowthSalesWheel ctaTo="/auth" hideWheelCaption hideHeader />
-        </div>
-        <div className="md:hidden py-8 sm:py-10">
+        <div className="py-10 sm:py-12 md:py-16">
           <MobileDesktopNotice />
         </div>
       </div>
