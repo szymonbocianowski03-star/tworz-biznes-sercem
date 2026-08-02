@@ -463,7 +463,7 @@ function Pricing() {
       <div className="mx-auto max-w-[1600px] px-6 md:px-10 py-20 md:py-32">
         <div className="mb-16 max-w-5xl">
           <h2 className="serif text-[clamp(2.5rem,7vw,6rem)] leading-[0.95] tracking-[-0.03em]">
-            Te same ceny <span className="italic font-light">w aplikacji i tutaj</span>.
+            Wybierz plan dopasowany <span className="italic font-light">do skali Twojego marketingu</span>.
           </h2>
           <div className="mt-6 inline-flex items-center gap-3 bg-neutral-950 text-white px-4 py-2 text-[12px] uppercase tracking-[0.18em]">
             <span className="serif italic normal-case text-[16px]">Rocznie</span>−{pctOff}% przy
@@ -471,8 +471,8 @@ function Pricing() {
           </div>
           <p className="mt-6 text-[15px] text-neutral-600 max-w-xl">
             {yearly
-              ? `Ceny brutto przy rozliczeniu rocznym (−${pctOff}% vs suma 12 miesięcy). Wyższe plany zwiększają miesięczną pulę kredytów — szczegóły w aplikacji.`
-              : "Ceny brutto, miesięcznie. Wyższe plany zwiększają miesięczną pulę kredytów — szczegóły zobaczysz w aplikacji po zalogowaniu."}
+              ? `Zacznij bezpłatnie i przejdź na wyższy plan dopiero wtedy, gdy będziesz potrzebować większej liczby materiałów i kampanii. Ceny brutto przy rozliczeniu rocznym (−${pctOff}% vs suma 12 miesięcy).`
+              : "Zacznij bezpłatnie i przejdź na wyższy plan dopiero wtedy, gdy będziesz potrzebować większej liczby materiałów i kampanii. Ceny brutto, miesięcznie."}
           </p>
         </div>
 
@@ -566,7 +566,7 @@ function Pricing() {
                         : "border-neutral-950 hover:bg-neutral-950 hover:text-white"
                     }`}
                   >
-                    Załóż darmowe konto
+                    Zacznij za darmo
                   </Link>
                 ) : (
                   <Link
@@ -587,6 +587,10 @@ function Pricing() {
         </div>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[13px] text-neutral-600">
+          <p className="w-full text-center text-[14px] text-neutral-700">
+            Nie wiesz, który plan wybrać? Zacznij od darmowych 400 kredytów i sprawdź platformę bez podawania
+            karty.
+          </p>
           <span className="inline-flex items-center gap-2">
             <span className="serif italic">✓</span> Bez karty na start (Free)
           </span>
