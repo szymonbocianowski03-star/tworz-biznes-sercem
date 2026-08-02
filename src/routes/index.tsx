@@ -80,9 +80,9 @@ function Nav() {
     if (next) sfx.chime();
   };
   const navLinks = [
-    { href: "#panel", label: "DNA marki" },
+    { href: "#panel", label: "Jak to działa" },
     { href: "#co-obslugujesz", label: "Zakres" },
-    { href: "#growth-wheel", label: "Widoczność w AI" },
+    { href: "#growth-wheel", label: "Start" },
     { href: "#poznaj-opinie", label: "Opinie" },
     { href: "#cennik", label: "Cennik" },
     { href: "/program-partnerski", label: "Program partnerski", isRoute: true },
